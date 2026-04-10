@@ -1,0 +1,3610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Pricing calculator for automotive parts distribution. Calculate cost price, selling price, GP%, margin%, GST, and incentives on MRP.">
+<meta name="keywords" content="pricing calculator, automotive parts, MRP, GST, margin, GP, distributor, Sterling Spares">
+<meta name="author" content="Sterling Spares">
+<meta name="theme-color" content="#1a1916">
+<meta name="robots" content="noindex, nofollow">
+<meta property="og:title" content="Price Calc — Sterling Spares">
+<meta property="og:description" content="Calculate CP, SP, GP%, margin%, GST and incentives for automotive parts distribution.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Price Calc — Sterling Spares">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pricing Calc">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="https://sterlingspares.com/favicon.png">
+<link rel="apple-touch-icon" href="https://sterlingspares.com/favicon.png">
+<title>Price Calc — Sterling Spares</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f2ee;--surface:#fff;--surface2:#f9f8f6;
+  --border:#e2ddd6;--border2:#ccc7be;
+  --text:#1a1916;--text2:#6b6760;--text3:#a09c96;
+  --accent:#1a1916;--accent-fg:#fff;
+  --green:#1a6b45;--green-bg:#e8f5ef;--green-border:#a8d9bc;
+  --red:#8b2020;--red-bg:#faeaea;
+  --blue:#1a4a8b;--blue-bg:#e8eef8;--blue-border:#b8cbec;
+  --amber:#7a4e10;--amber-bg:#fdf3e3;--amber-border:#e8c87a;
+  --radius:10px;--radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);
+  --shadow-card:0 2px 8px rgba(0,0,0,0.06),0 8px 32px rgba(0,0,0,0.05);
+  --shadow-modal:0 8px 40px rgba(0,0,0,0.18),0 2px 8px rgba(0,0,0,0.1);
+}
+/* ── DARK MODE ── */
+html[data-theme="dark"]{
+  --bg:#141412;--surface:#1e1d1b;--surface2:#252421;
+  --border:#2e2c29;--border2:#3d3a36;
+  --text:#f0ede8;--text2:#9a9590;--text3:#5c5955;
+  --accent:#252421;--accent-fg:#f0ede8;
+  --green:#3dd68c;--green-bg:#0c261a;--green-border:#1a5235;
+  --red:#f08080;--red-bg:#2a1010;
+  --blue:#7aabf0;--blue-bg:#0e1e38;--blue-border:#1e3a70;
+  --amber:#e8b840;--amber-bg:#271e08;--amber-border:#6a5020;
+  --shadow:0 1px 3px rgba(0,0,0,0.3),0 4px 16px rgba(0,0,0,0.2);
+  --shadow-card:0 2px 8px rgba(0,0,0,0.3),0 8px 32px rgba(0,0,0,0.2);
+  --shadow-modal:0 8px 40px rgba(0,0,0,0.6),0 2px 8px rgba(0,0,0,0.4);
+}
+html[data-theme="dark"] .header{background:#111110}
+html[data-theme="dark"] .summary{background:#252421;border:1px solid var(--border)}
+html[data-theme="dark"] .summary .sum-lbl{color:rgba(240,237,232,0.35)}
+html[data-theme="dark"] .summary .sum-val{color:rgba(240,237,232,0.9)}
+html[data-theme="dark"] .modal-overlay{background:rgba(0,0,0,0.75)}
+html[data-theme="dark"] .mtab.on{box-shadow:0 1px 3px rgba(0,0,0,0.4)}
+html{font-size:16px;scroll-behavior:smooth;overflow-x:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;overflow-x:hidden;transition:background .2s,color .2s}
+
+/* ── HEADER ── */
+.header{background:var(--accent);color:var(--accent-fg);padding-left:max(clamp(1rem,4vw,2.5rem),env(safe-area-inset-left));padding-right:max(clamp(1rem,4vw,2.5rem),env(safe-area-inset-right));padding-top:calc(env(safe-area-inset-top,0px) + 10px);padding-bottom:10px;display:flex;align-items:center;justify-content:space-between;min-height:calc(56px + env(safe-area-inset-top,0px));position:fixed;top:0;left:0;right:0;z-index:200}
+.page-offset{height:calc(56px + env(safe-area-inset-top,0px))} /* spacer so sticky header doesn't cover content */
+.header-brand{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.header-brand::before{content:'';width:8px;height:8px;border-radius:50%;background:#e8c840;display:inline-block}
+.header-actions{display:flex;gap:6px;align-items:center}
+.hbtn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.2);background:transparent;font-size:11px;font-weight:500;color:rgba(255,255,255,0.75);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+.hbtn:hover{background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.4)}
+.hbtn-icon{width:30px;padding:0;justify-content:center;border-radius:50%;height:30px;flex-shrink:0}
+.hdivider{width:1px;height:20px;background:rgba(255,255,255,0.15);margin:0 2px}
+
+.page{max-width:1100px;margin:0 auto;padding:clamp(1.25rem,3vw,2.5rem) clamp(1rem,3vw,2rem)}
+
+/* ── CONTROL BAR ── */
+.control-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow)}
+.ctrl-group{display:flex;align-items:center;gap:8px}
+.ctrl-label{font-size:11px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.pill-group{display:flex;gap:3px}
+.pill{padding:5px 13px;border-radius:20px;border:1px solid var(--border);background:transparent;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+.pill:hover{border-color:var(--border2);color:var(--text)}
+.pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.divider{width:1px;height:24px;background:var(--border);flex-shrink:0}
+.sep{flex:1;min-width:8px}
+.btn-reset{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.btn-reset:hover{background:var(--surface2);color:var(--text);border-color:var(--accent)}
+
+/* ── MRP BAR ── */
+.mrp-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:1.25rem;box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.mrp-main{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mrp-label{font-family:'Syne',sans-serif;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);white-space:nowrap}
+.big-input{display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface2);transition:border .15s;overflow:hidden}
+.big-input:focus-within{border-color:var(--accent);background:var(--surface)}
+.big-input .sym{padding:0 12px;font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--text3);border-right:1px solid var(--border);height:44px;display:flex;align-items:center}
+.big-input input{border:none;outline:none;background:transparent;padding:0 14px;height:44px;font-size:22px;font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text);width:180px}
+.big-input-next{display:none;flex-shrink:0;width:34px;height:34px;border-radius:50%;border:none;background:var(--accent);color:var(--accent-fg);cursor:pointer;margin-right:6px;align-items:center;justify-content:center;opacity:0.7;transition:opacity .15s}
+.big-input-next:hover{opacity:1}
+@media(max-width:800px){.big-input-next{display:flex}}
+.mrp-meta{display:flex;gap:20px;flex-wrap:wrap}
+.mrp-stat{display:flex;flex-direction:column;gap:2px}
+.mrp-stat-lbl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-weight:500}
+.mrp-stat-val{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;color:var(--text2)}
+
+/* ── CARDS ── */
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:1.25rem}
+@media(max-width:800px){.cards{grid-template-columns:1fr}}
+@media(min-width:801px) and (max-width:960px){.cards{grid-template-columns:1fr 1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-card);transition:border-color .2s;display:flex;flex-direction:column;gap:12px}
+.card.computed{border-color:#1a4a8b;border-width:1.5px}
+.card.over-mrp{border-color:var(--red);border-width:1.5px}
+.price-alert{display:none;background:var(--red-bg);border:1px solid var(--red-border,#e8a8a8);border-radius:var(--radius-sm);padding:7px 10px;font-size:11px;color:var(--red);line-height:1.4;font-weight:500}
+.price-alert.show{display:block}
+.card-head{display:flex;align-items:center;justify-content:space-between}
+.card-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text2)}
+.badge{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:10px}
+.b-input{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
+.b-calc{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.mode-tabs{display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2)}
+.mtab{flex:1;padding:6px 4px;font-size:10.5px;font-weight:500;text-align:center;cursor:pointer;border:none;background:transparent;color:var(--text3);font-family:'DM Sans',sans-serif;transition:all .15s;line-height:1.3}
+.mtab:hover{color:var(--text2)}
+.mtab.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.07)}
+.mtab+.mtab{border-left:1px solid var(--border)}
+.sub-tabs{display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2)}
+.stab{flex:1;padding:4px 6px;font-size:10px;font-weight:500;text-align:center;cursor:pointer;border:none;background:transparent;color:var(--text3);font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text2)}
+.stab.on{background:var(--surface);color:var(--text);font-weight:600}
+.stab+.stab{border-left:1px solid var(--border)}
+.field{display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface2);overflow:hidden;transition:border .15s}
+.field:focus-within{border-color:var(--accent);background:var(--surface)}
+.field .sym{padding:0 10px;font-size:12px;font-weight:500;color:var(--text3);border-right:1px solid var(--border);height:38px;display:flex;align-items:center;white-space:nowrap;background:var(--surface2);flex-shrink:0}
+.field input{border:none;outline:none;background:transparent;padding:0 10px;height:38px;font-size:15px;font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text);width:100%;min-width:0}
+.field-next{display:none;flex-shrink:0;width:30px;height:30px;border-radius:50%;border:none;background:var(--accent);color:var(--accent-fg);cursor:pointer;margin-right:4px;align-items:center;justify-content:center;transition:opacity .15s;opacity:0.7}
+.field-next:hover{opacity:1}
+@media(max-width:800px){.field-next{display:flex}}
+.rows{display:flex;flex-direction:column}
+.row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border);gap:8px}
+.row:last-child{border-bottom:none;padding-bottom:0}
+.row-lbl{font-size:11.5px;color:var(--text2);line-height:1.3;max-width:58%}
+.row-val{font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:500;color:var(--text);white-space:nowrap;text-align:right}
+.row-val.dim{color:var(--text3)}
+.row-val.pos{color:var(--green)}
+.row-val.neg{color:var(--red)}
+.row-val.big{font-size:16px}
+.row-val.warn{color:var(--red)}
+.row-val.warn::after{content:' ▼';font-size:8px}
+.footnote{font-size:10.5px;color:var(--text3);font-style:italic;line-height:1.5}
+
+/* ── PANEL (incentives / history) ── */
+.panel{background:var(--surface);border-radius:var(--radius);margin-bottom:1.25rem;box-shadow:var(--shadow);overflow:hidden}
+.panel-amber{border:1px solid var(--amber-border)}
+.panel-gray{border:1px solid var(--border2)}
+.panel-green{border:1px solid var(--green-border)}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;user-select:none;gap:12px}
+.panel-amber .panel-header{background:var(--amber-bg);border-bottom:1px solid var(--amber-border)}
+.panel-gray .panel-header{background:var(--surface2);border-bottom:1px solid var(--border)}
+.panel-green .panel-header{background:var(--green-bg);border-bottom:1px solid var(--green-border)}
+.panel-header-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.panel-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.panel-amber .panel-title{color:var(--amber)}
+.panel-gray .panel-title{color:var(--text2)}
+.panel-tag{font-size:10px;font-weight:500;border-radius:10px;padding:2px 8px;white-space:nowrap}
+.panel-amber .panel-tag{color:var(--amber);background:rgba(122,78,16,0.1);border:1px solid var(--amber-border)}
+.panel-gray .panel-tag{color:var(--text2);background:var(--surface2);border:1px solid var(--border)}
+.panel-chevron{transition:transform .2s;flex-shrink:0}
+.panel-amber .panel-chevron{color:var(--amber)}
+.panel-gray .panel-chevron{color:var(--text2)}
+.panel-green .panel-title{color:var(--green)}
+.panel-green .panel-tag{color:var(--green);background:rgba(26,107,69,0.08);border:1px solid var(--green-border)}
+.panel-green .panel-chevron{color:var(--green)}
+.inc-row.sp-active{border-color:var(--green-border)}
+.panel-chevron.open{transform:rotate(180deg)}
+.panel-body{display:none;padding:14px 18px}
+
+/* inc rows */
+.inc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-bottom:12px}
+.inc-row{display:flex;flex-direction:column;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;transition:border-color .15s}
+.inc-row.active{border-color:var(--amber-border)}
+.inc-row-main{display:flex;align-items:center;gap:10px;padding:8px 12px}
+.inc-row-sub{display:none;padding:6px 12px 8px;border-top:1px solid var(--border);background:var(--surface)}
+.inc-row.active .inc-row-sub,.inc-row.sp-active .inc-row-sub{display:block}
+.inc-row.active .inc-row-main{background:var(--amber-bg)}
+.toggle{position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-track{position:absolute;inset:0;border-radius:18px;background:var(--border2);cursor:pointer;transition:background .2s}
+.toggle input:checked+.toggle-track{background:var(--amber)}
+#autosave-toggle:checked+.toggle-track,
+#autosave-toggle-settings:checked+.toggle-track,
+#darkmode-toggle:checked+.toggle-track{background:var(--green)}
+.toggle-thumb{position:absolute;height:12px;width:12px;border-radius:50%;background:white;top:3px;left:3px;transition:transform .2s;pointer-events:none}
+.toggle input:checked~.toggle-thumb{transform:translateX(14px)}
+.inc-name{flex:1;font-size:12px;font-weight:500;color:var(--text2);line-height:1.2}
+.inc-row.active .inc-name{color:var(--amber)}
+.inc-pct-wrap{display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface)}
+.inc-row.active .inc-pct-wrap{border-color:var(--amber-border)}
+.inc-pct-wrap input{border:none;outline:none;background:transparent;padding:4px 6px;width:52px;font-size:13px;font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text);text-align:right}
+.inc-pct-sym{padding:4px 6px 4px 2px;font-size:12px;color:var(--text3);font-weight:500}
+.inc-footer{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding-top:10px;border-top:1px solid var(--border)}
+.inc-total-item{display:flex;flex-direction:column;gap:1px}
+.inc-total-lbl{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);font-weight:500}
+.inc-total-val{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;color:var(--amber)}
+.inc-note{font-size:10.5px;color:var(--text3);font-style:italic;line-height:1.4;margin-left:auto;text-align:right}
+
+/* ── SUMMARY ── */
+.summary-wrap{margin-bottom:1.25rem}
+.summary{background:var(--accent);color:#fff;border-radius:var(--radius);padding:18px 20px;box-shadow:0 4px 20px rgba(26,25,22,0.2)}
+.summary-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
+.summary-title{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,0.45)}
+.btn-whatif{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);font-size:11px;font-weight:500;color:rgba(255,255,255,0.85);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+.btn-whatif:hover{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.4);color:#fff}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:16px 24px}
+.sum-lbl{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,0.4);font-weight:500;margin-bottom:3px}
+.sum-val{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:500;color:rgba(255,255,255,0.95)}
+.sum-val.pos{color:#6ee9a8}
+.sum-val.neg{color:#f87a7a}
+.sum-val.dim{color:rgba(255,255,255,0.3)}
+.sum-val.amber{color:#fcd97a}
+.sum-val.warn{color:#f87a7a}
+.sum-val.warn::after{content:' ▼';font-size:10px}
+
+/* ── HISTORY ── */
+.hist-table-wrap{overflow-x:auto;margin-top:2px}
+.hist-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.hist-table th{text-align:left;padding:6px 10px;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap}
+.hist-table td{padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+.hist-table tr:last-child td{border-bottom:none}
+.hist-table tr:hover td{background:var(--surface2)}
+.hist-table .td-lbl{font-family:'DM Sans',sans-serif;color:var(--text2);font-size:11px}
+.hist-table .td-pos{color:var(--green)}
+.hist-table .td-neg{color:var(--red)}
+.hist-table .td-warn{color:var(--red)}
+.hist-table .td-warn::after{content:' ▼';font-size:8px}
+.hist-table .td-amber{color:var(--amber)}
+.hist-empty{text-align:center;padding:28px;color:var(--text3);font-size:12px;font-style:italic}
+.hist-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--border);margin-top:2px}
+.hist-btn{padding:5px 13px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.hist-btn:hover{background:var(--surface2);color:var(--text)}
+.hist-btn.save{border-color:var(--blue);color:var(--blue)}
+.hist-btn.save:hover{background:var(--blue-bg)}
+.hist-btn.export{border-color:var(--green);color:var(--green)}
+.hist-btn.export:hover{background:var(--green-bg)}
+
+/* ── COMPARISON MODAL ── */
+.cmp-modal{max-width:860px}
+.cmp-meta{font-size:11.5px;color:var(--text2);margin-bottom:14px;display:flex;flex-wrap:wrap;gap:6px 20px}
+.cmp-meta span{white-space:nowrap}
+.cmp-meta strong{color:var(--text);font-weight:500}
+.cmp-grid{display:grid;grid-template-columns:minmax(140px,1.4fr) 1fr 1fr 1fr;gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+@media(max-width:560px){.cmp-grid{grid-template-columns:1fr 1fr 1fr 1fr;font-size:10.5px}}
+.cmp-hd{background:var(--surface2);padding:8px 10px;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);border-bottom:2px solid var(--border);border-right:1px solid var(--border)}
+.cmp-hd:last-child{border-right:none}
+.cmp-hd.cur{color:var(--blue);border-bottom-color:var(--blue)}
+.cmp-hd.sel{color:var(--amber);border-bottom-color:var(--amber)}
+.cmp-cell{padding:7px 10px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;display:flex;align-items:center}
+.cmp-cell:last-child{border-right:none}
+.cmp-cell.lbl{font-family:'DM Sans',sans-serif;font-size:11.5px;color:var(--text2);font-weight:400;background:var(--surface2)}
+.cmp-row:last-child .cmp-cell{border-bottom:none}
+.cmp-pos{color:var(--green)}
+.cmp-neg{color:var(--red)}
+.cmp-warn{color:var(--red)}
+.cmp-warn::after{content:' ▼';font-size:8px}
+.cmp-amber{color:var(--amber)}
+.cmp-delta{font-size:10.5px;display:flex;flex-direction:column;gap:1px}
+.cmp-delta .dv{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;white-space:nowrap}
+.cmp-delta .dv.up{color:var(--green)}
+.cmp-delta .dv.dn{color:var(--red)}
+.cmp-delta .dv.nt{color:var(--text3)}
+.cmp-hist-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;border:1px solid var(--blue-border);background:var(--blue-bg);font-size:10px;font-weight:500;color:var(--blue);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.cmp-hist-btn:hover{background:var(--blue);color:#fff}
+
+/* ── MODAL BASE ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,10,8,0.55);z-index:300;align-items:flex-start;justify-content:center;padding:clamp(1rem,3vw,2rem);overflow-y:auto;backdrop-filter:blur(2px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-modal);width:100%;max-width:720px;margin:auto;animation:modalIn .2s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(-12px) scale(0.98)}to{opacity:1;transform:none}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.modal-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text)}
+.modal-close{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text3);transition:all .15s;font-size:16px;font-family:sans-serif;line-height:1}
+.modal-close:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+.modal-body{padding:20px}
+.modal-section{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.modal-section:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.modal-section-title{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+
+/* ── SETTINGS MODAL ── */
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border-bottom:none}
+.settings-lbl{display:flex;flex-direction:column;gap:2px}
+.settings-lbl span{font-size:13px;font-weight:500;color:var(--text)}
+.settings-lbl small{font-size:11px;color:var(--text3)}
+.settings-control{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.floor-input-wrap{display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2)}
+.floor-input-wrap:focus-within{border-color:var(--accent)}
+.floor-input-wrap input{border:none;outline:none;background:transparent;padding:6px 8px;width:68px;font-size:14px;font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text);text-align:right}
+.floor-input-wrap span{padding:6px 9px 6px 2px;font-size:13px;color:var(--text3)}
+
+/* ── WHAT-IF MODAL ── */
+.wi-modal{max-width:900px}
+.wi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:600px){.wi-grid{grid-template-columns:1fr}}
+.wi-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;flex-direction:column;gap:10px}
+.wi-card-head{display:flex;align-items:center;justify-content:space-between}
+.wi-card-title{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--blue)}
+.wi-rows{display:flex;flex-direction:column}
+.wi-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--border);gap:8px}
+.wi-row:last-child{border-bottom:none;padding-bottom:0}
+.wi-lbl{font-size:11px;color:var(--text2);line-height:1.3}
+.wi-val{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:var(--text);white-space:nowrap}
+.wi-val.pos{color:var(--green)}
+.wi-val.neg{color:var(--red)}
+.wi-val.warn{color:var(--red)}
+.wi-val.warn::after{content:' ▼';font-size:7px}
+.wi-val.dim{color:var(--text3)}
+.wi-best{border-color:var(--blue);border-width:1.5px;background:var(--blue-bg)}
+.wi-best .wi-card-title{color:var(--blue)}
+.wi-cp-info{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:11.5px;color:var(--text2);display:flex;flex-wrap:wrap;gap:12px 24px}
+.wi-cp-info strong{font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text)}
+.wi-note{font-size:10.5px;color:var(--text3);font-style:italic;margin-top:12px}
+
+/* ── HEADER ACTIONS DROPDOWN (mobile) ── */
+.hactions-desktop{display:flex;gap:6px;align-items:center}
+.hactions-mobile{display:none;position:relative}
+@media(max-width:800px){
+  .hactions-desktop{display:none}
+  .hactions-mobile{display:block}
+}
+.hmenu-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);background:transparent;cursor:pointer;color:rgba(255,255,255,0.8);transition:all .15s}
+.hmenu-btn:hover{background:rgba(255,255,255,0.12);color:#fff}
+/* ── KEYBOARD SHORTCUTS MODAL ── */
+.kb-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px}
+@media(max-width:500px){.kb-grid{grid-template-columns:1fr}}
+.kb-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
+.kb-row:last-child{border-bottom:none}
+.kb-desc{font-size:12.5px;color:var(--text2)}
+.kb-keys{display:flex;gap:4px;flex-shrink:0}
+.kbd{display:inline-block;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);white-space:nowrap;box-shadow:0 1px 0 var(--border2)}
+.kb-section-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:12px 0 4px;grid-column:1/-1}
+
+/* ── ONBOARDING ── */
+.ob-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;padding:max(20px,env(safe-area-inset-top,20px)) 20px max(20px,env(safe-area-inset-bottom,20px));opacity:0;pointer-events:none;transition:opacity .3s}
+.ob-overlay.show{opacity:1;pointer-events:all}
+.ob-card{background:var(--surface);border-radius:20px;width:100%;max-width:420px;padding:32px 28px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.3);display:flex;flex-direction:column;gap:16px;position:relative}
+.ob-step-dots{display:flex;gap:6px;justify-content:center}
+.ob-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);transition:all .25s}
+.ob-dot.cur{background:var(--accent);width:18px;border-radius:3px}
+.ob-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;margin:0 auto}
+.ob-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;text-align:center;line-height:1.2;color:var(--text)}
+.ob-body{font-size:13.5px;color:var(--text2);line-height:1.65;text-align:center}
+.ob-actions{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:4px}
+.ob-btn-skip{background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;padding:8px 4px}
+.ob-btn-next{flex:1;padding:12px;border-radius:50px;border:none;background:var(--accent);color:var(--accent-fg);font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .15s}
+.ob-btn-next:hover{opacity:.88}
+.ob-tip{font-size:11.5px;color:var(--text2);text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;line-height:1.5}
+
+.hmenu-dropdown{display:none;position:absolute;right:0;top:calc(100% + 8px);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);min-width:160px;overflow:hidden;z-index:400}
+.hmenu-dropdown.open{display:block;animation:modalIn .15s ease}
+.hmenu-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;border:none;background:none;width:100%;text-align:left;transition:background .12s}
+.hmenu-item:hover{background:var(--surface2)}
+.hmenu-item svg{color:var(--text2);flex-shrink:0}
+.hmenu-sep{height:1px;background:var(--border);margin:2px 0}
+.mode-pill{padding:4px 11px;border-radius:18px;border:none;background:transparent;font-size:11px;font-weight:500;color:rgba(255,255,255,0.55);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+.mode-pill-on{background:rgba(255,255,255,0.18);color:#fff}
+
+/* ── FLASHCARD MODE ── */
+#quick-mode{display:none;min-height:calc(100vh - 56px);padding:clamp(1rem,3vw,1.5rem) clamp(1rem,3vw,2rem) clamp(5rem,12vw,7rem);max-width:520px;margin:0 auto;padding-top:calc(clamp(1rem,3vw,1.5rem) + env(safe-area-inset-top,0px) + 56px)}
+.fc-progress{display:flex;gap:6px;margin-bottom:1.5rem;justify-content:center}
+.fc-dot{height:4px;flex:1;max-width:44px;border-radius:2px;background:rgba(255,255,255,0.2);transition:background .3s}
+.fc-dot.done{background:rgba(255,255,255,0.9)}
+.fc-dot.cur{background:var(--accent);opacity:1}
+html[data-theme="dark"] .fc-dot{background:var(--border)}
+html[data-theme="dark"] .fc-dot.cur{background:var(--text)}
+
+.fc-stack{position:relative;height:460px;touch-action:pan-y}
+@media(max-height:700px){.fc-stack{height:400px}}
+
+.fc-card{
+  position:absolute;inset:0;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:28px 24px 24px;
+  display:flex;flex-direction:column;gap:16px;
+  box-shadow:0 8px 40px rgba(0,0,0,0.1),0 2px 8px rgba(0,0,0,0.06);
+  transition:transform .35s cubic-bezier(.25,.46,.45,.94),opacity .35s ease;
+  will-change:transform,opacity;
+  cursor:default;
+  user-select:none;
+}
+.fc-card.behind-1{transform:scale(0.95) translateY(18px);z-index:1;pointer-events:none}
+.fc-card.behind-2{transform:scale(0.90) translateY(36px);z-index:0;pointer-events:none}
+.fc-card.active{z-index:10;transform:none;opacity:1}
+.fc-card.entering{z-index:10} /* hold z-index during slide-in RAF */
+.fc-card.exit-left{transform:translateX(-110%) rotate(-12deg);opacity:0;z-index:11;transition:transform .35s cubic-bezier(.55,.06,.68,.19),opacity .3s}
+.fc-card.exit-right{transform:translateX(110%) rotate(12deg);opacity:0;z-index:11;transition:transform .35s cubic-bezier(.55,.06,.68,.19),opacity .3s}
+.fc-card.dragging{transition:none!important;z-index:12}
+/* Behind cards: hide ALL content completely */
+.fc-card.behind-1 > *,
+.fc-card.behind-2 > *{visibility:hidden;pointer-events:none}
+
+.fc-card-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.fc-card-icon.mrp{background:#1a191614;color:var(--text2)}
+.fc-card-icon.cp{background:var(--blue-bg);color:var(--blue)}
+.fc-card-icon.sp{background:var(--green-bg);color:var(--green)}
+.fc-card-icon.result{background:var(--amber-bg);color:var(--amber)}
+
+.fc-card-label{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
+.fc-card-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--text);line-height:1.1}
+.fc-card-sub{font-size:12.5px;color:var(--text2);line-height:1.5}
+
+.fc-input-wrap{display:flex;align-items:center;background:var(--surface2);border:2px solid var(--border2);border-radius:12px;overflow:hidden;transition:border .15s;margin-top:4px}
+.fc-input-wrap:focus-within{border-color:var(--accent)}
+.fc-input-sym{padding:0 14px;font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--text3);border-right:1px solid var(--border);height:56px;display:flex;align-items:center}
+.fc-input{border:none;outline:none;background:transparent;padding:0 16px;height:56px;font-size:26px;font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text);width:100%;min-width:0;user-select:text;-webkit-user-select:text}
+
+.fc-mode-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.fc-tab{padding:6px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-size:11.5px;font-weight:500;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.fc-tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.fc-result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1}
+.fc-result-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}
+.fc-result-item.wide{grid-column:1/-1}
+.fc-result-item.profit-pos{background:var(--green-bg);border-color:var(--green-border)}
+.fc-result-item.profit-neg{background:var(--red-bg);border-color:#e8a8a8}
+.fc-result-lbl{font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
+.fc-result-val{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:500;color:var(--text)}
+.fc-result-val.pos{color:var(--green)}
+.fc-result-val.neg{color:var(--red)}
+.fc-result-val.warn{color:var(--red)}
+.fc-result-val.amber{color:var(--amber)}
+.fc-result-val.big{font-size:22px}
+.fc-over-alert{font-size:11px;color:var(--red);background:var(--red-bg);border:1px solid #e8a8a8;border-radius:8px;padding:7px 10px;line-height:1.4}
+
+.fc-actions{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:16px}
+.fc-btn{display:flex;align-items:center;gap:7px;padding:10px 22px;border-radius:50px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.fc-btn-next{background:var(--accent);color:var(--accent-fg);box-shadow:0 4px 14px rgba(0,0,0,0.18)}
+.fc-btn-next:hover{opacity:.9}
+.fc-btn-back{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.fc-btn-back:hover{color:var(--text);border-color:var(--border2)}
+.fc-btn-full{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.fc-btn-full:hover{background:var(--blue);color:#fff}
+.fc-swipe-hint{font-size:10.5px;color:var(--text3);text-align:center}
+
+.fc-hint-chip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px 9px}
+
+/* ── WIZARD MODE ── */
+#wizard-mode{display:none;padding:clamp(1rem,3vw,1.5rem) clamp(1rem,3vw,2rem) calc(80px + env(safe-area-inset-bottom,0px) + 1rem);max-width:640px;margin:0 auto}
+.wz-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px;box-shadow:var(--shadow)}
+.wz-section-title{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.wz-section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.wz-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.wz-row:last-child{margin-bottom:0}
+.wz-lbl{font-size:12.5px;color:var(--text2);min-width:110px;flex-shrink:0}
+.wz-field{display:flex;align-items:center;background:var(--surface2);border:1.5px solid var(--border2);border-radius:8px;overflow:hidden;flex:1;transition:border .15s}
+.wz-field:focus-within{border-color:var(--accent)}
+.wz-sym{padding:0 10px;font-size:13px;font-weight:600;color:var(--text3);border-right:1px solid var(--border);height:36px;display:flex;align-items:center;white-space:nowrap;background:var(--surface)}
+.wz-input{border:none;outline:none;background:transparent;padding:0 10px;height:36px;font-size:15px;font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text);width:100%;min-width:0;user-select:text;-webkit-user-select:text}
+.wz-inc-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.wz-inc-row:last-child{border-bottom:none}
+.wz-inc-lbl{font-size:12px;color:var(--text2);flex:1}
+.wz-inc-field{display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;overflow:hidden;width:100px;flex-shrink:0}
+.wz-inc-input{border:none;outline:none;background:transparent;padding:0 8px;height:30px;font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--text);width:100%;min-width:0}
+.wz-inc-sym{padding:0 7px;font-size:11.5px;color:var(--text3);background:var(--surface);border-left:1px solid var(--border);height:30px;display:flex;align-items:center}
+.wz-results{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.wz-results-title{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:12px 18px 0;color:var(--text3)}
+.wz-results-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-radius:0 0 var(--radius) var(--radius);overflow:hidden;margin-top:10px}
+.wz-res-item{background:var(--surface);padding:12px 16px;display:flex;flex-direction:column;gap:3px}
+.wz-res-item.wide{grid-column:1/-1;background:var(--surface2)}
+.wz-res-lbl{font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)}
+.wz-res-val{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:500;color:var(--text)}
+.wz-res-val.pos{color:var(--green)}
+.wz-res-val.neg{color:var(--red)}
+.wz-res-val.warn{color:var(--red)}
+.wz-res-val.amber{color:var(--amber)}
+.wz-res-val.big{font-size:22px}
+.wz-alert{background:var(--red-bg);border:1px solid #e8a8a8;border-radius:8px;padding:8px 12px;font-size:11.5px;color:var(--red);margin:10px 18px;line-height:1.4}
+.wz-toggle-row{display:flex;align-items:center;gap:8px;padding:6px 0}
+.wz-toggle-lbl{font-size:12px;color:var(--text2);flex:1}
+@media(max-width:800px){
+  .page{padding-bottom:80px} /* space for bottom nav */
+  .footer{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px) + 1rem)}
+  .big-input input{width:140px}
+}
+
+/* ── ACCORDION (card rows) ── */
+.acc-toggle{display:none;width:100%;background:none;border:none;padding:0;cursor:pointer;font-family:'DM Sans',sans-serif}
+.acc-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 0 2px;border-top:1px solid var(--border);margin-top:4px}
+.acc-lbl{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:.04em}
+.acc-chevron{transition:transform .2s;color:var(--text3);flex-shrink:0}
+.acc-chevron.open{transform:rotate(180deg)}
+.acc-body{overflow:hidden;transition:max-height .25s ease}
+@media(max-width:800px){
+  .acc-toggle{display:block}
+  .acc-body{max-height:0}
+  .acc-body.open{max-height:400px}
+}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,0.08);padding:6px 0 env(safe-area-inset-bottom,6px)}
+@media(max-width:800px){.bottom-nav{display:flex}}
+.bnav-items{display:flex;width:100%;justify-content:space-around;padding-left:env(safe-area-inset-left,8px);padding-right:env(safe-area-inset-right,8px)}
+.bnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 8px;border:none;background:none;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text3);font-size:9.5px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;min-width:0;flex:1;transition:color .15s}
+.bnav-item:hover,.bnav-item.active{color:var(--accent)}
+html[data-theme="dark"] .bnav-item:hover,html[data-theme="dark"] .bnav-item.active{color:var(--text)}
+.bnav-icon{width:20px;height:20px;flex-shrink:0}
+
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+
+/* ── MICRO ANIMATIONS ── */
+.footer{text-align:center;padding:2rem 1rem 1.5rem;font-size:11px;color:var(--text3);letter-spacing:.04em}
+@keyframes pressDown{0%{transform:scale(1)}50%{transform:scale(0.94)}100%{transform:scale(1)}}
+@keyframes popIn{0%{transform:scale(0.85);opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+@keyframes slideUp{0%{transform:translateY(8px);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes dotPop{0%{transform:scaleX(1)}40%{transform:scaleX(1.4)}100%{transform:scaleX(1)}}
+@keyframes cardBounce{0%{transform:translateX(0) scale(1)}15%{transform:translateX(-3px) scale(1.01)}35%{transform:translateX(2px) scale(1)}55%{transform:translateX(-1px)}75%{transform:translateX(1px)}100%{transform:translateX(0) scale(1)}}
+@keyframes valReveal{0%{opacity:0;transform:translateY(4px) scale(0.95)}100%{opacity:1;transform:none}}
+@keyframes ripple{0%{transform:scale(0);opacity:.35}100%{transform:scale(2.5);opacity:0}}
+
+/* Button active press */
+.pill:active,.btn-reset:active,.mtab:active,.stab:active,.hbtn:active,.fc-tab:active{animation:pressDown .18s ease}
+.fc-btn:active{animation:pressDown .15s ease;transform:scale(0.97)}
+.hmenu-item:active{animation:pressDown .12s ease}
+.toggle-track{cursor:pointer}
+
+/* Progress dot active pop */
+.fc-dot.cur{animation:dotPop .3s ease}
+
+/* Result card value stagger reveal */
+.fc-result-item{animation:slideUp .28s ease both}
+.fc-result-item:nth-child(1){animation-delay:.04s}
+.fc-result-item:nth-child(2){animation-delay:.08s}
+.fc-result-item:nth-child(3){animation-delay:.12s}
+.fc-result-item:nth-child(4){animation-delay:.16s}
+.fc-result-item:nth-child(5){animation-delay:.20s}
+.fc-result-item:nth-child(6){animation-delay:.24s}
+.fc-result-item:nth-child(7){animation-delay:.28s}
+.fc-result-item:nth-child(8){animation-delay:.32s}
+.fc-result-item:nth-child(9){animation-delay:.36s}
+
+/* Input focus ring glow */
+.fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(26,25,22,0.1)}
+html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(240,237,232,0.12)}
+
+/* Ripple container for fc-btn-next */
+.fc-btn-next{position:relative;overflow:hidden}
+.fc-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.35);width:60px;height:60px;margin-top:-30px;margin-left:-30px;animation:ripple .5s ease-out forwards;pointer-events:none}
+
+/* Summary value pop when updated */
+.sum-val.updated{animation:popIn .22s ease}
+
+/* History row slide in */
+.hist-table tbody tr{animation:slideUp .2s ease both}
+
+/* Mode toggle pop */
+.mode-pill-on{animation:popIn .18s ease}
+.card{animation:fadeIn .3s ease both}
+.card:nth-child(1){animation-delay:.05s}
+.card:nth-child(2){animation-delay:.10s}
+.card:nth-child(3){animation-delay:.15s}
+
+@media print{
+  .header,.control-bar,.mrp-bar,.cards,.panel,.footer,
+  .hist-actions,.hbtn,.btn-reset,.modal-overlay{display:none!important}
+  body{background:white}
+  .page{padding:0;max-width:100%}
+  .summary{border-radius:0;box-shadow:none;padding:16px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{margin:1.5cm}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="header">
+  <div class="header-brand">Price Calc</div>
+  <div class="header-actions">
+    <!-- Mode toggle -->
+    <div style="display:flex;background:rgba(255,255,255,0.1);border-radius:20px;padding:2px;gap:1px">
+      <button id="mode-default" class="mode-pill mode-pill-on" onclick="setMode('default')">Default</button>
+      <button id="mode-quick"   class="mode-pill"              onclick="setMode('quick')">Quick</button>
+    </div>
+    <div class="hdivider"></div>
+    <!-- Desktop actions -->
+    <div class="hactions-desktop">
+      <button class="hbtn" id="share-btn" onclick="shareLink()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="9.5" cy="2.5" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="9.5" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="2.5" cy="6" r="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.7l4 2M4 5.3l4-2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Share
+      </button>
+      <button class="hbtn" onclick="saveToHistory()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 9v1.5a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Save
+      </button>
+      <button class="hbtn" id="copy-btn" onclick="copyToClipboard()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="4" y="1" width="7" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M1 3.5V10a1 1 0 001 1h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Copy
+      </button>
+      <button class="hbtn" onclick="exportPDF()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1" width="9" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        PDF
+      </button>
+      <div class="hdivider"></div>
+      <button class="hbtn hbtn-icon" onclick="openModal('shortcuts')" title="Keyboard shortcuts (?)">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 6.2C6.5 5.3 7.1 4.7 8 4.7c.9 0 1.5.6 1.5 1.4 0 .7-.4 1.1-1 1.5C7.8 8 7.5 8.4 7.5 9v.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="7.5" cy="11" r=".7" fill="currentColor"/></svg>
+      </button>
+      <button class="hbtn hbtn-icon" onclick="openModal('settings')" title="Settings">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M4 5h12M4 10h12M4 15h12"/><circle cx="7" cy="5" r="1.8" fill="rgba(255,255,255,0.15)" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="10" r="1.8" fill="rgba(255,255,255,0.15)" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="15" r="1.8" fill="rgba(255,255,255,0.15)" stroke="currentColor" stroke-width="1.4"/></svg>
+      </button>
+    </div>
+
+    <!-- Mobile hamburger -->
+    <div class="hactions-mobile">
+      <button class="hmenu-btn" onclick="toggleHMenu()" id="hmenu-btn" aria-label="Menu">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <div class="hmenu-dropdown" id="hmenu-dropdown">
+        <button class="hmenu-item" onclick="shareLink();closeHMenu()">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><circle cx="9.5" cy="2.5" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="9.5" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="2.5" cy="6" r="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.7l4 2M4 5.3l4-2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Share link
+        </button>
+        <button class="hmenu-item" onclick="saveToHistory();closeHMenu()">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 9v1.5a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          Save to history
+        </button>
+        <button class="hmenu-item" id="copy-btn" onclick="copyToClipboard();closeHMenu()">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><rect x="4" y="1" width="7" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M1 3.5V10a1 1 0 001 1h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Copy summary
+        </button>
+        <button class="hmenu-item" onclick="exportPDF();closeHMenu()">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1" width="9" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Export PDF
+        </button>
+        <div class="hmenu-sep"></div>
+        <button class="hmenu-item" onclick="sendWhatsApp();closeHMenu()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20.5 3.5A12 12 0 003.6 19.3L2 22l2.8-1.5A12 12 0 1020.5 3.5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 10.5c.5 1 1.5 2.5 3 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8.5 8.5c.5.5 1 1.5 1 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13 14c.5 0 1.5.5 2 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          WhatsApp summary
+        </button>
+        <button class="hmenu-item" onclick="sendEmail();closeHMenu()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 4l6 4 6-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Email summary
+        </button>
+        <div class="hmenu-sep"></div>
+        <button class="hmenu-item" onclick="openModal('shortcuts');closeHMenu()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 6.2C6.5 5.3 7.1 4.7 8 4.7c.9 0 1.5.6 1.5 1.4 0 .7-.4 1.1-1 1.5C7.8 8 7.5 8.4 7.5 9v.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="7.5" cy="11" r=".7" fill="currentColor"/></svg>
+          Help &amp; shortcuts
+        </button>
+        <button class="hmenu-item" onclick="localStorage.removeItem('ob-done');closeHMenu();setTimeout(obShow,200)">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2C4.24 2 2 4.24 2 7s2.24 5 5 5 5-2.24 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 1.5l2 1.2-2 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Restart tour
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+<div class="page-offset"></div>
+
+<!-- ═══ PAGE ═══ -->
+<main class="page">
+
+  <!-- CONTROL BAR -->
+  <div class="control-bar">
+    <div class="ctrl-group">
+      <span class="ctrl-label">GST</span>
+      <div class="pill-group">
+        <button class="pill on" id="g18" onclick="setGST(18)">18%</button>
+        <button class="pill"    id="g5"  onclick="setGST(5)">5%</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Calculate</span>
+      <div class="pill-group">
+        <button class="pill on" id="tprofit" onclick="setT('profit')">Profit</button>
+        <button class="pill"    id="tsp"     onclick="setT('sp')">Selling Price</button>
+        <button class="pill"    id="tcp"     onclick="setT('cp')">Cost Price</button>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <button class="btn-reset" onclick="resetAll()">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2C4.24 2 2 4.24 2 7s2.24 5 5 5 5-2.24 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 1.5l2 1.2-2 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Reset
+    </button>
+  </div>
+
+  <!-- MRP BAR -->
+  <div class="mrp-bar">
+    <div class="mrp-main">
+      <span class="mrp-label">MRP (incl. GST)</span>
+      <div class="big-input">
+        <span class="sym">₹</span>
+        <input type="text" inputmode="decimal" id="mrp" value="100" autocomplete="off" oninput="onMrpInput(this)" placeholder="0" style="font-variant-numeric:tabular-nums">
+        <button class="big-input-next" onclick="nextFrom('mrp')" title="Next" tabindex="-1">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="mrp-meta">
+      <div class="mrp-stat"><span class="mrp-stat-lbl">Excl. GST</span><span class="mrp-stat-val" id="mx">—</span></div>
+      <div class="mrp-stat"><span class="mrp-stat-lbl">GST Amount</span><span class="mrp-stat-val" id="mg">—</span></div>
+      <div class="mrp-stat"><span class="mrp-stat-lbl">GST Rate</span><span class="mrp-stat-val" id="grate">18%</span></div>
+    </div>
+  </div>
+
+  <!-- THREE CARDS -->
+  <div class="cards" id="sec-calc">
+
+    <!-- COST PRICE -->
+    <div class="card" id="cpc">
+      <div class="card-head"><span class="card-title">Cost Price</span><span class="badge b-input" id="cpb">Input</span></div>
+      <div class="mode-tabs" id="cp-mode-tabs">
+        <button class="mtab on" id="cme"  onclick="setCM('excl')">Discount<br>+ GST</button>
+        <button class="mtab"    id="cmi"  onclick="setCM('incl')">Nett<br>Discount %</button>
+        <button class="mtab"    id="cmm"  onclick="setCM('manual')">Enter ₹<br>directly</button>
+      </div>
+      <div class="field" id="cpf-disc">
+        <span class="sym">Disc %</span>
+        <input type="number" inputmode="decimal" id="cpd" placeholder="e.g. 30" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off">
+        <button class="field-next" onclick="nextFrom('cpd')" title="Next" tabindex="-1">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div id="cpf-manual" style="display:none;flex-direction:column;gap:8px">
+        <div class="sub-tabs">
+          <button class="stab on" id="cpm-incl" onclick="setCPManual('incl')">CP incl GST</button>
+          <button class="stab"    id="cpm-excl" onclick="setCPManual('excl')">CP excl GST</button>
+        </div>
+        <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="cpv" placeholder="e.g. 77.88" oninput="onAmtInput(this)" autocomplete="off">
+          <button class="field-next" onclick="nextFrom('cpv')" title="Next" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+      <button class="acc-toggle" onclick="toggleAcc('cp')" id="acc-btn-cp">
+        <div class="acc-bar">
+          <span class="acc-lbl">Show details</span>
+          <svg class="acc-chevron" id="acc-chev-cp" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="acc-body" id="acc-body-cp">
+        <div class="rows">
+          <div class="row"><span class="row-lbl">Discount + GST %</span><span class="row-val" id="cde">—</span></div>
+          <div class="row"><span class="row-lbl">Nett Discount %</span><span class="row-val" id="cdi">—</span></div>
+          <div class="row"><span class="row-lbl">CP excl GST</span><span class="row-val" id="cve">—</span></div>
+          <div class="row"><span class="row-lbl">CP incl GST</span><span class="row-val" id="cvi">—</span></div>
+          <div class="row"><span class="row-lbl">GST amount on CP</span><span class="row-val dim" id="cga">—</span></div>
+        </div>
+        <p class="footnote" id="cp-footnote">Enter disc % in either mode — both shown above.</p>
+        <div class="price-alert" id="cp-alert">⚠ CP incl GST exceeds MRP. Landed cost is above the sticker price.</div>
+      </div>
+    </div><!-- /cpc -->
+
+    <!-- SELLING PRICE -->
+    <div class="card" id="spc">
+      <div class="card-head"><span class="card-title">Selling Price</span><span class="badge b-input" id="spb">Input</span></div>
+      <div class="mode-tabs" id="sp-mode-tabs">
+        <button class="mtab on" id="sme" onclick="setSM('excl')">Discount<br>+ GST</button>
+        <button class="mtab"    id="smi" onclick="setSM('incl')">Nett<br>Discount %</button>
+        <button class="mtab"    id="smm" onclick="setSM('manual')">Enter ₹<br>directly</button>
+      </div>
+      <div class="field" id="spf-disc">
+        <span class="sym">Disc %</span>
+        <input type="number" inputmode="decimal" id="spd" placeholder="e.g. 20" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off">
+        <button class="field-next" onclick="nextFrom('spd')" title="Next" tabindex="-1">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div id="spf-manual" style="display:none;flex-direction:column;gap:8px">
+        <div class="sub-tabs">
+          <button class="stab on" id="spm-incl" onclick="setSPManual('incl')">SP incl GST</button>
+          <button class="stab"    id="spm-excl" onclick="setSPManual('excl')">SP excl GST</button>
+        </div>
+        <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="spv" placeholder="e.g. 90.00" oninput="onAmtInput(this)" autocomplete="off">
+          <button class="field-next" onclick="nextFrom('spv')" title="Next" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+      <button class="acc-toggle" onclick="toggleAcc('sp')" id="acc-btn-sp">
+        <div class="acc-bar">
+          <span class="acc-lbl">Show details</span>
+          <svg class="acc-chevron" id="acc-chev-sp" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="acc-body" id="acc-body-sp">
+        <div class="rows">
+          <div class="row"><span class="row-lbl">Discount + GST %</span><span class="row-val" id="sde">—</span></div>
+          <div class="row"><span class="row-lbl">Nett Discount %</span><span class="row-val" id="sdi">—</span></div>
+          <div class="row"><span class="row-lbl">SP excl GST</span><span class="row-val" id="sve">—</span></div>
+          <div class="row"><span class="row-lbl">SP incl GST</span><span class="row-val" id="svi">—</span></div>
+          <div class="row"><span class="row-lbl">GST amount on SP</span><span class="row-val dim" id="sga">—</span></div>
+        </div>
+        <p class="footnote" id="sp-footnote">Enter disc % in either mode — both shown above.</p>
+        <div class="price-alert" id="sp-alert">⚠ SP incl GST exceeds MRP. You are selling above the sticker price.</div>
+      </div>
+    </div><!-- /spc -->
+    <div class="card computed" id="prc">
+      <div class="card-head"><span class="card-title">Profit</span><span class="badge b-calc" id="prb">Calculated</span></div>
+      <div class="mode-tabs" id="pmt" style="display:none">
+        <button class="mtab on" id="pmv" onclick="setPM('val')">₹ Value</button>
+        <button class="mtab"    id="pmg" onclick="setPM('gp')">GP %</button>
+        <button class="mtab"    id="pmm" onclick="setPM('margin')">Margin %</button>
+      </div>
+      <div class="field" id="prf" style="display:none">
+        <span class="sym" id="pru">₹</span>
+        <input type="text" inputmode="decimal" id="pri" placeholder="0.00" oninput="onAmtInput(this)" autocomplete="off">
+      </div>
+      <div class="rows">
+        <div class="row"><span class="row-lbl">Profit (excl GST basis)</span><span class="row-val big" id="pvv">—</span></div>
+        <div class="row"><span class="row-lbl">GP % <span style="font-weight:300;font-size:10px">(profit ÷ SP)</span></span><span class="row-val" id="pgp">—</span></div>
+        <div class="row"><span class="row-lbl">Margin % <span style="font-weight:300;font-size:10px">(profit ÷ eff. CP)</span></span><span class="row-val" id="pmrg">—</span></div>
+        <div class="row"><span class="row-lbl">Absolute spread</span><span class="row-val dim" id="pspd">—</span></div>
+      </div>
+      <p class="footnote">Profit = Eff. SP excl GST − Eff. CP excl GST (after all incentives).</p>
+    </div>
+  </div>
+
+  <!-- INCENTIVES PANEL -->
+  <div class="panel panel-amber" id="sec-inc">
+    <div class="panel-header" onclick="togglePanel('inc')">
+      <div class="panel-header-left">
+        <span class="panel-title">Incentives on CP</span>
+        <span class="panel-tag" id="inc-summary-tag">All off — 0.00%</span>
+      </div>
+      <svg class="panel-chevron" id="chev-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="panel-body" id="body-inc">
+      <div class="inc-grid">
+        <div class="inc-row" id="ir-cd">
+          <div class="inc-row-main">
+            <label class="toggle"><input type="checkbox" id="it-cd" onchange="syncToggle('cd');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+            <span class="inc-name">Cash Discount (CD)</span>
+            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="iv-cd" value="2" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
+          </div>
+          <div class="inc-row-sub">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Calculate CD on:</div>
+            <div class="sub-tabs" style="width:100%">
+              <button class="stab on" id="cdm-before" onclick="setCDMode('before')" style="padding:6px 8px;line-height:1.3">CP excl GST<br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button>
+              <button class="stab"    id="cdm-after"  onclick="setCDMode('after')"  style="padding:6px 8px;line-height:1.3">CP incl GST<br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="inc-row" id="ir-eb">
+          <div class="inc-row-main">
+            <label class="toggle"><input type="checkbox" id="it-eb" onchange="syncToggle('eb');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+            <span class="inc-name">Early Bird Discount</span>
+            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="iv-eb" value="1" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
+          </div>
+        </div>
+        <div class="inc-row" id="ir-qt">
+          <div class="inc-row-main">
+            <label class="toggle"><input type="checkbox" id="it-qt" onchange="syncToggle('qt');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+            <span class="inc-name">Quarterly Discount</span>
+            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="iv-qt" value="2" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
+          </div>
+        </div>
+        <div class="inc-row" id="ir-an">
+          <div class="inc-row-main">
+            <label class="toggle"><input type="checkbox" id="it-an" onchange="syncToggle('an');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+            <span class="inc-name">Annual Discount</span>
+            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="iv-an" value="1" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
+          </div>
+        </div>
+        <!-- SCHEME -->
+        <div class="inc-row" id="ir-sc">
+          <div class="inc-row-main">
+            <label class="toggle"><input type="checkbox" id="it-sc" onchange="syncToggle('sc');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+            <span class="inc-name">Scheme</span>
+            <div class="inc-pct-wrap" id="sc-pct-wrap">
+              <input type="number" inputmode="decimal" id="iv-sc" value="" placeholder="0" min="0" step="0.01" oninput="calc()" autocomplete="off">
+              <span class="inc-pct-sym" id="sc-unit">%</span>
+            </div>
+          </div>
+          <div class="inc-row-sub" id="sc-sub">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div>
+            <div class="sub-tabs" style="width:100%">
+              <button class="stab on" id="scm-pct" onclick="setSchemeMode('pct')" style="padding:6px 8px;line-height:1.3">% of CP excl GST<br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button>
+              <button class="stab"    id="scm-abs" onclick="setSchemeMode('abs')" style="padding:6px 8px;line-height:1.3">₹ Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="inc-footer">
+        <div class="inc-total-item"><span class="inc-total-lbl">Total incentive ₹</span><span class="inc-total-val" id="inc-total-inr">—</span></div>
+        <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on CP</span><span class="inc-total-val" id="inc-total-pct">0.00%</span></div>
+        <div class="inc-total-item"><span class="inc-total-lbl">Effective CP excl GST</span><span class="inc-total-val" id="inc-eff-cp">—</span></div>
+        <p class="inc-note">CD can be on CP excl or incl GST.<br>Scheme can be % or fixed ₹. All others on CP excl GST.</p>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <!-- SP INCENTIVES PANEL -->
+  <div class="panel panel-green" id="sec-sp-inc">
+    <div class="panel-header" onclick="togglePanel('sp-inc')">
+      <div class="panel-header-left">
+        <span class="panel-title">Incentives on SP</span>
+        <span class="panel-tag" id="sp-inc-summary-tag">All off — 0.00%</span>
+      </div>
+      <svg class="panel-chevron" id="chev-sp-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="panel-body" id="body-sp-inc">
+      <p style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5">Optional discounts to customer that reduce effective selling price. Profit = Eff. SP − Eff. CP.</p>
+      <div class="inc-grid">
+        <div class="inc-row" id="sir-cd">
+          <div class="inc-row-main">
+            <label class="toggle"><input type="checkbox" id="sit-cd" onchange="syncSpToggle('cd');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+            <span class="inc-name">Cash Discount (CD)</span>
+            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="siv-cd" value="2" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
+          </div>
+          <div class="inc-row-sub">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Calculate CD on:</div>
+            <div class="sub-tabs" style="width:100%">
+              <button class="stab on" id="scdm-before" onclick="setSCDMode('before')" style="padding:6px 8px;line-height:1.3">SP excl GST<br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button>
+              <button class="stab"    id="scdm-after"  onclick="setSCDMode('after')"  style="padding:6px 8px;line-height:1.3">SP incl GST<br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="inc-row" id="sir-eb">
+          <div class="inc-row-main">
+            <label class="toggle"><input type="checkbox" id="sit-eb" onchange="syncSpToggle('eb');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+            <span class="inc-name">Early Bird Discount</span>
+            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="siv-eb" value="1" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
+          </div>
+        </div>
+        <div class="inc-row" id="sir-qt">
+          <div class="inc-row-main">
+            <label class="toggle"><input type="checkbox" id="sit-qt" onchange="syncSpToggle('qt');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+            <span class="inc-name">Quarterly Discount</span>
+            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="siv-qt" value="2" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
+          </div>
+        </div>
+        <div class="inc-row" id="sir-an">
+          <div class="inc-row-main">
+            <label class="toggle"><input type="checkbox" id="sit-an" onchange="syncSpToggle('an');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+            <span class="inc-name">Annual Discount</span>
+            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="siv-an" value="1" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
+          </div>
+        </div>
+        <!-- SP SCHEME -->
+        <div class="inc-row" id="sir-sc">
+          <div class="inc-row-main">
+            <label class="toggle"><input type="checkbox" id="sit-sc" onchange="syncSpToggle('sc');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+            <span class="inc-name">Scheme</span>
+            <div class="inc-pct-wrap">
+              <input type="number" inputmode="decimal" id="siv-sc" value="" placeholder="0" min="0" step="0.01" oninput="calc()" autocomplete="off">
+              <span class="inc-pct-sym" id="ssc-unit">%</span>
+            </div>
+          </div>
+          <div class="inc-row-sub">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div>
+            <div class="sub-tabs" style="width:100%">
+              <button class="stab on" id="sscm-pct" onclick="setSpSchemeMode('pct')" style="padding:6px 8px;line-height:1.3">% of SP excl GST<br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button>
+              <button class="stab"    id="sscm-abs" onclick="setSpSchemeMode('abs')" style="padding:6px 8px;line-height:1.3">₹ Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="inc-footer">
+        <div class="inc-total-item"><span class="inc-total-lbl">Total SP incentive ₹</span><span class="inc-total-val" id="sp-inc-total-inr">—</span></div>
+        <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on SP</span><span class="inc-total-val" id="sp-inc-total-pct">0.00%</span></div>
+        <div class="inc-total-item"><span class="inc-total-lbl">Effective SP excl GST</span><span class="inc-total-val" id="sp-inc-eff-sp">—</span></div>
+        <p class="inc-note">CD can be on SP excl or incl GST.<br>Scheme can be % or fixed ₹. All others on SP excl GST.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY (with What-if button) -->
+  <div class="summary-wrap" id="sec-summary">
+    <div class="summary">
+      <div class="summary-title-row">
+        <span class="summary-title">Summary</span>
+        <button class="btn-whatif" onclick="openModal('whatif')">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="4" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="7" y="4" width="4" height="7" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
+          What-if scenarios
+        </button>
+      </div>
+      <div class="summary-grid">
+        <div class="sum-item"><div class="sum-lbl">MRP (incl GST)</div><div class="sum-val dim" id="s-mrp">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">CP excl GST</div><div class="sum-val dim" id="s-cp">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">Effective CP excl GST</div><div class="sum-val dim" id="s-ecp">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">SP excl GST</div><div class="sum-val dim" id="s-sp">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">Effective SP excl GST</div><div class="sum-val dim" id="s-esp">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">CP Incentives ₹</div><div class="sum-val dim" id="s-inc">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">SP Incentives ₹</div><div class="sum-val dim" id="s-spinc">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">Profit ₹</div><div class="sum-val dim" id="s-pr">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">GP %</div><div class="sum-val dim" id="s-gp">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">Margin %</div><div class="sum-val dim" id="s-mg">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">CP Discount + GST %</div><div class="sum-val dim" id="s-dcp">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">SP Discount + GST %</div><div class="sum-val dim" id="s-dsp">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY PANEL -->
+  <div class="panel panel-gray" id="sec-hist">
+    <div class="panel-header" onclick="togglePanel('hist')">
+      <div class="panel-header-left">
+        <span class="panel-title">History</span>
+        <span class="panel-tag" id="hist-tag">0 entries</span>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:4px" onclick="event.stopPropagation()" title="Auto-save every completed calculation">
+          <span style="font-size:10px;font-weight:500;color:var(--text2);white-space:nowrap">Auto-save</span>
+          <span class="toggle" style="width:28px;height:16px">
+            <input type="checkbox" id="autosave-toggle" checked onchange="calc()">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb" style="width:10px;height:10px;top:3px;left:3px"></span>
+          </span>
+        </label>
+      </div>
+      <svg class="panel-chevron" id="chev-hist" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="panel-body" id="body-hist">
+      <div class="hist-table-wrap"><div id="hist-content"><div class="hist-empty">No entries yet — save a calculation to start.</div></div></div>
+      <div class="hist-actions">
+        <button class="hist-btn save" onclick="saveToHistory()">Save current</button>
+        <button class="hist-btn export" onclick="exportHistoryCSV()">Export CSV</button>
+        <button class="hist-btn" onclick="clearHistory()">Clear all</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ═══ WIZARD MODE ═══ -->
+<div id="wizard-mode">
+
+  <!-- SETUP -->
+  <div class="wz-section">
+    <div class="wz-section-title">Setup</div>
+    <div class="wz-row">
+      <span class="wz-lbl">MRP (incl. GST)</span>
+      <div class="wz-field">
+        <span class="wz-sym">₹</span>
+        <input class="wz-input" type="text" inputmode="decimal" id="wz-mrp" placeholder="e.g. 1,000" oninput="onMrpInput(this);wzCalc()" autocomplete="off">
+      </div>
+    </div>
+    <div class="wz-row">
+      <span class="wz-lbl">GST Rate</span>
+      <div style="display:flex;gap:6px">
+        <button class="stab on" id="wzg18" onclick="wzSetGST(18)" style="padding:5px 14px">18%</button>
+        <button class="stab"    id="wzg5"  onclick="wzSetGST(5)"  style="padding:5px 14px">5%</button>
+      </div>
+    </div>
+    <div class="wz-row">
+      <span class="wz-lbl">Calculate for</span>
+      <div style="display:flex;gap:6px">
+        <button class="stab on" id="wz-t-cp" onclick="wzSetT('cp')" style="padding:5px 14px">Cost Price</button>
+        <button class="stab"    id="wz-t-sp" onclick="wzSetT('sp')" style="padding:5px 14px">Selling Price</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRICE INPUT -->
+  <div class="wz-section">
+    <div class="wz-section-title" id="wz-price-title">Cost Price Input</div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="stab on" id="wz-cm-excl"   onclick="wzSetCM('excl')"   style="padding:5px 10px">Discount + GST %</button>
+      <button class="stab"    id="wz-cm-incl"   onclick="wzSetCM('incl')"   style="padding:5px 10px">Nett Discount %</button>
+      <button class="stab"    id="wz-cm-manual" onclick="wzSetCM('manual')" style="padding:5px 10px">Enter ₹ directly</button>
+    </div>
+    <div id="wz-disc-wrap">
+      <div class="wz-field">
+        <span class="wz-sym">Disc %</span>
+        <input class="wz-input" type="number" inputmode="decimal" id="wz-disc" placeholder="e.g. 34" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off">
+      </div>
+    </div>
+    <div id="wz-manual-wrap" style="display:none;flex-direction:column;gap:8px">
+      <div style="display:flex;gap:6px">
+        <button class="stab on" id="wz-ms-incl" onclick="wzSetMS('incl')" style="padding:4px 10px"><span id="wz-ms-incl-lbl">CP incl GST</span></button>
+        <button class="stab"    id="wz-ms-excl" onclick="wzSetMS('excl')" style="padding:4px 10px"><span id="wz-ms-excl-lbl">CP excl GST</span></button>
+      </div>
+      <div class="wz-field">
+        <span class="wz-sym">₹</span>
+        <input class="wz-input" type="text" inputmode="decimal" id="wz-manual" placeholder="e.g. 77.88" oninput="wzFmtAmt(this);wzCalc()" autocomplete="off">
+      </div>
+    </div>
+  </div>
+
+  <!-- INCENTIVES -->
+  <div class="wz-section">
+    <div class="wz-section-title">Incentives <span style="font-size:9px;color:var(--text3);font-family:'DM Sans',sans-serif;letter-spacing:0;text-transform:none;font-weight:400">(optional)</span></div>
+
+    <div class="wz-inc-row">
+      <label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-cd" onchange="wzSyncCD()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+      <span class="wz-inc-lbl">Cash Discount</span>
+      <div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-cd" value="2" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off"><span class="wz-inc-sym">%</span></div>
+    </div>
+    <div id="wz-cdm-sub" style="padding:6px 0 8px 32px;display:none">
+      <div style="font-size:10.5px;color:var(--text3);margin-bottom:5px">CD calculated on:</div>
+      <div style="display:flex;gap:6px">
+        <button class="stab on" id="wz-cdm-before" onclick="wzSetCDMode('before')" style="padding:4px 10px;font-size:11px"><span id="wz-cdm-before-lbl">CP excl GST</span></button>
+        <button class="stab"    id="wz-cdm-after"  onclick="wzSetCDMode('after')"  style="padding:4px 10px;font-size:11px"><span id="wz-cdm-after-lbl">CP incl GST</span></button>
+      </div>
+    </div>
+
+    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-eb" onchange="wzCalc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Early Bird</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-eb" value="1" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off"><span class="wz-inc-sym">%</span></div></div>
+    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-qt" onchange="wzCalc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Quarterly</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-qt" value="2" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off"><span class="wz-inc-sym">%</span></div></div>
+    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-an" onchange="wzCalc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Annual</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-an" value="1" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off"><span class="wz-inc-sym">%</span></div></div>
+
+    <div class="wz-inc-row">
+      <label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-sc" onchange="wzSyncSc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+      <span class="wz-inc-lbl">Scheme</span>
+      <div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-sc" placeholder="0" min="0" step="0.01" oninput="wzCalc()" autocomplete="off"><span class="wz-inc-sym" id="wz-sc-unit">%</span></div>
+    </div>
+    <div id="wz-scm-sub" style="padding:6px 0 8px 32px;display:none">
+      <div style="font-size:10.5px;color:var(--text3);margin-bottom:5px">Scheme type:</div>
+      <div style="display:flex;gap:6px">
+        <button class="stab on" id="wz-scm-pct" onclick="wzSetScMode('pct')" style="padding:4px 10px;font-size:11px"><span id="wz-scm-pct-lbl">% of price excl GST</span></button>
+        <button class="stab"    id="wz-scm-abs" onclick="wzSetScMode('abs')" style="padding:4px 10px;font-size:11px">₹ Absolute</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="wz-section" id="wz-results" style="padding:0;overflow:hidden">
+    <div id="wz-alert" class="wz-alert" style="display:none;margin:12px 18px 0">⚠ Landed cost incl GST exceeds MRP</div>
+    <div style="padding:14px 18px">
+      <div class="wz-section-title" id="wz-result-title" style="margin-bottom:10px">Cost Price Breakdown</div>
+      <div class="rows" style="margin:0">
+        <div class="row"><span class="row-lbl">Discount + GST %</span><span class="row-val" id="wz-rde">—</span></div>
+        <div class="row"><span class="row-lbl">Nett Discount %</span><span class="row-val" id="wz-rdi">—</span></div>
+        <div class="row"><span class="row-lbl" id="wz-rlbl-e">CP excl GST</span><span class="row-val" id="wz-rve">—</span></div>
+        <div class="row"><span class="row-lbl" id="wz-rlbl-i">CP incl GST</span><span class="row-val" id="wz-rvi">—</span></div>
+        <div class="row"><span class="row-lbl">GST Amount</span><span class="row-val dim" id="wz-rga">—</span></div>
+        <div class="row" id="wz-rinc-row" style="display:none"><span class="row-lbl">Total Incentives ₹</span><span class="row-val amber" id="wz-rinc">—</span></div>
+        <div class="row" id="wz-reff-row" style="display:none"><span class="row-lbl" id="wz-rlbl-eff">Eff. CP excl GST</span><span class="row-val amber" id="wz-reff">—</span></div>
+        <div class="row" id="wz-reffi-row" style="display:none"><span class="row-lbl" id="wz-rlbl-effi">Eff. CP incl GST</span><span class="row-val amber" id="wz-reffi">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px">
+    <button class="btn-reset" onclick="wzReset()">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2C4.24 2 2 4.24 2 7s2.24 5 5 5 5-2.24 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 1.5l2 1.2-2 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Reset
+    </button>
+    <button class="btn-reset" style="border-color:var(--blue);color:var(--blue)" onclick="wzToDefault()">Open in Default →</button>
+  </div>
+</div>
+
+<!-- ═══ QUICK / FLASHCARD MODE ═══ -->
+<div id="quick-mode">
+
+  <!-- Progress dots -->
+  <div class="fc-progress">
+    <div class="fc-dot cur"  id="fcdot-0"></div>
+    <div class="fc-dot"      id="fcdot-1"></div>
+    <div class="fc-dot"      id="fcdot-2"></div>
+    <div class="fc-dot"      id="fcdot-3"></div>
+  </div>
+
+  <!-- Card stack -->
+  <div class="fc-stack" id="fc-stack">
+
+    <!-- CARD 0 — MRP -->
+    <div class="fc-card behind-2" id="fcc-3" aria-hidden="true"><!-- result shadow --></div>
+    <div class="fc-card behind-1" id="fcc-2" aria-hidden="true"><!-- sp shadow --></div>
+    <div class="fc-card behind-1" id="fcc-1" aria-hidden="true"><!-- cp shadow --></div>
+    <div class="fc-card active"   id="fcc-0">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="fc-card-icon mrp">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 5h16M3 11h16M3 17h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="16" cy="16.5" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M14.5 16.5h3M16 15v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <div class="fc-card-label">Step 1 of 3</div>
+          <div class="fc-card-title">MRP</div>
+        </div>
+      </div>
+      <div class="fc-card-sub">Enter the Maximum Retail Price printed on the product (inclusive of GST).</div>
+
+      <!-- Solve for selector -->
+      <div>
+        <div style="font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:7px">Calculate</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="fc-tab on" id="fc-t-profit" onclick="fcSetT('profit')">Profit</button>
+          <button class="fc-tab"    id="fc-t-sp"     onclick="fcSetT('sp')">Selling Price</button>
+          <button class="fc-tab"    id="fc-t-cp"     onclick="fcSetT('cp')">Cost Price</button>
+        </div>
+      </div>
+      <div>
+        <div class="fc-input-wrap">
+          <span class="fc-input-sym">₹</span>
+          <input class="fc-input" type="text" inputmode="decimal" id="fc-mrp" placeholder="e.g. 1,000" autocomplete="off" oninput="onMrpInput(this);fcCalc()" style="font-variant-numeric:tabular-nums">
+        </div>
+        <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap">
+          <div id="fc-mx-wrap" style="display:none;flex:1;min-width:100px">
+            <div style="font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:2px">Excl GST</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;color:var(--text2)" id="fc-mx">—</div>
+          </div>
+          <div id="fc-mg-wrap" style="display:none;flex:1;min-width:100px">
+            <div style="font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:2px">GST Amount</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;color:var(--text2)" id="fc-mg">—</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;margin-left:auto">
+            <span style="font-size:11px;color:var(--text3)">GST</span>
+            <button class="fc-tab on" id="fcg18" onclick="fcSetGST(18)" style="padding:4px 10px;font-size:11px">18%</button>
+            <button class="fc-tab"    id="fcg5"  onclick="fcSetGST(5)"  style="padding:4px 10px;font-size:11px">5%</button>
+          </div>
+        </div>
+      </div>
+      <div class="fc-actions">
+        <span class="fc-hint-chip">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M8 3l-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Swipe or tap next
+        </span>
+        <button class="fc-btn fc-btn-next" onclick="fcNext()">
+          Next
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- CARD 1 — CP (rendered by JS) -->
+    <!-- CARD 2 — SP (rendered by JS) -->
+    <!-- CARD 3 — Result (rendered by JS) -->
+
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="bnav-items">
+    <button class="bnav-item active" id="bnav-calc" onclick="bnavGo('calc')">
+      <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 7h2M11 7h2M7 10h2M11 10h2M7 13h2M11 13h2"/></svg>
+      Calc
+    </button>
+    <button class="bnav-item" id="bnav-wizard" onclick="bnavGo('wizard')">
+      <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v14M3 10h14"/><circle cx="10" cy="10" r="3"/></svg>
+      Landed Cost
+    </button>
+    <button class="bnav-item" id="bnav-inc" onclick="bnavGo('inc')">
+      <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg>
+      Incentives
+    </button>
+    <button class="bnav-item" id="bnav-summary" onclick="bnavGo('summary')">
+      <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 10h6M7 14h4"/><path d="M7 6h2.5a1.5 1.5 0 010 3H7"/></svg>
+      Summary
+    </button>
+    <button class="bnav-item" id="bnav-hist" onclick="bnavGo('hist')">
+      <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h12M4 10h8M4 15h10"/></svg>
+      History
+    </button>
+    <button class="bnav-item" id="bnav-settings" onclick="openModal('settings')">
+      <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M4 5h12M4 10h12M4 15h12"/><circle cx="7" cy="5" r="1.8" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="10" r="1.8" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="15" r="1.8" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/></svg>
+      Settings
+    </button>
+  </div>
+</nav>
+
+<footer class="footer">
+  All profit/margin figures on excl-GST basis. Incentives on CP excl GST (CD optionally on incl GST). GST is a pass-through.
+</footer>
+
+<!-- ═══ SETTINGS MODAL ═══ -->
+<div class="modal-overlay" id="overlay-settings" onclick="overlayClick(event,'settings')">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <span class="modal-title">Settings</span>
+      <button class="modal-close" onclick="closeModal('settings')" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="modal-section">
+        <div class="modal-section-title">Appearance</div>
+        <div class="settings-row">
+          <div class="settings-lbl">
+            <span>Dark mode</span>
+            <small>Switch to a dark colour scheme. Saved across sessions.</small>
+          </div>
+          <div class="settings-control">
+            <label class="toggle" style="width:36px;height:20px">
+              <input type="checkbox" id="darkmode-toggle" onchange="toggleDarkMode(this.checked)">
+              <span class="toggle-track" style="background:var(--border2)"></span>
+              <span class="toggle-thumb" style="width:14px;height:14px;top:3px;left:3px"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Floor Limits</div>
+        <div class="settings-row">
+          <div class="settings-lbl">
+            <span>Minimum GP %</span>
+            <small>Values below this are highlighted in red (profit ÷ SP)</small>
+          </div>
+          <div class="settings-control">
+            <div class="floor-input-wrap">
+              <input type="number" inputmode="decimal" id="floor-gp" value="5" placeholder="—" min="0" max="100" step="0.1" oninput="calc()">
+              <span>%</span>
+            </div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-lbl">
+            <span>Minimum Margin %</span>
+            <small>Values below this are highlighted in red (profit ÷ eff. CP)</small>
+          </div>
+          <div class="settings-control">
+            <div class="floor-input-wrap">
+              <input type="number" inputmode="decimal" id="floor-mg" value="" placeholder="—" min="0" max="100" step="0.1" oninput="calc()">
+              <span>%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">History</div>
+        <div class="settings-row">
+          <div class="settings-lbl">
+            <span>Auto-save calculations</span>
+            <small>Automatically log to history when CP and SP are both filled (debounced 900ms)</small>
+          </div>
+          <div class="settings-control">
+            <label class="toggle" style="width:36px;height:20px">
+              <input type="checkbox" id="autosave-toggle-settings" checked onchange="syncAutosave('settings')">
+              <span class="toggle-track" style="background:var(--border2)"></span>
+              <span class="toggle-thumb" style="width:14px;height:14px;top:3px;left:3px"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Help</div>
+        <div class="settings-row">
+          <div class="settings-lbl">
+            <span>App tour</span>
+            <small>Walk through the features again from the beginning.</small>
+          </div>
+          <div class="settings-control">
+            <button class="pill" onclick="localStorage.removeItem('ob-done');closeModal('settings');setTimeout(obShow,200)" style="font-size:11px;padding:5px 12px">Restart tour</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-lbl">
+            <span>Keyboard shortcuts</span>
+            <small>See all shortcuts. Press <kbd style="background:var(--surface2);border:1px solid var(--border2);border-radius:3px;padding:1px 5px;font-size:10px">?</kbd> anytime.</small>
+          </div>
+          <div class="settings-control">
+            <button class="pill" onclick="closeModal('settings');setTimeout(function(){openModal('shortcuts')},200)" style="font-size:11px;padding:5px 12px">View</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="overlay-whatif" onclick="overlayClick(event,'whatif')">
+  <div class="modal wi-modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <span class="modal-title">What-if scenarios</span>
+      <button class="modal-close" onclick="closeModal('whatif')" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="wi-cp-info" id="wi-cp-info">Enter CP and incentives on the main screen first.</div>
+      <div class="wi-grid" id="wi-grid"></div>
+      <p class="wi-note">All scenarios share the same CP and incentives from the main calculator. Best GP% highlighted in blue. Floor warnings apply.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ COMPARISON MODAL ═══ -->
+<div class="modal-overlay" id="overlay-compare" onclick="overlayClick(event,'compare')">
+  <div class="modal cmp-modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <span class="modal-title">Comparison</span>
+      <button class="modal-close" onclick="closeModal('compare')" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="cmp-meta" id="cmp-meta"></div>
+      <div class="cmp-grid" id="cmp-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ KEYBOARD SHORTCUTS MODAL ═══ -->
+<div class="modal-overlay" id="overlay-shortcuts" onclick="overlayClick(event,'shortcuts')">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width:560px">
+    <div class="modal-header">
+      <span class="modal-title">Keyboard Shortcuts</span>
+      <button class="modal-close" onclick="closeModal('shortcuts')" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="kb-grid">
+        <div class="kb-section-title">Navigation</div>
+        <div class="kb-row"><span class="kb-desc">Open shortcuts</span><span class="kb-keys"><span class="kbd">?</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Open settings</span><span class="kb-keys"><span class="kbd">S</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Reset all</span><span class="kb-keys"><span class="kbd">R</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Save to history</span><span class="kb-keys"><span class="kbd">⌘</span><span class="kbd">S</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Copy summary</span><span class="kb-keys"><span class="kbd">⌘</span><span class="kbd">C</span></span></div>
+        <div class="kb-section-title">Mode &amp; GST</div>
+        <div class="kb-row"><span class="kb-desc">Switch Default / Quick</span><span class="kb-keys"><span class="kbd">Q</span></span></div>
+        <div class="kb-row"><span class="kb-desc">GST 18%</span><span class="kb-keys"><span class="kbd">1</span></span></div>
+        <div class="kb-row"><span class="kb-desc">GST 5%</span><span class="kb-keys"><span class="kbd">2</span></span></div>
+        <div class="kb-section-title">Solve For</div>
+        <div class="kb-row"><span class="kb-desc">Calculate Profit</span><span class="kb-keys"><span class="kbd">P</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Calculate Selling Price</span><span class="kb-keys"><span class="kbd">L</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Calculate Cost Price</span><span class="kb-keys"><span class="kbd">K</span></span></div>
+        <div class="kb-section-title">Quick Mode</div>
+        <div class="kb-row"><span class="kb-desc">Next card</span><span class="kb-keys"><span class="kbd">Enter</span><span class="kbd">→</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Previous card</span><span class="kb-keys"><span class="kbd">←</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Swipe left / right</span><span class="kb-keys"><span class="kbd">touch</span></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ONBOARDING OVERLAY ═══ -->
+<div class="ob-overlay" id="ob-overlay" onclick="function(e){if(e.target===this)obSkip()}.call(this,event)">
+  <div class="ob-card" id="ob-card">
+    <div class="ob-step-dots" id="ob-dots"></div>
+    <div class="ob-icon" id="ob-icon"></div>
+    <div class="ob-title" id="ob-title"></div>
+    <div class="ob-body" id="ob-body"></div>
+    <div class="ob-tip" id="ob-tip" style="display:none"></div>
+    <div class="ob-actions">
+      <button class="ob-btn-skip" id="ob-skip" onclick="OB_STEP===0?obSkip():(OB_STEP--,obRender())">Skip tour</button>
+      <button class="ob-btn-next" id="ob-next" onclick="obNext()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── State ── */
+var G=0.18,CM='excl',CPMS='incl',SM='excl',SPMS='incl',PM='val',T='profit',CDM='before';
+var ME=0,MI=0;
+var INC_KEYS=['cd','eb','qt','an','sc'];
+var SCM='pct'; // scheme mode: 'pct' | 'abs'
+var SP_INC_KEYS=['cd','eb','qt','an','sc'];
+var SSCM='pct'; // SP scheme mode: 'pct' | 'abs'
+var SCDM='before'; // SP CD mode: 'before' | 'after'
+var HISTORY=[];
+var MAX_HIST=50;
+var WI_SCENES=[
+  {spDisc:'',spMode:'excl',spVal:'',spManualSub:'incl'},
+  {spDisc:'',spMode:'excl',spVal:'',spManualSub:'incl'},
+  {spDisc:'',spMode:'excl',spVal:'',spManualSub:'incl'}
+];
+var LAST_CP=null,LAST_SP=null;
+
+function fmtINDIAN(n){
+  // Format a number in Indian style: 1,00,000 with up to 2 decimals
+  if(isNaN(n)||n===null)return '';
+  var s=n.toFixed(2);
+  var parts=s.split('.');
+  var int=parts[0],dec=parts[1];
+  // Indian grouping: last 3 digits, then groups of 2
+  var lastThree=int.slice(-3);
+  var rest=int.slice(0,-3);
+  if(rest.length>0)lastThree=rest.replace(/\B(?=(\d{2})+(?!\d))/g,',')+','+lastThree;
+  return dec==='00'?lastThree:lastThree+'.'+dec;
+}
+function parseMRP(){
+  var raw=el('mrp').value.replace(/,/g,'');
+  return parseFloat(raw)||0;
+}
+function onMrpInput(inp){
+  var raw=inp.value.replace(/[^0-9.]/g,'');
+  // Allow only one decimal point
+  var parts=raw.split('.');
+  if(parts.length>2)raw=parts[0]+'.'+parts.slice(1).join('');
+  var num=parseFloat(raw);
+  if(!isNaN(num)&&raw!==''&&raw!=='.'){
+    var formatted=fmtINDIAN(num);
+    // Preserve decimal input in progress (e.g. "100." or "100.5")
+    if(raw.indexOf('.')!==-1){
+      var dec=raw.split('.')[1];
+      var intPart=fmtINDIAN(parseFloat(parts[0])||0).split('.')[0];
+      formatted=intPart+'.'+(dec||'');
+    }
+    inp.value=formatted;
+  } else if(raw===''||raw==='.'){
+    inp.value=raw;
+  }
+  calc();
+}
+/* ── Shared ₹ amount input formatter ── */
+function parseAmt(id){
+  var e=el(id);if(!e)return NaN;
+  return parseFloat(e.value.replace(/,/g,''));
+}
+function onAmtInput(inp){
+  var raw=inp.value.replace(/[^0-9.]/g,'');
+  var parts=raw.split('.');
+  if(parts.length>2)raw=parts[0]+'.'+parts.slice(1).join('');
+  var num=parseFloat(raw);
+  if(!isNaN(num)&&raw!==''&&raw!=='.'){
+    var formatted=fmtINDIAN(num);
+    if(raw.indexOf('.')!==-1){
+      var dec=raw.split('.')[1];
+      var intPart=fmtINDIAN(parseFloat(raw.split('.')[0])||0).split('.')[0];
+      formatted=intPart+'.'+(dec||'');
+    }
+    inp.value=formatted;
+  } else if(raw===''||raw==='.'){
+    inp.value=raw;
+  }
+  calc();
+}
+function el(id){return document.getElementById(id)}
+function R(id,v){var e=el(id);if(e)e.textContent=v}
+function INR(n){
+  if(n===null||n===undefined||isNaN(n))return'—';
+  return'₹'+parseFloat(n.toFixed(2)).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function PCT(n){
+  if(n===null||n===undefined||isNaN(n))return'—';
+  return parseFloat(n.toFixed(4)).toFixed(2)+'%';
+}
+function now(){
+  var d=new Date();
+  var h=d.getHours(),m=d.getMinutes(),ampm=h>=12?'pm':'am';
+  h=h%12||12;
+  return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+h+':'+(m<10?'0'+m:m)+' '+ampm;
+}
+
+function fmtTime(ts){
+  // Format a timestamp (ms) as 12h readable string
+  var d=new Date(ts);
+  var h=d.getHours(),m=d.getMinutes(),ampm=h>=12?'pm':'am';
+  h=h%12||12;
+  return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+' '+h+':'+(m<10?'0'+m:m)+' '+ampm;
+}
+
+function relTime(ts){
+  var diff=Date.now()-ts; // ms
+  if(diff<60000)return 'just now';
+  if(diff<3600000){var m=Math.floor(diff/60000);return m+' min'+(m>1?'s':'')+' ago'}
+  var d1=new Date(ts),d2=new Date();
+  d1.setHours(0,0,0,0);d2.setHours(0,0,0,0);
+  var days=Math.round((d2-d1)/86400000);
+  if(days===0){var h=Math.floor(diff/3600000);return h+' hr'+(h>1?'s':'')+' ago'}
+  if(days===1)return 'yesterday';
+  if(days<7)return days+' days ago';
+  if(days<14)return 'last week';
+  if(days<31)return Math.floor(days/7)+' weeks ago';
+  return Math.floor(days/30)+' month'+(Math.floor(days/30)>1?'s':'')+' ago';
+}
+
+/* ── Modal ── */
+function openModal(id){
+  var o=el('overlay-'+id);
+  if(o){o.classList.add('open');document.body.style.overflow='hidden'}
+  if(id==='whatif')renderWhatIf(LAST_CP);
+}
+function closeModal(id){
+  var o=el('overlay-'+id);
+  if(o){o.classList.remove('open');document.body.style.overflow=''}
+}
+function overlayClick(e,id){if(e.target===el('overlay-'+id))closeModal(id)}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('settings');closeModal('whatif')}});
+
+/* ── Floor helpers ── */
+function getFloor(){
+  return{gp:parseFloat(el('floor-gp').value)||null, mg:parseFloat(el('floor-mg').value)||null};
+}
+function belowFloor(val,floor){return floor!==null&&val!==null&&!isNaN(val)&&val<floor}
+function gpCls(gp,floor){
+  if(gp===null||isNaN(gp))return'dim';
+  if(belowFloor(gp,floor.gp))return'warn';
+  return gp>=0?'pos':'neg';
+}
+function mgCls(mg,floor){
+  if(mg===null||isNaN(mg))return'dim';
+  if(belowFloor(mg,floor.mg))return'warn';
+  return mg>=0?'pos':'neg';
+}
+
+/* ── Panel toggles ── */
+function togglePanel(id){
+  var body=el('body-'+id),chev=el('chev-'+id);
+  var open=body.style.display==='block';
+  body.style.display=open?'none':'block';
+  chev.className='panel-chevron'+(open?'':' open');
+}
+
+/* ── Autosave — single source of truth ── */
+var AUTOSAVE = true;
+function setAutosave(val) {
+  AUTOSAVE = val;
+  el('autosave-toggle').checked = val;
+  el('autosave-toggle-settings').checked = val;
+}
+function syncAutosave(src) {
+  var val = (src === 'settings') ? el('autosave-toggle-settings').checked : el('autosave-toggle').checked;
+  setAutosave(val);
+}
+
+/* ── Dark mode ── */
+function toggleDarkMode(on) {
+  document.documentElement.setAttribute('data-theme', on ? 'dark' : 'light');
+  try { localStorage.setItem('pc-theme', on ? 'dark' : 'light'); } catch(e){}
+}
+function initTheme() {
+  var saved; try { saved = localStorage.getItem('pc-theme'); } catch(e){}
+  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var dark = saved ? saved === 'dark' : prefersDark;
+  if (dark) { document.documentElement.setAttribute('data-theme','dark'); }
+  var tog = el('darkmode-toggle'); if (tog) tog.checked = dark;
+}
+
+/* ── Incentive helpers ── */
+function syncToggle(k){haptic('select');el('ir-'+k).className='inc-row'+(el('it-'+k).checked?' active':'')}
+function getIncentiveInr(cp){
+  if(!cp)return 0;
+  var t=0;
+  INC_KEYS.forEach(function(k){
+    if(!el('it-'+k).checked)return;
+    var v=parseFloat(el('iv-'+k).value);
+    if(isNaN(v)||v<=0)return;
+    if(k==='sc'){
+      t+=(SCM==='abs')?v:(cp.e*v/100);
+    } else {
+      t+=(k==='cd'&&CDM==='after')?(cp.i*v/100):(cp.e*v/100);
+    }
+  });
+  return t;
+}
+function updateIncSummaryTag(){
+  var active=INC_KEYS.filter(function(k){return el('it-'+k).checked}).length;
+  var nom=0, hasAbsSc=false, absScVal=0;
+  INC_KEYS.forEach(function(k){
+    if(!el('it-'+k).checked)return;
+    var v=parseFloat(el('iv-'+k).value);
+    if(isNaN(v)||v<=0)return;
+    if(k==='sc'&&SCM==='abs'){hasAbsSc=true;absScVal=v;}
+    else nom+=v;
+  });
+  var note=(el('it-cd').checked&&CDM==='after')?' (CD on +GST)':'';
+  var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' scheme':'';
+  el('inc-summary-tag').textContent=(active===0?'All off':active+' active')+' — '+nom.toFixed(2)+'%'+scNote+note;
+}
+function computeK(){
+  // K = effCPE / cp.e — the proportional factor after all %-based incentives.
+  // Absolute scheme ₹ is NOT included here (can't express as a ratio without knowing cp.e).
+  // cpFromProfit uses K to estimate cp.e, then getIncentiveInr handles the abs deduction precisely.
+  var K=1;
+  INC_KEYS.forEach(function(k){
+    if(!el('it-'+k).checked)return;
+    var v=parseFloat(el('iv-'+k).value);
+    if(isNaN(v)||v<=0)return;
+    if(k==='sc'&&SCM==='abs')return; // abs scheme handled separately
+    K-=(k==='cd'&&CDM==='after')?(v/100)*(1+G):(v/100);
+  });
+  return K;
+}
+
+/* ── SP Incentives ── */
+function getSPIncentiveInr(sp){
+  if(!sp)return 0;
+  var t=0;
+  SP_INC_KEYS.forEach(function(k){
+    if(!el('sit-'+k).checked)return;
+    var v=parseFloat(el('siv-'+k).value);
+    if(isNaN(v)||v<=0)return;
+    if(k==='sc'){
+      t+=(SSCM==='abs')?v:(sp.e*v/100);
+    } else {
+      t+=(k==='cd'&&SCDM==='after')?(sp.i*v/100):(sp.e*v/100);
+    }
+  });
+  return t;
+}
+function updateSpIncSummaryTag(){
+  var active=SP_INC_KEYS.filter(function(k){return el('sit-'+k).checked}).length;
+  var nom=0,hasAbsSc=false,absScVal=0;
+  SP_INC_KEYS.forEach(function(k){
+    if(!el('sit-'+k).checked)return;
+    var v=parseFloat(el('siv-'+k).value);
+    if(isNaN(v)||v<=0)return;
+    if(k==='sc'&&SSCM==='abs'){hasAbsSc=true;absScVal=v;}
+    else nom+=v;
+  });
+  var note=(el('sit-cd').checked&&SCDM==='after')?' (CD on +GST)':'';
+  var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' scheme':'';
+  el('sp-inc-summary-tag').textContent=(active===0?'All off':active+' active')+' — '+nom.toFixed(2)+'%'+scNote+note;
+}
+function syncSpToggle(k){
+  haptic('select');
+  el('sir-'+k).className='inc-row'+(el('sit-'+k).checked?' sp-active':'');
+}
+function setSCDMode(m){
+  haptic('select');
+  SCDM=m;
+  el('scdm-before').className=(m==='before')?'stab on':'stab';
+  el('scdm-after').className=(m==='after')?'stab on':'stab';
+  calc();
+}
+function setSpSchemeMode(m){
+  haptic('select');
+  SSCM=m;
+  el('sscm-pct').className=(m==='pct')?'stab on':'stab';
+  el('sscm-abs').className=(m==='abs')?'stab on':'stab';
+  el('ssc-unit').textContent=(m==='abs')?'₹':'%';
+  el('siv-sc').placeholder=(m==='abs')?'0.00':'0';
+  if(m==='abs'){el('siv-sc').removeAttribute('max')}else{el('siv-sc').max='100'}
+  calc();
+}
+function fillSpIncPanel(sp){
+  updateSpIncSummaryTag();
+  var inc=getSPIncentiveInr(sp),eff=sp?sp.e-inc:null;
+  R('sp-inc-total-pct',(inc>0&&sp)?PCT((inc/sp.e)*100):'0.00%');
+  R('sp-inc-total-inr',inc>0?INR(inc):'—');
+  R('sp-inc-eff-sp',INR(eff));
+}
+function setGST(p){haptic('select');G=p/100;el('g18').className=(p===18)?'pill on':'pill';el('g5').className=(p===5)?'pill on':'pill';el('grate').textContent=p+'%';calc()}
+function setT(t){haptic('select');T=t;el('tprofit').className=(t==='profit')?'pill on':'pill';el('tsp').className=(t==='sp')?'pill on':'pill';el('tcp').className=(t==='cp')?'pill on':'pill';updateLayout();calc()}
+function setCM(m){
+  CM=m;
+  el('cme').className=(m==='excl')?'mtab on':'mtab';el('cmi').className=(m==='incl')?'mtab on':'mtab';el('cmm').className=(m==='manual')?'mtab on':'mtab';
+  el('cpf-disc').style.display=(m==='manual')?'none':'';
+  el('cpf-manual').style.display=(m==='manual')?'flex':'none';
+  el('cp-footnote').textContent=(m==='manual')?'Enter CP directly in ₹.':'Enter disc % in either mode — both shown above.';
+  calc();
+}
+function setCPManual(s){haptic('select');CPMS=s;el('cpm-incl').className=(s==='incl')?'stab on':'stab';el('cpm-excl').className=(s==='excl')?'stab on':'stab';calc()}
+function setSM(m){
+  haptic('select');
+  SM=m;
+  el('sme').className=(m==='excl')?'mtab on':'mtab';
+  el('smi').className=(m==='incl')?'mtab on':'mtab';
+  el('smm').className=(m==='manual')?'mtab on':'mtab';
+  el('spf-disc').style.display=(m==='manual')?'none':'';
+  el('spf-manual').style.display=(m==='manual')?'flex':'none';
+  el('sp-footnote').textContent=(m==='manual')?'Enter SP directly in ₹.':'Enter disc % in either mode — both shown above.';
+  calc();
+}
+function setSPManual(s){
+  haptic('select');
+  SPMS=s;
+  el('spm-incl').className=(s==='incl')?'stab on':'stab';
+  el('spm-excl').className=(s==='excl')?'stab on':'stab';
+  calc();
+}
+function setPM(m){haptic('select');PM=m;el('pmv').className=(m==='val')?'mtab on':'mtab';el('pmg').className=(m==='gp')?'mtab on':'mtab';el('pmm').className=(m==='margin')?'mtab on':'mtab';el('pru').textContent=(m==='val')?'₹':'%';calc()}
+function setCDMode(m){haptic('select');CDM=m;el('cdm-before').className=(m==='before')?'stab on':'stab';el('cdm-after').className=(m==='after')?'stab on':'stab';calc()}
+function setSchemeMode(m){
+  haptic('select');
+  SCM=m;
+  el('scm-pct').className=(m==='pct')?'stab on':'stab';
+  el('scm-abs').className=(m==='abs')?'stab on':'stab';
+  el('sc-unit').textContent=(m==='abs')?'₹':'%';
+  el('iv-sc').placeholder=(m==='abs')?'0.00':'0';
+  if(m==='abs'){el('iv-sc').removeAttribute('max')}else{el('iv-sc').max='100'}
+  calc();
+}
+
+/* ── Layout ── */
+function updateLayout(){
+  var isCP=T==='cp',isSP=T==='sp',isPR=T==='profit';
+  el('cpc').className='card'+(isCP?' computed':'');el('spc').className='card'+(isSP?' computed':'');el('prc').className='card'+(isPR?' computed':'');
+  el('cpb').textContent=isCP?'Calculated':'Input';el('cpb').className=isCP?'badge b-calc':'badge b-input';
+  el('spb').textContent=isSP?'Calculated':'Input';el('spb').className=isSP?'badge b-calc':'badge b-input';
+  el('prb').textContent=isPR?'Calculated':'Input';el('prb').className=isPR?'badge b-calc':'badge b-input';
+  el('cp-mode-tabs').style.display=(!isCP)?'':'none';
+  el('cpf-disc').style.display=(!isCP&&CM!=='manual')?'':'none';
+  el('cpf-manual').style.display=(!isCP&&CM==='manual')?'flex':'none';
+  el('sp-mode-tabs').style.display=(!isSP)?'':'none';
+  el('spf-disc').style.display=(!isSP&&SM!=='manual')?'':'none';
+  el('spf-manual').style.display=(!isSP&&SM==='manual')?'flex':'none';
+  el('pmt').style.display=isPR?'none':'';el('prf').style.display=isPR?'none':'';
+}
+
+/* ── Price calc ── */
+function priceFromDisc(d,mode){
+  if(d===null||d===undefined||isNaN(d))return null;
+  if(mode==='excl'){var e=MI*(1-d/100);return{e:e,i:e*(1+G)}}
+  var i=MI*(1-d/100);return{e:i/(1+G),i:i};
+}
+function priceFromManual(v,sub){
+  if(!v||isNaN(v)||v<=0)return null;
+  return sub==='incl'?{e:v/(1+G),i:v}:{e:v,i:v*(1+G)};
+}
+function discFromPrice(pe){return{de:(1-pe/MI)*100,di:(1-(pe*(1+G))/MI)*100}}
+function spFromProfit(effCPE,mode,val){
+  if(mode==='val')return effCPE+val;
+  if(mode==='gp')return(val>=100)?null:effCPE/(1-val/100);
+  if(mode==='margin')return effCPE*(1+val/100);
+  return null;
+}
+function cpFromProfit(spe,mode,val){
+  var K=computeK();if(K<=0)return null;
+  var e;
+  if(mode==='val')e=spe-val;
+  else if(mode==='gp')e=spe*(1-val/100);
+  else if(mode==='margin')e=spe/(1+val/100);
+  else return null;
+  if(!e||e<=0)return null;
+  var n=e/K;return{e:n,i:n*(1+G)};
+}
+function resolveCP(){
+  if(CM==='manual')return priceFromManual(parseAmt('cpv'),CPMS);
+  var d=parseFloat(el('cpd').value);return isNaN(d)?null:priceFromDisc(d,CM);
+}
+function resolveSP(){
+  if(SM==='manual')return priceFromManual(parseAmt('spv'),SPMS);
+  var d=parseFloat(el('spd').value);return isNaN(d)?null:priceFromDisc(d,SM);
+}
+
+/* ── Fill helpers ── */
+function fillCP(cp){
+  if(!cp){
+    ['cde','cdi','cve','cvi','cga'].forEach(function(id){R(id,'—')});
+    el('cpc').className=el('cpc').className.replace(' over-mrp','');
+    el('cp-alert').className='price-alert';
+    el('cvi').className='row-val';
+    return;
+  }
+  var d=discFromPrice(cp.e);
+  var overMRP=MI>0&&cp.i>MI;
+  R('cde',PCT(d.de));R('cdi',PCT(d.di));R('cve',INR(cp.e));R('cvi',INR(cp.i));R('cga',INR(cp.i-cp.e));
+  el('cvi').className='row-val'+(overMRP?' neg':'');
+  el('cdi').className='row-val'+(d.di<0?' neg':'');
+  var card=el('cpc');
+  card.className=card.className.replace(' over-mrp','')+(overMRP?' over-mrp':'');
+  el('cp-alert').className='price-alert'+(overMRP?' show':'');
+  // auto-open accordion when alert fires (mobile)
+  if(overMRP&&window.innerWidth<=800){
+    var b=el('acc-body-cp');if(b&&!b.classList.contains('open'))toggleAcc('cp');
+  }
+}
+function fillSP(sp){
+  if(!sp){
+    ['sde','sdi','sve','svi','sga'].forEach(function(id){R(id,'—')});
+    el('spc').className=el('spc').className.replace(' over-mrp','');
+    el('sp-alert').className='price-alert';
+    el('svi').className='row-val';
+    return;
+  }
+  var d=discFromPrice(sp.e);
+  var overMRP=MI>0&&sp.i>MI;
+  R('sde',PCT(d.de));R('sdi',PCT(d.di));R('sve',INR(sp.e));R('svi',INR(sp.i));R('sga',INR(sp.i-sp.e));
+  el('svi').className='row-val'+(overMRP?' neg':'');
+  el('sdi').className='row-val'+(d.di<0?' neg':'');
+  var card=el('spc');
+  card.className=card.className.replace(' over-mrp','')+(overMRP?' over-mrp':'');
+  el('sp-alert').className='price-alert'+(overMRP?' show':'');
+  if(overMRP&&window.innerWidth<=800){
+    var b=el('acc-body-sp');if(b&&!b.classList.contains('open'))toggleAcc('sp');
+  }
+}
+function fillProfit(effCPE,spe){
+  var floor=getFloor(),pvEl=el('pvv');
+  if(effCPE===null||spe===null||isNaN(effCPE)||isNaN(spe)){
+    ['pvv','pgp','pmrg','pspd'].forEach(function(id){R(id,'—')});pvEl.className='row-val big';return;
+  }
+  var pr=spe-effCPE,gp=(spe>0)?(pr/spe)*100:null,mg=(effCPE>0)?(pr/effCPE)*100:null;
+  R('pvv',INR(pr));R('pgp',PCT(gp));R('pmrg',PCT(mg));R('pspd',INR(pr));
+  pvEl.className='row-val big '+(pr>=0?'pos':'neg');
+  el('pgp').className='row-val '+gpCls(gp,floor);
+  el('pmrg').className='row-val '+mgCls(mg,floor);
+}
+function fillIncPanel(cp){
+  updateIncSummaryTag();
+  var inc=getIncentiveInr(cp),eff=cp?cp.e-inc:null;
+  R('inc-total-pct',(inc>0&&cp)?PCT((inc/cp.e)*100):'0.00%');
+  R('inc-total-inr',inc>0?INR(inc):'—');R('inc-eff-cp',INR(eff));
+}
+function sumSet(id,val,cls){var e=el(id);if(!e)return;e.textContent=val;e.className='sum-val '+cls}
+function fillSummary(cp,sp){
+  ['s-mrp','s-cp','s-ecp','s-sp','s-esp','s-inc','s-spinc','s-pr','s-gp','s-mg','s-dcp','s-dsp'].forEach(function(id){sumSet(id,'—','dim')});
+  var mrpV=parseMRP();
+  if(mrpV&&mrpV>0)sumSet('s-mrp',INR(mrpV),'');
+  if(!cp||!sp)return;
+  var floor=getFloor();
+  var cpInc=getIncentiveInr(cp),eff=cp.e-cpInc;
+  var spInc=getSPIncentiveInr(sp),effSP=sp.e-spInc;
+  var pr=effSP-eff,gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
+  var dcp=discFromPrice(cp.e),dsp=discFromPrice(sp.e);
+  sumSet('s-cp',INR(cp.e),'');sumSet('s-ecp',INR(eff),cpInc>0?'amber':'');
+  sumSet('s-sp',INR(sp.e),'');sumSet('s-esp',INR(effSP),spInc>0?'pos':'');
+  sumSet('s-inc',cpInc>0?INR(cpInc):'—',cpInc>0?'amber':'dim');
+  sumSet('s-spinc',spInc>0?INR(spInc):'—',spInc>0?'pos':'dim');
+  sumSet('s-pr',INR(pr),pr>=0?'pos':'neg');
+  sumSet('s-gp',PCT(gp),gpCls(gp,floor));sumSet('s-mg',PCT(mg),mgCls(mg,floor));
+  sumSet('s-dcp',PCT(dcp.de),'');sumSet('s-dsp',PCT(dsp.de),'');
+  // Flash key values
+  ['s-pr','s-gp','s-mg'].forEach(flashSumVal);
+}
+
+/* ── What-if modal renderer ── */
+/* ── What-if helpers ── */
+var WI_CHEVRON_SVG='<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function resolveWiSP(sc){
+  if(sc.spMode==='manual'){
+    var v=parseFloat(String(sc.spVal).replace(/,/g,''));
+    return priceFromManual(v,sc.spManualSub);
+  }
+  var d=parseFloat(sc.spDisc);
+  return(!isNaN(d)&&sc.spDisc!=='')?priceFromDisc(d,sc.spMode):null;
+}
+
+// Update only the result rows — never touches inputs so keyboard stays open
+function updateWiResults(){
+  if(!LAST_CP)return;
+  var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc,floor=getFloor();
+
+  // Recalculate best GP
+  var bestGP=-Infinity,bestIdx=-1;
+  WI_SCENES.forEach(function(sc,i){
+    var sp=resolveWiSP(sc);if(!sp)return;
+    var gp=(sp.e>0)?((sp.e-eff)/sp.e)*100:null;
+    if(gp!==null&&gp>bestGP){bestGP=gp;bestIdx=i}
+  });
+
+  WI_SCENES.forEach(function(sc,i){
+    // update card highlight
+    var card=el('wi-card-'+i);
+    if(card)card.className='wi-card'+(i===bestIdx?' wi-best':'');
+
+    var sp=resolveWiSP(sc);
+    var KEYS=['spe','spi','pr','gp','mg'];
+
+    if(sp){
+      var pr=sp.e-eff,gp=(sp.e>0)?(pr/sp.e)*100:null,mg=(eff>0)?(pr/eff)*100:null;
+      var vals=[
+        {v:INR(sp.e),c:''},
+        {v:INR(sp.i),c:''},
+        {v:INR(pr),c:pr>=0?'pos':'neg'},
+        {v:PCT(gp),c:gpCls(gp,floor)},
+        {v:PCT(mg),c:mgCls(mg,floor)}
+      ];
+      vals.forEach(function(row,k){
+        var cell=el('wi-'+i+'-'+KEYS[k]);
+        if(cell){cell.textContent=row.v;cell.className='wi-val '+row.c}
+      });
+    } else {
+      KEYS.forEach(function(k){
+        var cell=el('wi-'+i+'-'+k);
+        if(cell){cell.textContent='—';cell.className='wi-val dim'}
+      });
+    }
+  });
+}
+
+// Full render — rebuilds the entire grid (called on modal open, mode change, CP change)
+function renderWhatIf(cp){
+  var info=el('wi-cp-info'),grid=el('wi-grid');
+  if(!cp){info.innerHTML='Enter CP and incentives on the main screen first.';grid.innerHTML='';return}
+  var inc=getIncentiveInr(cp),eff=cp.e-inc,floor=getFloor();
+  var incTxt=inc>0?' · Incentives: '+INR(inc)+' · Eff CP: '+INR(eff):'';
+  info.innerHTML='<span>MRP: <strong>'+INR(MI)+'</strong></span><span>CP excl GST: <strong>'+INR(cp.e)+'</strong></span>'+incTxt;
+
+  var bestGP=-Infinity,bestIdx=-1;
+  WI_SCENES.forEach(function(sc,i){
+    var sp=resolveWiSP(sc);if(!sp)return;
+    var gp=(sp.e>0)?((sp.e-eff)/sp.e)*100:null;
+    if(gp!==null&&gp>bestGP){bestGP=gp;bestIdx=i}
+  });
+
+  grid.innerHTML='';
+  WI_SCENES.forEach(function(sc,i){
+    var isManual=sc.spMode==='manual';
+    var card=document.createElement('div');
+    card.className='wi-card'+(i===bestIdx?' wi-best':'');
+    card.id='wi-card-'+i;
+
+    // header
+    var hd=document.createElement('div');hd.className='wi-card-head';
+    var ttl=document.createElement('span');ttl.className='wi-card-title';
+    ttl.textContent='Scenario '+['A','B','C'][i];
+    hd.appendChild(ttl);card.appendChild(hd);
+
+    // 3-way mode tabs — mode change does full rebuild (no input is focused)
+    var tabs=document.createElement('div');tabs.className='sub-tabs';
+    [{key:'excl',label:'Discount + GST %'},{key:'incl',label:'Nett Discount %'},{key:'manual',label:'Enter ₹ directly'}]
+    .forEach(function(m){
+      var btn=document.createElement('button');
+      btn.className='stab'+(sc.spMode===m.key?' on':'');
+      btn.textContent=m.label;
+      btn.onclick=(function(mode,idx){return function(){WI_SCENES[idx].spMode=mode;renderWhatIf(LAST_CP)}})(m.key,i);
+      tabs.appendChild(btn);
+    });
+    card.appendChild(tabs);
+
+    if(isManual){
+      var subWrap=document.createElement('div');subWrap.style.cssText='display:flex;flex-direction:column;gap:6px';
+      // sub-tabs for incl/excl GST — also full rebuild (no input focused)
+      var subTabs=document.createElement('div');subTabs.className='sub-tabs';
+      [{key:'incl',label:'SP incl GST'},{key:'excl',label:'SP excl GST'}].forEach(function(s){
+        var b=document.createElement('button');b.className='stab'+(sc.spManualSub===s.key?' on':'');
+        b.textContent=s.label;
+        b.onclick=(function(sub,idx){return function(){WI_SCENES[idx].spManualSub=sub;renderWhatIf(LAST_CP)}})(s.key,i);
+        subTabs.appendChild(b);
+      });
+      subWrap.appendChild(subTabs);
+
+      // ₹ input — oninput stores value + calls updateWiResults() ONLY (never rebuilds)
+      var fldM=document.createElement('div');fldM.className='field';
+      var symM=document.createElement('span');symM.className='sym';symM.textContent='₹';
+      var inpM=document.createElement('input');inpM.type='text';inpM.inputMode='decimal';
+      inpM.placeholder=sc.spManualSub==='incl'?'SP incl GST':'SP excl GST';
+      inpM.autocomplete='off';
+      if(sc.spVal!==''){var nv=parseFloat(sc.spVal);inpM.value=isNaN(nv)?sc.spVal:fmtINDIAN(nv)}
+      inpM.oninput=(function(idx){return function(){
+        var raw=this.value.replace(/[^0-9.]/g,'');
+        var pts=raw.split('.');if(pts.length>2)raw=pts[0]+'.'+pts.slice(1).join('');
+        WI_SCENES[idx].spVal=raw;
+        var num=parseFloat(raw);
+        if(!isNaN(num)&&raw!==''&&raw!=='.'){
+          var fmt=fmtINDIAN(num);
+          if(raw.indexOf('.')!==-1){var dec=raw.split('.')[1];fmt=fmtINDIAN(parseFloat(raw.split('.')[0])||0).split('.')[0]+'.'+(dec||'')}
+          this.value=fmt;
+        } else if(raw===''||raw==='.'){this.value=raw}
+        updateWiResults(); // ← results only, keyboard stays open
+      }})(i);
+      var btnM=document.createElement('button');btnM.className='field-next';btnM.tabIndex=-1;btnM.title='Done';
+      btnM.innerHTML=WI_CHEVRON_SVG;btnM.onclick=function(){inpM.blur()};
+      fldM.appendChild(symM);fldM.appendChild(inpM);fldM.appendChild(btnM);
+      subWrap.appendChild(fldM);
+      card.appendChild(subWrap);
+
+    } else {
+      // disc % input — oninput stores + updateWiResults() only
+      var fld=document.createElement('div');fld.className='field';
+      var sym=document.createElement('span');sym.className='sym';sym.textContent='Disc %';
+      var inp=document.createElement('input');inp.type='number';inp.inputMode='decimal';inp.placeholder='e.g. 20';
+      inp.min='0';inp.max='100';inp.step='0.01';inp.value=sc.spDisc;inp.autocomplete='off';
+      inp.oninput=(function(idx){return function(){
+        WI_SCENES[idx].spDisc=this.value;
+        updateWiResults(); // ← results only, keyboard stays open
+      }})(i);
+      var btnD=document.createElement('button');btnD.className='field-next';btnD.tabIndex=-1;btnD.title='Done';
+      btnD.innerHTML=WI_CHEVRON_SVG;btnD.onclick=function(){inp.blur()};
+      fld.appendChild(sym);fld.appendChild(inp);fld.appendChild(btnD);card.appendChild(fld);
+    }
+
+    // result rows with stable IDs
+    var rows=document.createElement('div');rows.className='wi-rows';
+    var LBLS=['SP excl GST','SP incl GST','Profit ₹','GP %','Margin %'];
+    var KEYS=['spe','spi','pr','gp','mg'];
+    var sp=resolveWiSP(sc);
+    LBLS.forEach(function(lbl,k){
+      var r=document.createElement('div');r.className='wi-row';
+      var l=document.createElement('span');l.className='wi-lbl';l.textContent=lbl;
+      var v=document.createElement('span');
+      v.id='wi-'+i+'-'+KEYS[k];
+      v.className='wi-val dim';v.textContent='—';
+      r.appendChild(l);r.appendChild(v);rows.appendChild(r);
+    });
+    card.appendChild(rows);grid.appendChild(card);
+  });
+
+  // Populate results after DOM is built
+  updateWiResults();
+}
+
+/* ── Auto-save ── */
+var _autoSaveTimer=null;
+function autoSave(){
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer=setTimeout(function(){
+    if(!LAST_CP||!LAST_SP)return;
+    var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
+    var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
+    var pr=effSP-eff;
+    if(HISTORY.length>0){
+      var last=HISTORY[0];
+      if(Math.round(last.cpE*100)===Math.round(LAST_CP.e*100)&&
+         Math.round(last.spE*100)===Math.round(LAST_SP.e*100)&&
+         Math.round(last.effCPE*100)===Math.round(eff*100)&&
+         Math.round((last.effSPE||last.spE)*100)===Math.round(effSP*100))return;
+    }
+    saveToHistory();
+  },900);
+}
+
+/* ── History ── */
+function saveToHistory(){
+  if(!LAST_CP||!LAST_SP){alert('Enter CP and SP first.');return}
+  var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
+  var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
+  var pr=effSP-eff;
+  HISTORY.unshift({time:now(),ts:Date.now(),mrp:MI,cpE:LAST_CP.e,cpI:LAST_CP.i,spE:LAST_SP.e,spI:LAST_SP.i,effCPE:eff,effSPE:effSP,incInr:inc,spIncInr:spInc,pr:pr,gp:(effSP>0)?(pr/effSP)*100:null,mg:(eff>0)?(pr/eff)*100:null,gst:G*100});
+  if(HISTORY.length>MAX_HIST)HISTORY.pop();
+  renderHistory();
+  if(el('body-hist').style.display!=='block')togglePanel('hist');
+}
+function clearHistory(){HISTORY=[];renderHistory()}
+function renderHistory(){
+  el('hist-tag').textContent=HISTORY.length+' entr'+(HISTORY.length===1?'y':'ies');
+  var c=el('hist-content');
+  if(HISTORY.length===0){c.innerHTML='<div class="hist-empty">No entries yet.</div>';return}
+  var floor=getFloor();
+  var html='<table class="hist-table"><thead><tr><th>Time</th><th>MRP</th><th>CP excl</th><th>SP excl</th><th>Eff CP</th><th>Inc ₹</th><th>Profit ₹</th><th>GP %</th><th>Margin %</th><th>GST</th><th></th></tr></thead><tbody>';
+  HISTORY.forEach(function(h,idx){
+    var timeDisp=h.ts?relTime(h.ts):h.time;
+    var timeFull=h.ts?fmtTime(h.ts):h.time;
+    html+='<tr>'
+      +'<td class="td-lbl"><span title="'+timeFull+'" style="cursor:help;border-bottom:1px dashed var(--border2)">'+timeDisp+'</span></td>'
+      +'<td>'+INR(h.mrp)+'</td>'
+      +'<td>'+INR(h.cpE)+'</td>'
+      +'<td>'+INR(h.spE)+'</td>'
+      +'<td class="'+(h.incInr>0?'td-amber':'')+'">'+INR(h.effCPE)+'</td>'
+      +'<td class="'+(h.incInr>0?'td-amber':'')+'">'+( h.incInr>0?INR(h.incInr):'—')+'</td>'
+      +'<td class="'+(h.pr>=0?'td-pos':'td-neg')+'">'+INR(h.pr)+'</td>'
+      +'<td class="'+(belowFloor(h.gp,floor.gp)?'td-warn':(h.gp>=0?'td-pos':'td-neg'))+'">'+PCT(h.gp)+'</td>'
+      +'<td class="'+(belowFloor(h.mg,floor.mg)?'td-warn':(h.mg>=0?'td-pos':'td-neg'))+'">'+PCT(h.mg)+'</td>'
+      +'<td class="td-lbl">'+h.gst+'%</td>'
+      +'<td style="padding:4px 8px"><button class="cmp-hist-btn" onclick="openCompare('+idx+')">Compare</button></td>'
+      +'</tr>';
+  });
+  html+='</tbody></table>';c.innerHTML=html;
+}
+
+/* ── History export ── */
+function exportHistoryCSV(){
+  if(HISTORY.length===0){alert('No history entries to export.');return}
+  var headers=['Time','MRP (incl GST)','CP excl GST','CP incl GST','SP excl GST','SP incl GST','Eff CP excl GST','CP Incentives INR','Eff SP excl GST','SP Incentives INR','Profit INR','GP %','Margin %','GST Rate %'];
+  var rows=[headers.join(',')];
+  HISTORY.forEach(function(h){
+    rows.push([
+      '"'+h.time+'"',
+      h.mrp.toFixed(2),
+      h.cpE.toFixed(2),
+      h.cpI.toFixed(2),
+      h.spE.toFixed(2),
+      h.spI.toFixed(2),
+      h.effCPE.toFixed(2),
+      h.incInr>0?h.incInr.toFixed(2):'',
+      (h.effSPE||h.spE).toFixed(2),
+      (h.spIncInr||0)>0?(h.spIncInr||0).toFixed(2):'',
+      h.pr.toFixed(2),
+      h.gp!==null?h.gp.toFixed(2):'',
+      h.mg!==null?h.mg.toFixed(2):'',
+      h.gst
+    ].join(','));
+  });
+  var csv=rows.join('\r\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='pricing-history-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url)},200);
+}
+
+/* ── Comparison modal ── */
+var COMPARE_IDX=null;
+
+function openCompare(idx){
+  COMPARE_IDX=idx;
+  renderCompare();
+  openModal('compare');
+}
+
+function renderCompare(){
+  var floor=getFloor();
+  var hist=HISTORY[COMPARE_IDX];
+  if(!hist){el('cmp-grid').innerHTML='<div style="padding:20px;color:var(--text3)">No entry selected.</div>';return}
+
+  // Build current snapshot
+  var cur=null;
+  if(LAST_CP&&LAST_SP){
+    var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
+    var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
+    var pr=effSP-eff;
+    cur={
+      mrp:MI,cpE:LAST_CP.e,cpI:LAST_CP.i,spE:LAST_SP.e,spI:LAST_SP.i,
+      effCPE:eff,effSPE:effSP,incInr:inc,spIncInr:spInc,pr:pr,
+      gp:(effSP>0)?(pr/effSP)*100:null,
+      mg:(eff>0)?(pr/eff)*100:null,
+      gst:G*100
+    };
+  }
+
+  // meta
+  var meta=el('cmp-meta');
+  var histTimeDisp=hist.ts?relTime(hist.ts):hist.time;
+  var histTimeFull=hist.ts?fmtTime(hist.ts):hist.time;
+  meta.innerHTML='<span>Comparing <strong>current calculation</strong> vs history entry from <strong><span title="'+histTimeFull+'" style="cursor:help;border-bottom:1px dashed var(--text3)">'+histTimeDisp+'</span></strong></span>';
+  if(!cur) meta.innerHTML+='<span style="color:var(--red);font-size:11px"> — Enter CP &amp; SP on main screen to populate Current column</span>';
+
+  // delta helper
+  function delta(curV,histV,isPercent,higherIsBetter){
+    if(curV===null||histV===null||curV===undefined||histV===undefined)return'';
+    var d=curV-histV;
+    if(Math.abs(d)<0.005)return '<span class="dv nt">—</span>';
+    var sign=d>0?'+':'';
+    var cls=(higherIsBetter?(d>0):(d<0))?'up':'dn';
+    var txt=isPercent?(sign+d.toFixed(2)+'pp'):(sign+d.toFixed(2));
+    return '<span class="dv '+cls+'">'+txt+'</span>';
+  }
+  function deltaINR(curV,histV,higher){
+    if(curV===null||histV===null)return'';
+    var d=curV-histV;if(Math.abs(d)<0.005)return'<span class="dv nt">—</span>';
+    var sign=d>0?'+':'';
+    var cls=(higher?(d>0):(d<0))?'up':'dn';
+    return '<span class="dv '+cls+'">'+sign+'₹'+Math.abs(d).toFixed(2)+'</span>';
+  }
+
+  // cell builders
+  function hd(txt,cls){return '<div class="cmp-hd'+(cls?' '+cls:'')+'">'+(txt||'')+'</div>'}
+  function lbl(txt){return '<div class="cmp-cell lbl">'+txt+'</div>'}
+
+  function valCell(v,fmt,cls){
+    var disp=v===null||v===undefined?'—':(fmt==='inr'?INR(v):PCT(v));
+    return '<div class="cmp-cell'+(cls?' '+cls:'')+'">'+(disp||'—')+'</div>';
+  }
+  function inrCell(v,posNeg){
+    if(v===null||v===undefined)return'<div class="cmp-cell dim">—</div>';
+    var cls=posNeg?(v>=0?'cmp-pos':'cmp-neg'):'';
+    return'<div class="cmp-cell '+(cls||'')+'">'+INR(v)+'</div>';
+  }
+  function pctCell(v,floor,isGP){
+    if(v===null||v===undefined)return'<div class="cmp-cell dim">—</div>';
+    var f=isGP?floor.gp:floor.mg;
+    var cls=belowFloor(v,f)?'cmp-warn':(v>=0?'cmp-pos':'cmp-neg');
+    return'<div class="cmp-cell '+cls+'">'+PCT(v)+'</div>';
+  }
+  function deltaCell(html){return'<div class="cmp-cell cmp-delta">'+(html||'<span class="dv nt">—</span>')+'</div>'}
+
+  var rows=[
+    {label:'MRP (incl GST)',   cur:cur?cur.mrp:null,   hist:hist.mrp,   fmt:'inr', higher:null},
+    {label:'CP excl GST',      cur:cur?cur.cpE:null,   hist:hist.cpE,   fmt:'inr', higher:false},
+    {label:'CP incl GST',      cur:cur?cur.cpI:null,   hist:hist.cpI,   fmt:'inr', higher:false},
+    {label:'SP excl GST',      cur:cur?cur.spE:null,    hist:hist.spE,   fmt:'inr', higher:true},
+    {label:'SP incl GST',      cur:cur?cur.spI:null,    hist:hist.spI,   fmt:'inr', higher:true},
+    {label:'Eff. SP excl GST', cur:cur?cur.effSPE:null, hist:hist.effSPE||hist.spE, fmt:'inr', higher:true},
+    {label:'SP Incentives ₹',  cur:cur?cur.spIncInr:null,hist:hist.spIncInr||0,fmt:'inr', higher:true},
+    {label:'Eff. CP excl GST', cur:cur?cur.effCPE:null,hist:hist.effCPE,fmt:'inr', higher:false},
+    {label:'Incentives ₹',     cur:cur?cur.incInr:null,hist:hist.incInr,fmt:'inr', higher:true},
+    {label:'Profit ₹',         cur:cur?cur.pr:null,    hist:hist.pr,    fmt:'inr', higher:true, posNeg:true},
+    {label:'GP %',             cur:cur?cur.gp:null,    hist:hist.gp,    fmt:'pct', higher:true, isGP:true},
+    {label:'Margin %',         cur:cur?cur.mg:null,    hist:hist.mg,    fmt:'pct', higher:true, isMG:true},
+    {label:'GST Rate',         cur:cur?cur.gst:null,   hist:hist.gst,   fmt:'gst', higher:null}
+  ];
+
+  var html=hd('')+hd('Current','cur')+hd('Selected','sel')+hd('Change');
+
+  rows.forEach(function(r){
+    html+=lbl(r.label);
+    if(r.fmt==='pct'){
+      html+=pctCell(r.cur,floor,r.isGP);
+      html+=pctCell(r.hist,floor,r.isGP);
+      html+=deltaCell(delta(r.cur,r.hist,true,r.higher));
+    } else if(r.fmt==='gst'){
+      html+='<div class="cmp-cell">'+(r.cur!==null?r.cur+'%':'—')+'</div>';
+      html+='<div class="cmp-cell">'+r.hist+'%</div>';
+      html+=deltaCell(delta(r.cur,r.hist,false,null));
+    } else {
+      var c=r.posNeg?inrCell(r.cur,true):(r.cur===null?'<div class="cmp-cell dim">—</div>':inrCell(r.cur,false));
+      var s=r.posNeg?inrCell(r.hist,true):inrCell(r.hist,false);
+      html+=c+s;
+      html+=deltaCell(deltaINR(r.cur,r.hist,r.higher));
+    }
+  });
+
+  el('cmp-grid').innerHTML=html;
+}
+function getSummaryText(){
+  if(!LAST_CP||!LAST_SP)return null;
+  var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
+  var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
+  var pr=effSP-eff;
+  var gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
+  var lines=['PRICING SUMMARY — '+now(),'─────────────────────────','MRP (incl GST):   '+INR(MI),'GST Rate:         '+(G*100)+'%','','CP excl GST:      '+INR(LAST_CP.e),'CP incl GST:      '+INR(LAST_CP.i)];
+  if(inc>0){lines.push('CP Incentives ₹:  '+INR(inc));lines.push('Eff. CP excl GST: '+INR(eff))}
+  lines.push('','SP excl GST:      '+INR(LAST_SP.e),'SP incl GST:      '+INR(LAST_SP.i));
+  if(spInc>0){lines.push('SP Incentives ₹:  '+INR(spInc));lines.push('Eff. SP excl GST: '+INR(effSP))}
+  lines.push('','Profit ₹:         '+INR(pr),'GP %:             '+PCT(gp),'Margin %:         '+PCT(mg),'─────────────────────────');
+  return lines.join('\n');
+}
+function copyToClipboard(){
+  var text=getSummaryText();
+  if(!text){alert('Enter CP and SP first.');return}
+  navigator.clipboard.writeText(text).then(function(){
+    var btn=el('copy-btn');if(!btn)return;
+    var orig=btn.innerHTML;btn.textContent='✓ Copied!';
+    setTimeout(function(){btn.innerHTML=orig},1800);
+  }).catch(function(){alert(text)});
+}
+function sendWhatsApp(){
+  var text=getSummaryText();
+  if(!text){alert('Enter CP and SP first.');return}
+  window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
+}
+function sendEmail(){
+  var text=getSummaryText();
+  if(!text){alert('Enter CP and SP first.');return}
+  window.location.href='mailto:?subject='+encodeURIComponent('Pricing Summary — Sterling Spares')+'&body='+encodeURIComponent(text);
+}
+function exportPDF(){
+  if(!LAST_CP||!LAST_SP){alert('Enter CP and SP first.');return}
+  window.print();
+}
+
+/* ── Main calc ── */
+function calc(){
+  var mrpV=parseMRP();
+  if(!mrpV||mrpV<=0){
+    R('mx','—');R('mg','—');
+    fillCP(null);fillSP(null);fillProfit(null,null);fillIncPanel(null);fillSpIncPanel(null);fillSummary(null,null);
+    LAST_CP=null;LAST_SP=null;return;
+  }
+  MI=mrpV;ME=MI/(1+G);R('mx',INR(ME));R('mg',INR(MI-ME));
+  var cp,sp,spe,prV,spD;
+
+  if(T==='profit'){
+    cp=resolveCP();sp=resolveSP();
+    fillCP(cp);fillSP(sp);
+    var inc=getIncentiveInr(cp);
+    var spInc=getSPIncentiveInr(sp);
+    var effCPE=cp?cp.e-inc:null;
+    var effSPE=sp?sp.e-spInc:null;
+    fillProfit(effCPE,effSPE);fillIncPanel(cp);fillSpIncPanel(sp);fillSummary(cp,sp);
+  }else if(T==='sp'){
+    cp=resolveCP();prV=parseAmt('pri');fillCP(cp);fillIncPanel(cp);
+    if(cp&&!isNaN(prV)){
+      var inc2=getIncentiveInr(cp);
+      // SP incentives unknown yet (no SP) — solve ignoring SP inc, then apply
+      var spe2=spFromProfit(cp.e-inc2,PM,prV);
+      if(spe2&&spe2>0){
+        sp={e:spe2,i:spe2*(1+G)};
+        var spInc2=getSPIncentiveInr(sp);
+        var effSPE2=spe2-spInc2;
+        fillSP(sp);fillProfit(cp.e-inc2,effSPE2);fillSpIncPanel(sp);fillSummary(cp,sp);
+      }else{fillSP(null);fillProfit(null,null);fillSpIncPanel(null);fillSummary(cp,null)}
+    }else{fillSP(null);fillProfit(null,null);fillSpIncPanel(null);fillSummary(cp,null)}
+  }else if(T==='cp'){
+    spD=parseFloat(el('spd').value);prV=parseAmt('pri');sp=resolveSP();fillSP(sp);
+    if(sp&&!isNaN(prV)){
+      var spInc3=getSPIncentiveInr(sp);
+      var effSPE3=sp.e-spInc3;
+      cp=cpFromProfit(effSPE3,PM,prV);
+      if(cp&&cp.e>0){var inc3=getIncentiveInr(cp);fillCP(cp);fillProfit(cp.e-inc3,effSPE3);fillIncPanel(cp);fillSpIncPanel(sp);fillSummary(cp,sp)}
+      else{fillCP(null);fillProfit(null,null);fillIncPanel(null);fillSpIncPanel(sp);fillSummary(null,sp)}
+    }else{fillCP(null);fillProfit(null,null);fillIncPanel(null);fillSpIncPanel(sp);fillSummary(null,sp)}
+  }
+
+  LAST_CP=cp||null;LAST_SP=sp||null;
+  if(LAST_CP&&LAST_SP&&AUTOSAVE)autoSave();
+  // refresh what-if if modal is open
+  if(el('overlay-whatif').classList.contains('open'))updateWiResults();
+  if(el('overlay-compare').classList.contains('open'))renderCompare();
+}
+
+/* ── Reset ── */
+function resetAll(){
+  clearTimeout(_autoSaveTimer);
+  // Numeric inputs
+  el('mrp').value='100';
+  el('cpd').value=''; el('cpv').value='';
+  el('spd').value=''; el('spv').value=''; el('pri').value='';
+  // Floor limits
+  el('floor-gp').value='5'; el('floor-mg').value='';
+  // GST back to 18%
+  setGST(18);
+  // CP mode
+  setCM('excl'); setCPManual('incl');
+  // SP mode
+  setSM('excl'); setSPManual('incl');
+  T='profit';
+  el('tprofit').className='pill on';
+  el('tsp').className='pill';
+  el('tcp').className='pill';
+  // Profit input mode back to ₹ Value
+  PM='val';
+  el('pmv').className='mtab on'; el('pmg').className='mtab'; el('pmm').className='mtab';
+  el('pru').textContent='₹';
+  // Incentives
+  var def={cd:2,eb:1,qt:2,an:1,sc:''};
+  INC_KEYS.forEach(function(k){
+    el('it-'+k).checked=false;
+    el('iv-'+k).value=def[k];
+    el('ir-'+k).className='inc-row';
+  });
+  setCDMode('before');
+  setSchemeMode('pct');
+  // Reset SP incentives
+  var spDef={cd:2,eb:1,qt:2,an:1,sc:''};
+  SP_INC_KEYS.forEach(function(k){
+    el('sit-'+k).checked=false;
+    el('siv-'+k).value=spDef[k]||'';
+    el('sir-'+k).className='inc-row';
+  });
+  setSCDMode('before');
+  setSpSchemeMode('pct');
+  // What-if
+  WI_SCENES=[
+    {spDisc:'',spMode:'excl',spVal:'',spManualSub:'incl'},
+    {spDisc:'',spMode:'excl',spVal:'',spManualSub:'incl'},
+    {spDisc:'',spMode:'excl',spVal:'',spManualSub:'incl'}
+  ];
+  updateLayout();
+  calc();
+}
+
+/* ── Hamburger menu ── */
+function toggleHMenu(){
+  var d=el('hmenu-dropdown');
+  if(d)d.classList.toggle('open');
+}
+function closeHMenu(){
+  var d=el('hmenu-dropdown');
+  if(d)d.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var btn=el('hmenu-btn'),drop=el('hmenu-dropdown');
+  if(!btn||!drop)return;
+  if(!btn.contains(e.target)&&!drop.contains(e.target))drop.classList.remove('open');
+});
+
+/* ── Accordion (mobile card details) ── */
+function toggleAcc(id){
+  var body=el('acc-body-'+id);
+  var chev=el('acc-chev-'+id);
+  var btn=el('acc-btn-'+id);
+  if(!body)return;
+  var open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  if(chev)chev.classList.toggle('open',!open);
+  var lbl=btn.querySelector('.acc-lbl');
+  if(lbl)lbl.textContent=open?'Show details':'Hide details';
+}
+
+/* ── Next-section button logic ── */
+function nextFrom(fromId){
+  // Dismiss keyboard first
+  var cur=el(fromId);if(cur)cur.blur();
+
+  var map={
+    'mrp': function(){
+      // MRP → focus CP input
+      var cpInput=(CM==='manual')?el('cpv'):el('cpd');
+      if(cpInput){
+        var offset=el('cpc').getBoundingClientRect().top+window.scrollY-80;
+        window.scrollTo({top:offset,behavior:'smooth'});
+        setTimeout(function(){cpInput.focus()},350);
+      }
+    },
+    'cpd': function(){nextToSP()},
+    'cpv': function(){nextToSP()},
+    'spd': function(){nextToResult()},
+    'spv': function(){nextToResult()}
+  };
+  if(map[fromId])map[fromId]();
+}
+
+function nextToSP(){
+  // CP → SP
+  var spInput=(SM==='manual')?el('spv'):el('spd');
+  if(!spInput)return;
+  if(T==='sp'){
+    // SP is calculated; go to profit input instead
+    nextToResult();return;
+  }
+  var offset=el('spc').getBoundingClientRect().top+window.scrollY-80;
+  window.scrollTo({top:offset,behavior:'smooth'});
+  setTimeout(function(){spInput.focus()},350);
+}
+
+function nextToResult(){
+  // SP → profit card or summary
+  if(T==='profit'){
+    // both CP and SP are inputs; scroll to summary
+    bnavGo('summary');
+  } else {
+    // profit is an input
+    var prInput=el('pri');
+    if(prInput){
+      var offset=el('prc').getBoundingClientRect().top+window.scrollY-80;
+      window.scrollTo({top:offset,behavior:'smooth'});
+      setTimeout(function(){prInput.focus()},350);
+    }
+  }
+}
+
+/* ── Haptic feedback ── */
+function haptic(type){
+  if(!navigator.vibrate)return;
+  if(type==='light')navigator.vibrate(8);
+  else if(type==='medium')navigator.vibrate(20);
+  else if(type==='success')navigator.vibrate([12,30,12]);
+  else if(type==='error')navigator.vibrate([20,40,20,40,20]);
+  else if(type==='select')navigator.vibrate(6);
+}
+
+/* ── Ripple on fc-btn-next ── */
+function addRipple(e){
+  var btn=e.currentTarget;
+  var r=document.createElement('span');r.className='fc-ripple';
+  var rect=btn.getBoundingClientRect();
+  r.style.left=(e.clientX-rect.left)+'px';
+  r.style.top=(e.clientY-rect.top)+'px';
+  btn.appendChild(r);
+  r.addEventListener('animationend',function(){r.remove()});
+}
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('.fc-btn-next');
+  if(btn)addRipple({currentTarget:btn,clientX:e.clientX,clientY:e.clientY});
+});
+
+/* ── Card bounce on landing ── */
+function cardBounce(id){
+  var c=el(id);if(!c)return;
+  c.style.animation='none';
+  requestAnimationFrame(function(){
+    c.style.animation='cardBounce .45s ease';
+    c.addEventListener('animationend',function h(){c.style.animation='';c.removeEventListener('animationend',h)});
+  });
+}
+
+/* ── Animate summary values when they change ── */
+function flashSumVal(id){
+  var e=el(id);if(!e||e.textContent==='—')return;
+  e.classList.remove('updated');
+  requestAnimationFrame(function(){e.classList.add('updated')});
+  e.addEventListener('animationend',function h(){e.classList.remove('updated');e.removeEventListener('animationend',h)},{once:true});
+}
+
+/* ── Keyboard nav for Quick mode (desktop) ── */
+document.addEventListener('keydown',function(e){
+  if(APP_MODE!=='quick')return;
+  // Don't intercept if a modal is open
+  if(document.querySelector('.modal-overlay.open'))return;
+  if(e.key==='Enter'){
+    e.preventDefault();
+    fcNext();
+  } else if(e.key==='ArrowRight'){
+    e.preventDefault();
+    fcNext();
+  } else if(e.key==='ArrowLeft'){
+    e.preventDefault();
+    fcBack();
+  }
+});
+
+/* ── Bottom nav ── */
+var BNAV_ACTIVE='calc';
+function bnavGo(id){
+  // Close any open modal first
+  ['settings','whatif','compare'].forEach(function(m){closeModal(m)});
+
+  // If switching to wizard, show that mode; if switching away, stay in current default/quick
+  if(id==='wizard'){
+    // Show wizard mode, hide page + quick mode
+    document.querySelector('.page').style.display='none';
+    el('quick-mode').style.display='none';
+    el('wizard-mode').style.display='block';
+    document.querySelector('.footer').style.display='none';
+  } else {
+    // Hide wizard
+    el('wizard-mode').style.display='none';
+    document.querySelector('.footer').style.display='';
+    // Show correct mode
+    if(APP_MODE==='quick'){
+      el('quick-mode').style.display='block';
+      document.querySelector('.page').style.display='none';
+    } else {
+      document.querySelector('.page').style.display='';
+      el('quick-mode').style.display='none';
+    }
+  }
+
+  BNAV_ACTIVE=id;
+  ['calc','wizard','inc','summary','hist','settings'].forEach(function(n){
+    var b=el('bnav-'+n);
+    if(b)b.className='bnav-item'+(n===id?' active':'');
+  });
+  var target=el('sec-'+id);
+  if(target){
+    var offset=target.getBoundingClientRect().top+window.scrollY-70;
+    window.scrollTo({top:offset,behavior:'smooth'});
+    if(id==='inc'){setTimeout(function(){if(el('body-inc').style.display!=='block')togglePanel('inc')},350)}
+    if(id==='hist'){setTimeout(function(){if(el('body-hist').style.display!=='block')togglePanel('hist')},350)}
+  } else if(id!=='wizard'){
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+}
+// Update active nav item on scroll
+window.addEventListener('scroll',function(){
+  if(window.innerWidth>800)return;
+  var secs=[
+    {id:'calc',el:el('sec-calc')},
+    {id:'inc',el:el('sec-inc')},
+    {id:'summary',el:el('sec-summary')},
+    {id:'hist',el:el('sec-hist')}
+  ];
+  var best='calc',bestDist=Infinity;
+  secs.forEach(function(s){
+    if(!s.el)return;
+    var dist=Math.abs(s.el.getBoundingClientRect().top-80);
+    if(dist<bestDist){bestDist=dist;best=s.id}
+  });
+  if(best!==BNAV_ACTIVE){
+    BNAV_ACTIVE=best;
+    ['calc','inc','summary','hist'].forEach(function(n){
+      var b=el('bnav-'+n);if(b)b.className='bnav-item'+(n===best?' active':'');
+    });
+  }
+},{ passive:true });
+
+/* ════════════════════════════════════════════
+   QUICK / FLASHCARD MODE
+════════════════════════════════════════════ */
+var APP_MODE = 'default'; // 'default' | 'quick'
+var FC_STEP  = 0;         // 0=MRP, 1=CP or SP, 2=SP or Profit, 3=Result
+var FC_G     = 0.18;
+var FC_T     = 'profit';  // 'profit' | 'sp' | 'cp'
+var FC_PM    = 'val';     // profit input mode: 'val' | 'gp' | 'margin'
+var FC_CM    = 'excl';    // CP mode
+var FC_SM    = 'excl';    // SP mode
+var FC_CPMS  = 'incl';
+var FC_SPMS  = 'incl';
+
+function setMode(m){
+  haptic('select');
+  APP_MODE = m;
+  el('mode-default').className = 'mode-pill' + (m==='default' ? ' mode-pill-on' : '');
+  el('mode-quick').className   = 'mode-pill' + (m==='quick'   ? ' mode-pill-on' : '');
+  el('quick-mode').style.display = (m==='quick') ? 'block' : 'none';
+  document.querySelector('.page').style.display = (m==='default') ? '' : 'none';
+  document.querySelector('.footer').style.display = (m==='default') ? '' : 'none';
+  if(el('wizard-mode'))el('wizard-mode').style.display='none';
+  if(m==='quick'){
+    FC_STEP=0;
+    fcBuildCards();
+    fcGoto(0,false);
+  }
+}
+
+/* ── Quick calc helpers (independent state from main) ── */
+function fcINR(n){
+  if(n===null||n===undefined||isNaN(n))return'—';
+  return'₹'+fmtINDIAN(n);
+}
+function fcPCT(n){
+  if(n===null||isNaN(n))return'—';
+  return parseFloat(n.toFixed(4)).toFixed(2)+'%';
+}
+function fcSetGST(p){
+  haptic('select');
+  FC_G=p/100;
+  el('fcg18').className='fc-tab'+(p===18?' on':'');
+  el('fcg5').className='fc-tab'+(p===5?' on':'');
+  fcCalc();
+}
+function fcSetT(t){
+  FC_T=t;
+  ['profit','sp','cp'].forEach(function(k){
+    var b=el('fc-t-'+k);if(b)b.className='fc-tab'+(t===k?' on':'');
+  });
+  // Rebuild cards 1 & 2 for new mode, labels update
+  fcBuildCards();
+  // If already past step 0, reset to step 1
+  if(FC_STEP>0)fcGoto(1,false);
+}
+function fcSetPM(m){
+  FC_PM=m;
+  ['val','gp','margin'].forEach(function(k){
+    var b=el('fc-pm-'+k);if(b)b.className='fc-tab'+(m===k?' on':'');
+  });
+  var s=el('fc-pr-sym');if(s)s.textContent=m==='val'?'₹':'%';
+  var i2=el('fc-pr-val');
+  if(i2){
+    i2.value='';
+    i2.placeholder=m==='val'?'e.g. 10':'e.g. 15';
+    if(m==='val'){
+      i2.type='text';
+      i2.oninput=function(){fcFmtInput(this);if(FC_STEP===3)fcRenderResult()};
+    } else {
+      i2.type='number';i2.min='0';i2.step='0.01';
+      i2.oninput=function(){if(FC_STEP===3)fcRenderResult()};
+    }
+  }
+  fcCalc();
+}
+function fcSetCM(m){
+  haptic('select');
+  FC_CM=m;
+  ['excl','incl','manual'].forEach(function(k){
+    var b=el('fc-cm-'+k);if(b)b.className='fc-tab'+(m===k?' on':'');
+  });
+  el('fc-cp-disc-wrap') && (el('fc-cp-disc-wrap').style.display = m==='manual'?'none':'');
+  el('fc-cp-manual-wrap') && (el('fc-cp-manual-wrap').style.display = m==='manual'?'':'none');
+  fcCalc();
+}
+function fcSetCPMS(s){
+  haptic('select');
+  FC_CPMS=s;
+  ['incl','excl'].forEach(function(k){var b=el('fc-cpms-'+k);if(b)b.className='fc-tab'+(s===k?' on':'')});
+  var inp=el('fc-cpv');if(inp)inp.placeholder=s==='incl'?'CP incl GST':'CP excl GST';
+  fcCalc();
+}
+function fcSetSM(m){
+  haptic('select');
+  FC_SM=m;
+  ['excl','incl','manual'].forEach(function(k){
+    var b=el('fc-sm-'+k);if(b)b.className='fc-tab'+(m===k?' on':'');
+  });
+  el('fc-sp-disc-wrap') && (el('fc-sp-disc-wrap').style.display = m==='manual'?'none':'');
+  el('fc-sp-manual-wrap') && (el('fc-sp-manual-wrap').style.display = m==='manual'?'':'none');
+  fcCalc();
+}
+function fcSetSPMS(s){
+  haptic('select');
+  FC_SPMS=s;
+  ['incl','excl'].forEach(function(k){var b=el('fc-spms-'+k);if(b)b.className='fc-tab'+(s===k?' on':'')});
+  var inp=el('fc-spv');if(inp)inp.placeholder=s==='incl'?'SP incl GST':'SP excl GST';
+  fcCalc();
+}
+
+function fcResolveMRP(){
+  var raw=el('fc-mrp')&&el('fc-mrp').value||'';
+  return parseFloat(raw.replace(/,/g,''))||0;
+}
+function fcResolveCP(fcMI){
+  if(!el('fc-cpd'))return null;
+  if(FC_CM==='manual'){
+    var v=parseFloat((el('fc-cpv')&&el('fc-cpv').value||'').replace(/,/g,''));
+    if(isNaN(v)||v<=0)return null;
+    return FC_CPMS==='incl'?{e:v/(1+FC_G),i:v}:{e:v,i:v*(1+FC_G)};
+  }
+  var d=parseFloat(el('fc-cpd').value);if(isNaN(d))return null;
+  if(FC_CM==='excl'){var e=fcMI*(1-d/100);return{e:e,i:e*(1+FC_G)}}
+  var i=fcMI*(1-d/100);return{e:i/(1+FC_G),i:i};
+}
+function fcResolveSP(fcMI){
+  if(!el('fc-spd'))return null;
+  if(FC_SM==='manual'){
+    var v=parseFloat((el('fc-spv')&&el('fc-spv').value||'').replace(/,/g,''));
+    if(isNaN(v)||v<=0)return null;
+    return FC_SPMS==='incl'?{e:v/(1+FC_G),i:v}:{e:v,i:v*(1+FC_G)};
+  }
+  var d=parseFloat(el('fc-spd').value);if(isNaN(d))return null;
+  if(FC_SM==='excl'){var e2=fcMI*(1-d/100);return{e:e2,i:e2*(1+FC_G)}}
+  var i2=fcMI*(1-d/100);return{e:i2/(1+FC_G),i:i2};
+}
+
+function fcResolveProfit(cp, sp){
+  // Returns {cp, sp} after solving the missing one
+  var mrpV=fcResolveMRP();
+  if(!mrpV||mrpV<=0)return{cp:cp,sp:sp};
+  var prInput=el('fc-pr-val');
+  var prV=prInput?parseFloat((prInput.value||'').replace(/,/g,'')):NaN;
+  if(isNaN(prV))return{cp:cp,sp:sp};
+
+  if(FC_T==='sp'&&cp){
+    // Solve for SP
+    var spe;
+    if(FC_PM==='val')spe=cp.e+prV;
+    else if(FC_PM==='gp')spe=prV>=100?null:cp.e/(1-prV/100);
+    else spe=cp.e*(1+prV/100);
+    if(spe&&spe>0){sp={e:spe,i:spe*(1+FC_G)}}
+  } else if(FC_T==='cp'&&sp){
+    // Solve for CP
+    var cpe;
+    if(FC_PM==='val')cpe=sp.e-prV;
+    else if(FC_PM==='gp')cpe=sp.e*(1-prV/100);
+    else cpe=sp.e/(1+prV/100);
+    if(cpe&&cpe>0){cp={e:cpe,i:cpe*(1+FC_G)}}
+  }
+  return{cp:cp,sp:sp};
+}
+
+function fcCalc(){
+  var mrpV=fcResolveMRP();
+  if(mrpV>0){
+    var me=mrpV/(1+FC_G);
+    var mxw=el('fc-mx-wrap'),mgw=el('fc-mg-wrap');
+    if(mxw)mxw.style.display='';if(mgw)mgw.style.display='';
+    if(el('fc-mx'))el('fc-mx').textContent=fcINR(me);
+    if(el('fc-mg'))el('fc-mg').textContent=fcINR(mrpV-me);
+  }
+  // Update CP preview if visible
+  if(el('fc-cp-e')||el('fc-cp-i')){
+    var cpPrev=mrpV>0?fcResolveCP(mrpV):null;
+    if(el('fc-cp-e'))el('fc-cp-e').textContent=cpPrev?fcINR(cpPrev.e):'—';
+    if(el('fc-cp-i'))el('fc-cp-i').textContent=cpPrev?fcINR(cpPrev.i):'—';
+  }
+  // Update SP preview if visible
+  if(el('fc-sp-e')||el('fc-sp-i')){
+    var spPrev=mrpV>0?fcResolveSP(mrpV):null;
+    if(el('fc-sp-e'))el('fc-sp-e').textContent=spPrev?fcINR(spPrev.e):'—';
+    if(el('fc-sp-i'))el('fc-sp-i').textContent=spPrev?fcINR(spPrev.i):'—';
+  }
+  if(FC_STEP===3)fcRenderResult();
+}
+
+/* ── Build CP/SP cards dynamically ── */
+function fcBuildCards(){
+  if(FC_T==='profit'){
+    fcBuildCPCard();   // slot 1 = CP
+    fcBuildSPCard();   // slot 2 = SP
+  } else if(FC_T==='sp'){
+    fcBuildCPCard();          // slot 1 = CP
+    fcBuildProfitCard('sp');  // slot 2 = Profit input → solve SP
+  } else if(FC_T==='cp'){
+    fcBuildSPCard();          // slot 1 = SP  (reuse, just relabelled)
+    fcBuildProfitCard('cp');  // slot 2 = Profit input → solve CP
+  }
+  // Update progress dots label count
+  fcUpdateDots();
+}
+
+function fcMkField(symTxt,inputId,placeholder,extraStyle){
+  var isRupee=(symTxt==='₹');
+  var wrap=document.createElement('div');wrap.className='fc-input-wrap';if(extraStyle)wrap.style.cssText=extraStyle;
+  var sym=document.createElement('span');sym.className='fc-input-sym';sym.textContent=symTxt;
+  var inp=document.createElement('input');inp.className='fc-input';inp.inputMode='decimal';inp.autocomplete='off';
+  inp.id=inputId;inp.placeholder=placeholder;
+  if(isRupee){
+    inp.type='text';
+    inp.oninput=function(){
+      fcFmtInput(this);fcCalc();
+    };
+  } else {
+    inp.type='number';inp.min='0';inp.max='100';inp.step='0.01';
+    inp.oninput=fcCalc;
+  }
+  wrap.appendChild(sym);wrap.appendChild(inp);
+  return wrap;
+}
+
+// Live comma formatting for quick-mode ₹ text inputs
+function fcFmtInput(inp){
+  var raw=inp.value.replace(/[^0-9.]/g,'');
+  var parts=raw.split('.');if(parts.length>2)raw=parts[0]+'.'+parts.slice(1).join('');
+  var num=parseFloat(raw);
+  if(!isNaN(num)&&raw!==''&&raw!=='.'){
+    var fmt=fmtINDIAN(num);
+    if(raw.indexOf('.')!==-1){var dec=raw.split('.')[1];fmt=fmtINDIAN(parseFloat(raw.split('.')[0])||0).split('.')[0]+'.'+(dec||'')}
+    inp.value=fmt;
+  } else if(raw===''||raw==='.'){inp.value=raw}
+}
+
+function fcBuildCPCard(){
+  var card=el('fcc-1');if(!card)return;
+  card.innerHTML='';card.className='fc-card behind-1';
+  var top=document.createElement('div');top.style.cssText='display:flex;align-items:center;gap:12px';
+  top.innerHTML='<div class="fc-card-icon cp"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 11h14M4 7h14M4 15h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>'
+    +'<div><div class="fc-card-label">'+(FC_T==='cp'?'Step 2 of 3':'Step 2 of 3')+'</div><div class="fc-card-title">Cost Price</div></div>';
+  card.appendChild(top);
+
+  var sub=document.createElement('div');sub.className='fc-card-sub';sub.textContent='How much do you pay for this item? Choose how to enter it.';
+  card.appendChild(sub);
+
+  // mode tabs
+  var modes=document.createElement('div');modes.className='fc-mode-tabs';
+  [{k:'excl',l:'Discount + GST %'},{k:'incl',l:'Nett Discount %'},{k:'manual',l:'Enter ₹ directly'}].forEach(function(m){
+    var b=document.createElement('button');b.className='fc-tab'+(FC_CM===m.k?' on':'');
+    b.id='fc-cm-'+m.k;b.textContent=m.l;b.onclick=function(){fcSetCM(m.k)};modes.appendChild(b);
+  });
+  card.appendChild(modes);
+
+  // disc input
+  var discWrap=document.createElement('div');discWrap.id='fc-cp-disc-wrap';
+  discWrap.style.display=FC_CM==='manual'?'none':'';
+  discWrap.appendChild(fcMkField('Disc %','fc-cpd','e.g. 34'));
+  card.appendChild(discWrap);
+
+  // manual input
+  var manWrap=document.createElement('div');manWrap.id='fc-cp-manual-wrap';manWrap.style.cssText='display:'+(FC_CM==='manual'?'flex':'none')+';flex-direction:column;gap:8px';
+  var subTabs=document.createElement('div');subTabs.className='fc-mode-tabs';
+  [{k:'incl',l:'CP incl GST'},{k:'excl',l:'CP excl GST'}].forEach(function(s){
+    var b=document.createElement('button');b.className='fc-tab'+(FC_CPMS===s.k?' on':'');
+    b.id='fc-cpms-'+s.k;b.textContent=s.l;b.onclick=function(){fcSetCPMS(s.k)};subTabs.appendChild(b);
+  });
+  manWrap.appendChild(subTabs);
+  manWrap.appendChild(fcMkField('₹','fc-cpv',FC_CPMS==='incl'?'CP incl GST':'CP excl GST'));
+  card.appendChild(manWrap);
+
+  // output preview
+  var preview=document.createElement('div');preview.id='fc-cp-preview';preview.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+  ['CP excl GST|fc-cp-e','CP incl GST|fc-cp-i'].forEach(function(pair){
+    var parts=pair.split('|');
+    var item=document.createElement('div');item.style.cssText='flex:1;min-width:90px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px';
+    item.innerHTML='<div style="font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:2px">'+parts[0]+'</div>'
+      +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:15px;font-weight:500;color:var(--text)" id="'+parts[1]+'">—</div>';
+    preview.appendChild(item);
+  });
+  card.appendChild(preview);
+
+  var acts=document.createElement('div');acts.className='fc-actions';
+  acts.innerHTML='<button class="fc-btn fc-btn-back" onclick="fcBack()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
+    +'<button class="fc-btn fc-btn-next" onclick="fcNext()">Next <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+  card.appendChild(acts);
+}
+
+function fcBuildSPCard(){
+  var slotId = (FC_T==='cp') ? 'fcc-1' : 'fcc-2';
+  var card=el(slotId);if(!card)return;
+  card.innerHTML='';card.className='fc-card behind-'+(FC_T==='cp'?'1':'2');
+  var stepLbl=(FC_T==='cp')?'Step 2 of 3':'Step 3 of 3';
+  var top=document.createElement('div');top.style.cssText='display:flex;align-items:center;gap:12px';
+  top.innerHTML='<div class="fc-card-icon sp"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 11h5M11 8.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>'
+    +'<div><div class="fc-card-label">'+stepLbl+'</div><div class="fc-card-title">Selling Price</div></div>';
+  card.appendChild(top);
+
+  var sub=document.createElement('div');sub.className='fc-card-sub';sub.textContent='What do you want to sell it for?';
+  card.appendChild(sub);
+
+  var modes=document.createElement('div');modes.className='fc-mode-tabs';
+  [{k:'excl',l:'Discount + GST %'},{k:'incl',l:'Nett Discount %'},{k:'manual',l:'Enter ₹ directly'}].forEach(function(m){
+    var b=document.createElement('button');b.className='fc-tab'+(FC_SM===m.k?' on':'');
+    b.id='fc-sm-'+m.k;b.textContent=m.l;b.onclick=function(){fcSetSM(m.k)};modes.appendChild(b);
+  });
+  card.appendChild(modes);
+
+  var discWrap=document.createElement('div');discWrap.id='fc-sp-disc-wrap';
+  discWrap.style.display=FC_SM==='manual'?'none':'';
+  discWrap.appendChild(fcMkField('Disc %','fc-spd','e.g. 20'));
+  card.appendChild(discWrap);
+
+  var manWrap=document.createElement('div');manWrap.id='fc-sp-manual-wrap';manWrap.style.cssText='display:'+(FC_SM==='manual'?'flex':'none')+';flex-direction:column;gap:8px';
+  var subTabs=document.createElement('div');subTabs.className='fc-mode-tabs';
+  [{k:'incl',l:'SP incl GST'},{k:'excl',l:'SP excl GST'}].forEach(function(s){
+    var b=document.createElement('button');b.className='fc-tab'+(FC_SPMS===s.k?' on':'');
+    b.id='fc-spms-'+s.k;b.textContent=s.l;b.onclick=function(){fcSetSPMS(s.k)};subTabs.appendChild(b);
+  });
+  manWrap.appendChild(subTabs);
+  manWrap.appendChild(fcMkField('₹','fc-spv',FC_SPMS==='incl'?'SP incl GST':'SP excl GST'));
+  card.appendChild(manWrap);
+
+  var preview=document.createElement('div');preview.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+  ['SP excl GST|fc-sp-e','SP incl GST|fc-sp-i'].forEach(function(pair){
+    var parts=pair.split('|');
+    var item=document.createElement('div');item.style.cssText='flex:1;min-width:90px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px';
+    item.innerHTML='<div style="font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:2px">'+parts[0]+'</div>'
+      +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:15px;font-weight:500;color:var(--text)" id="'+parts[1]+'">—</div>';
+    preview.appendChild(item);
+  });
+  card.appendChild(preview);
+
+  var acts=document.createElement('div');acts.className='fc-actions';
+  acts.innerHTML='<button class="fc-btn fc-btn-back" onclick="fcBack()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
+    +'<button class="fc-btn fc-btn-next" onclick="fcNext()">'+(FC_T==='cp'?'Next':'Calculate')+' <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+  card.appendChild(acts);
+}
+
+/* ── Result card ── */
+/* ── Profit input card (when solving for SP or CP) ── */
+function fcBuildProfitCard(solveFor){
+  var card=el('fcc-2');if(!card)return;
+  card.innerHTML='';card.className='fc-card behind-2';
+
+  var titleText=solveFor==='sp'?'Profit / GP% / Margin%':'Profit / GP% / Margin%';
+  var subText=solveFor==='sp'
+    ?'Enter your target profit to calculate the Selling Price.'
+    :'Enter your target profit to calculate the Cost Price.';
+
+  var top=document.createElement('div');top.style.cssText='display:flex;align-items:center;gap:12px';
+  top.innerHTML='<div class="fc-card-icon result" style="background:var(--green-bg)">'
+    +'<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 17l4-5 4 3 6-8" stroke="var(--green)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+    +'<div><div class="fc-card-label">Step 3 of 3</div><div class="fc-card-title">Profit</div></div>';
+  card.appendChild(top);
+
+  var sub=document.createElement('div');sub.className='fc-card-sub';sub.textContent=subText;
+  card.appendChild(sub);
+
+  // mode tabs
+  var modes=document.createElement('div');modes.className='fc-mode-tabs';
+  [{k:'val',l:'₹ Value'},{k:'gp',l:'GP %'},{k:'margin',l:'Margin %'}].forEach(function(m){
+    var b=document.createElement('button');b.className='fc-tab'+(FC_PM===m.k?' on':'');
+    b.id='fc-pm-'+m.k;b.textContent=m.l;b.onclick=function(){fcSetPM(m.k)};modes.appendChild(b);
+  });
+  card.appendChild(modes);
+
+  // input
+  var fld=document.createElement('div');fld.className='fc-input-wrap';
+  var sym=document.createElement('span');sym.className='fc-input-sym';
+  sym.id='fc-pr-sym';sym.textContent=FC_PM==='val'?'₹':'%';
+  var isVal=FC_PM==='val';
+  var inp=document.createElement('input');inp.className='fc-input';inp.inputMode='decimal';
+  inp.id='fc-pr-val';inp.placeholder=isVal?'e.g. 10':'e.g. 15';inp.autocomplete='off';
+  if(isVal){
+    inp.type='text';
+    inp.oninput=function(){fcFmtInput(this);if(FC_STEP===3)fcRenderResult()};
+  } else {
+    inp.type='number';inp.min='0';inp.step='0.01';
+    inp.oninput=function(){if(FC_STEP===3)fcRenderResult()};
+  }
+  fld.appendChild(sym);fld.appendChild(inp);
+  card.appendChild(fld);
+
+  var acts=document.createElement('div');acts.className='fc-actions';
+  acts.innerHTML='<button class="fc-btn fc-btn-back" onclick="fcBack()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
+    +'<button class="fc-btn fc-btn-next" onclick="fcNext()">Calculate <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+  card.appendChild(acts);
+}
+
+function fcUpdateDots(){
+  // All modes are 3 steps (cards 0,1,2,3 = MRP,A,B,Result)
+  for(var d=0;d<4;d++){
+    var dot=el('fcdot-'+d);
+    if(dot)dot.className='fc-dot'+(d<FC_STEP?' done':d===FC_STEP?' cur':'');
+  }
+}
+
+function fcRenderResult(){
+  var card=el('fcc-3');if(!card)return;
+  var mrpV=fcResolveMRP();
+  var me=mrpV>0?mrpV/(1+FC_G):0;
+
+  var cp=mrpV>0?fcResolveCP(mrpV):null;
+  var sp=(FC_T!=='cp'&&mrpV>0)?fcResolveSP(mrpV):null;
+
+  // Apply solve-for
+  var solved=fcResolveProfit(cp,sp);
+  cp=solved.cp; sp=solved.sp;
+
+  var pr=null,gp=null,mg=null;
+  if(cp&&sp){pr=sp.e-cp.e;gp=sp.e>0?(pr/sp.e)*100:null;mg=cp.e>0?(pr/cp.e)*100:null}
+
+  var cpOver=cp&&mrpV>0&&cp.i>mrpV;
+  var spOver=sp&&mrpV>0&&sp.i>mrpV;
+  var calcdBadge='<span style="font-size:9px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border);border-radius:8px;padding:1px 6px;margin-left:4px;font-family:sans-serif;vertical-align:middle">calc</span>';
+
+  var html='<div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">'
+    +'<div class="fc-card-icon result"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 17l4-5 4 3 6-8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+    +'<div><div class="fc-card-label">Result</div><div class="fc-card-title">Summary</div></div>'
+    +'</div>';
+
+  html+='<div class="fc-result-grid">';
+  html+=fcRItem('MRP (incl GST)', fcINR(mrpV), '', '');
+  html+=fcRItem('MRP excl GST',   fcINR(me),   '', '');
+  html+=fcRItem('CP excl GST'+(FC_T==='cp'?calcdBadge:''), cp?fcINR(cp.e):'—', cpOver?'warn':'', '');
+  html+=fcRItem('CP incl GST',  cp?fcINR(cp.i):'—', cpOver?'warn':'', '');
+  html+=fcRItem('SP excl GST'+(FC_T==='sp'?calcdBadge:''), sp?fcINR(sp.e):'—', spOver?'warn':'', '');
+  html+=fcRItem('SP incl GST',  sp?fcINR(sp.i):'—', spOver?'warn':'', '');
+  html+=fcRItem('Profit ₹', pr!==null?fcINR(pr):'—', pr!==null?(pr>=0?'pos':'neg'):'', pr!==null&&pr<0?'profit-neg':pr!==null&&pr>=0?'profit-pos':'');
+  html+=fcRItem('GP %',     gp!==null?fcPCT(gp):'—', gp!==null?(gp>=0?'pos':'neg'):'', '');
+  html+=fcRItem('Margin %', mg!==null?fcPCT(mg):'—', mg!==null?(mg>=0?'pos':'neg'):'', '');
+  html+='</div>';
+
+  if(cpOver)html+='<div class="fc-over-alert" style="margin-top:6px">⚠ CP incl GST exceeds MRP</div>';
+  if(spOver)html+='<div class="fc-over-alert" style="margin-top:4px">⚠ SP incl GST exceeds MRP</div>';
+
+  html+='<div class="fc-actions">'
+    +'<button class="fc-btn fc-btn-back" onclick="fcBack()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="fc-btn fc-btn-full" onclick="fcToDefault()">Full view</button>'
+    +'<button class="fc-btn fc-btn-next" onclick="fcReset()">New <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2C4.24 2 2 4.24 2 7s2.24 5 5 5 5-2.24 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 1.5l2 1.2-2 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+    +'</div></div>';
+
+  card.innerHTML=html;
+}
+
+function fcRItem(lbl,val,valCls,cardCls){
+  return'<div class="fc-result-item '+(cardCls||'')+'">'
+    +'<div class="fc-result-lbl">'+lbl+'</div>'
+    +'<div class="fc-result-val '+(valCls||'')+'">'+val+'</div>'
+    +'</div>';
+}
+
+/* ── Navigation ── */
+function fcGoto(step,animate){
+  // Dismiss keyboard when arriving at result card
+  if(step===3&&document.activeElement&&document.activeElement.blur){
+    document.activeElement.blur();
+  }
+  var prev=FC_STEP;FC_STEP=step;
+  var cards=['fcc-0','fcc-1','fcc-2','fcc-3'];
+
+  // Pre-render result card BEFORE animation starts so it's ready
+  if(step===3)fcRenderResult();
+  // Also pre-render result in background when reaching step 2 (so step 3 is instant)
+  if(step===2)setTimeout(fcRenderResult,50);
+
+  // Update progress dots
+  for(var d=0;d<4;d++){
+    var dot=el('fcdot-'+d);
+    if(!dot)continue;
+    dot.className='fc-dot'+(d<step?' done':d===step?' cur':'');
+  }
+
+  cards.forEach(function(id,i){
+    var c=el(id);if(!c)return;
+    var diff=i-step;
+    if(diff===0){
+      if(animate&&prev<step){
+        c.style.transform='translateX(100%)';c.style.opacity='0';c.style.transition='none';
+        c.className='fc-card entering';
+        var cid=id;
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){
+            c.style.transform='';c.style.opacity='';c.style.transition='';
+            c.className='fc-card active';
+            setTimeout(function(){cardBounce(cid)},340);
+          });
+        });
+      } else if(animate&&prev>step){
+        c.style.transform='translateX(-100%)';c.style.opacity='0';c.style.transition='none';
+        c.className='fc-card entering';
+        var cid2=id;
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){
+            c.style.transform='';c.style.opacity='';c.style.transition='';
+            c.className='fc-card active';
+            setTimeout(function(){cardBounce(cid2)},340);
+          });
+        });
+      } else {
+        c.style.transform='';c.style.opacity='';c.style.transition='';c.className='fc-card active';
+      }
+    } else if(diff===1){c.style.transform='';c.style.opacity='';c.style.transition='';c.className='fc-card behind-1'}
+    else if(diff>=2){c.style.transform='';c.style.opacity='';c.style.transition='';c.className='fc-card behind-2'}
+    else{c.style.transform='';c.style.opacity='';c.style.transition='';c.className='fc-card behind-2';}
+  });
+
+  // Focus the relevant input
+  setTimeout(function(){
+    var targets=['fc-mrp','fc-cpd','fc-spd',null];
+    var t=targets[step];
+    if(t&&el(t)){el(t).focus();el(t).select()}
+  },380);
+}
+
+function fcNext(){
+  if(FC_STEP<3)haptic(FC_STEP===2?'success':'light');
+  fcGoto(Math.min(FC_STEP+1,3),true);
+}
+function fcBack(){
+  if(FC_STEP>0){haptic('select');fcGoto(FC_STEP-1,true);}
+}
+
+function fcReset(){
+  FC_CM='excl';FC_SM='excl';FC_CPMS='incl';FC_SPMS='incl';FC_T='profit';FC_PM='val';
+  // Reset solve-for tabs
+  ['profit','sp','cp'].forEach(function(k){var b=el('fc-t-'+k);if(b)b.className='fc-tab'+(k==='profit'?' on':'')});
+  fcBuildCards();fcGoto(0,false);
+  ['fc-mrp','fc-cpd','fc-cpv','fc-spd','fc-spv'].forEach(function(id){var e=el(id);if(e)e.value=''});
+}
+
+function fcToDefault(){
+  // Copy quick-mode values into default calc and switch
+  var mrpV=fcResolveMRP();
+  if(mrpV>0)el('mrp').value=mrpV;
+  setGST(Math.round(FC_G*100));
+  var cp=fcResolveCP(mrpV);
+  var sp=fcResolveSP(mrpV);
+  if(cp){
+    if(FC_CM==='manual'){setCM('manual');setCPManual(FC_CPMS);el('cpv').value=FC_CPMS==='incl'?cp.i:cp.e}
+    else{setCM(FC_CM);el('cpd').value=el('fc-cpd')?el('fc-cpd').value:''}
+  }
+  if(sp){
+    if(FC_SM==='manual'){setSM('manual');setSPManual(FC_SPMS);el('spv').value=FC_SPMS==='incl'?sp.i:sp.e}
+    else{setSM(FC_SM);el('spd').value=el('fc-spd')?el('fc-spd').value:''}
+  }
+  setMode('default');calc();
+}
+
+/* ── Swipe support ── */
+(function(){
+  var startX=0,startY=0,dragging=false,locked=false,card=null;
+
+  function onStart(e){
+    if(APP_MODE!=='quick')return;
+    var stack=el('fc-stack');
+    if(!stack||!stack.contains(e.target))return;
+    // Don't block input fields - they need their own touch handling
+    if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA')return;
+    card=el('fcc-'+FC_STEP);if(!card)return;
+    var t=e.touches[0];
+    startX=t.clientX;startY=t.clientY;
+    dragging=false;locked=false;
+  }
+
+  function onMove(e){
+    if(APP_MODE!=='quick'||!card)return;
+    var t=e.touches[0];
+    var dx=t.clientX-startX;
+    var dy=t.clientY-startY;
+
+    if(!dragging&&!locked){
+      if(Math.abs(dx)<8&&Math.abs(dy)<8)return;
+      // Vertical dominant → scroll, not swipe
+      if(Math.abs(dy)>Math.abs(dx)*1.2){locked=true;return;}
+      dragging=true;
+      card.classList.add('dragging');
+    }
+    if(!dragging)return;
+
+    if(e.cancelable)e.preventDefault();
+    var rotate=dx*0.04;
+    card.style.transform='translateX('+dx+'px) rotate('+rotate+'deg)';
+    card.style.opacity=String(Math.max(0,1-Math.abs(dx)/220));
+  }
+
+  function onEnd(e){
+    if(APP_MODE!=='quick'||!card)return;
+    var t=e.changedTouches[0];
+    var dx=t.clientX-startX;
+    if(card)card.classList.remove('dragging');
+    if(dragging&&dx<-60){
+      haptic('light');
+      card.style.transform='';card.style.opacity='';
+      fcNext();
+    } else if(dragging&&dx>60&&FC_STEP>0){
+      haptic('select');
+      card.style.transform='';card.style.opacity='';
+      fcBack();
+    } else {
+      if(card){card.style.transform='';card.style.opacity='';}
+    }
+    dragging=false;locked=false;card=null;
+  }
+
+  document.addEventListener('touchstart',onStart,{passive:true});
+  document.addEventListener('touchmove',onMove,{passive:false});
+  document.addEventListener('touchend',onEnd,{passive:true});
+})();
+
+/* ════════════════════════════════════════════
+   WIZARD MODE — Landed Cost Calculator
+════════════════════════════════════════════ */
+var WZ_G=0.18;
+var WZ_T='cp';     // 'cp' | 'sp'
+var WZ_CM='excl';  // 'excl' | 'incl' | 'manual'
+var WZ_MS='incl';  // manual sub: 'incl' | 'excl'
+var WZ_CDM='before'; // CD mode
+var WZ_SCM='pct';    // scheme mode
+
+function wzSetGST(p){
+  WZ_G=p/100;
+  el('wzg18').className='stab'+(p===18?' on':'');
+  el('wzg5').className='stab'+(p===5?' on':'');
+  wzCalc();
+}
+function wzSetT(t){
+  WZ_T=t;
+  el('wz-t-cp').className='stab'+(t==='cp'?' on':'');
+  el('wz-t-sp').className='stab'+(t==='sp'?' on':'');
+  var lbl=t==='cp'?'Cost Price':'Selling Price';
+  el('wz-price-title').textContent=lbl+' Input';
+  el('wz-result-title').textContent=lbl+' Breakdown';
+  // Update field labels
+  el('wz-ms-incl-lbl').textContent=lbl+' incl GST';
+  el('wz-ms-excl-lbl').textContent=lbl+' excl GST';
+  el('wz-cdm-before-lbl').textContent=lbl+' excl GST';
+  el('wz-cdm-after-lbl').textContent=lbl+' incl GST';
+  el('wz-scm-pct-lbl').textContent='% of '+lbl+' excl GST';
+  el('wz-rlbl-e').textContent=lbl+' excl GST';
+  el('wz-rlbl-i').textContent=lbl+' incl GST';
+  el('wz-rlbl-eff').textContent='Eff. '+lbl+' excl GST';
+  el('wz-rlbl-effi').textContent='Eff. '+lbl+' incl GST';
+  wzCalc();
+}
+function wzSetCM(m){
+  WZ_CM=m;
+  ['excl','incl','manual'].forEach(function(k){el('wz-cm-'+k).className='stab'+(m===k?' on':'')});
+  el('wz-disc-wrap').style.display=m==='manual'?'none':'';
+  el('wz-manual-wrap').style.display=m==='manual'?'flex':'none';
+  wzCalc();
+}
+function wzSetMS(s){
+  WZ_MS=s;
+  el('wz-ms-incl').className='stab'+(s==='incl'?' on':'');
+  el('wz-ms-excl').className='stab'+(s==='excl'?' on':'');
+  wzCalc();
+}
+function wzSetCDMode(m){
+  WZ_CDM=m;
+  el('wz-cdm-before').className='stab'+(m==='before'?' on':'');
+  el('wz-cdm-after').className='stab'+(m==='after'?' on':'');
+  wzCalc();
+}
+function wzSetScMode(m){
+  WZ_SCM=m;
+  el('wz-scm-pct').className='stab'+(m==='pct'?' on':'');
+  el('wz-scm-abs').className='stab'+(m==='abs'?' on':'');
+  el('wz-sc-unit').textContent=m==='abs'?'₹':'%';
+  if(m==='abs')el('wz-iv-sc').removeAttribute('max');
+  else el('wz-iv-sc').max='100';
+  wzCalc();
+}
+function wzSyncCD(){
+  el('wz-cdm-sub').style.display=el('wz-it-cd').checked?'block':'none';
+  wzCalc();
+}
+function wzSyncSc(){
+  el('wz-scm-sub').style.display=el('wz-it-sc').checked?'block':'none';
+  wzCalc();
+}
+function wzFmtAmt(inp){
+  var raw=inp.value.replace(/[^0-9.]/g,'');
+  var pts=raw.split('.');if(pts.length>2)raw=pts[0]+'.'+pts.slice(1).join('');
+  var num=parseFloat(raw);
+  if(!isNaN(num)&&raw!==''&&raw!=='.'){
+    var fmt=fmtINDIAN(num);
+    if(raw.indexOf('.')!==-1){var dec=raw.split('.')[1];fmt=fmtINDIAN(parseFloat(raw.split('.')[0])||0).split('.')[0]+'.'+(dec||'')}
+    inp.value=fmt;
+  } else if(raw===''||raw==='.'){inp.value=raw}
+}
+function wzGetInc(price){
+  if(!price)return 0;
+  var t=0;
+  ['cd','eb','qt','an','sc'].forEach(function(k){
+    if(!el('wz-it-'+k).checked)return;
+    var v=parseFloat(el('wz-iv-'+k).value);
+    if(isNaN(v)||v<=0)return;
+    if(k==='sc')t+=WZ_SCM==='abs'?v:(price.e*v/100);
+    else t+=(k==='cd'&&WZ_CDM==='after')?(price.i*v/100):(price.e*v/100);
+  });
+  return t;
+}
+function wzCalc(){
+  var mrp=parseFloat((el('wz-mrp').value||'').replace(/,/g,''))||0;
+  var ids=['wz-rde','wz-rdi','wz-rve','wz-rvi','wz-rga','wz-rinc','wz-reff','wz-reffi'];
+  ids.forEach(function(id){var e=el(id);if(e){e.textContent='—';e.className='row-val'+(id.indexOf('amber')>-1?' amber':'')}});
+  el('wz-alert').style.display='none';
+  el('wz-rinc-row').style.display='none';
+  el('wz-reff-row').style.display='none';
+  el('wz-reffi-row').style.display='none';
+  if(!mrp)return;
+
+  // Resolve price
+  var price=null;
+  if(WZ_CM==='manual'){
+    var v=parseFloat((el('wz-manual').value||'').replace(/,/g,''));
+    if(!isNaN(v)&&v>0)price=WZ_MS==='incl'?{e:v/(1+WZ_G),i:v}:{e:v,i:v*(1+WZ_G)};
+  } else {
+    var d=parseFloat(el('wz-disc').value);
+    if(!isNaN(d)){
+      var e2=WZ_CM==='excl'?mrp*(1-d/100):mrp*(1-d/100)/(1+WZ_G);
+      price={e:e2,i:e2*(1+WZ_G)};
+    }
+  }
+  if(!price)return;
+
+  var overMRP=price.i>mrp;
+  var de=(1-price.e/mrp)*100;
+  var di=(1-price.i/mrp)*100;
+
+  var rv=function(id,val,cls){var e=el(id);if(e){e.textContent=val;e.className='row-val'+(cls?' '+cls:'')}};
+  rv('wz-rde','₹'+fmtINDIAN(price.e)+' / '+de.toFixed(2)+'%',de<0?'neg':'');
+  rv('wz-rdi',di.toFixed(2)+'%',di<0?'neg':'');
+  rv('wz-rve','₹'+fmtINDIAN(price.e),overMRP?'neg':'');
+  rv('wz-rvi','₹'+fmtINDIAN(price.i),overMRP?'neg':'');
+  rv('wz-rga','₹'+fmtINDIAN(price.i-price.e));
+  el('wz-alert').style.display=overMRP?'':'none';
+
+  var inc=wzGetInc(price);
+  if(inc>0){
+    var eff={e:price.e-inc, i:(price.e-inc)*(1+WZ_G)};
+    rv('wz-rinc','₹'+fmtINDIAN(inc),'amber');
+    rv('wz-reff','₹'+fmtINDIAN(eff.e),'amber');
+    rv('wz-reffi','₹'+fmtINDIAN(eff.i),'amber');
+    el('wz-rinc-row').style.display='';
+    el('wz-reff-row').style.display='';
+    el('wz-reffi-row').style.display='';
+  }
+}
+
+function wzReset(){
+  el('wz-mrp').value='';el('wz-disc').value='';el('wz-manual').value='';
+  ['cd','eb','qt','an','sc'].forEach(function(k){if(el('wz-it-'+k))el('wz-it-'+k).checked=false});
+  el('wz-cdm-sub').style.display='none';el('wz-scm-sub').style.display='none';
+  wzSetT('cp');wzSetCM('excl');wzSetMS('incl');wzSetCDMode('before');wzSetScMode('pct');wzSetGST(18);
+}
+
+function wzToDefault(){
+  var mrpV=el('wz-mrp').value;if(mrpV)el('mrp').value=mrpV;
+  setGST(Math.round(WZ_G*100));
+  if(WZ_T==='cp'){
+    if(WZ_CM==='manual'){setCM('manual');setCPManual(WZ_MS);el('cpv').value=el('wz-manual').value}
+    else{setCM(WZ_CM);el('cpd').value=el('wz-disc').value}
+    ['cd','eb','qt','an','sc'].forEach(function(k){
+      if(el('wz-it-'+k)&&el('wz-it-'+k).checked){el('it-'+k).checked=true;el('iv-'+k).value=el('wz-iv-'+k).value;syncToggle(k)}
+    });
+    setCDMode(WZ_CDM);setSchemeMode(WZ_SCM);
+  } else {
+    if(WZ_CM==='manual'){setSM('manual');setSPManual(WZ_MS);el('spv').value=el('wz-manual').value}
+    else{setSM(WZ_CM);el('spd').value=el('wz-disc').value}
+    ['cd','eb','qt','an','sc'].forEach(function(k){
+      if(el('wz-it-'+k)&&el('wz-it-'+k).checked){el('sit-'+k).checked=true;el('siv-'+k).value=el('wz-iv-'+k).value;syncSpToggle(k)}
+    });
+    setSCDMode(WZ_CDM);setSpSchemeMode(WZ_SCM);
+  }
+  setMode('default');calc();
+}
+
+/* ── Share as link ── */
+function getShareState(){
+  var inc={};
+  INC_KEYS.forEach(function(k){
+    inc[k]={on:el('it-'+k).checked,v:el('iv-'+k).value};
+  });
+  return{
+    m:el('mrp').value,
+    g:G*100,
+    t:T,
+    cm:CM,cpms:CPMS,cpd:el('cpd').value,cpv:el('cpv').value,
+    sm:SM,spms:SPMS,spd:el('spd').value,spv:el('spv').value,
+    pm:PM,pri:el('pri').value,
+    cdm:CDM,scm:SCM,
+    fgp:el('floor-gp').value,fmg:el('floor-mg').value,
+    inc:inc
+  };
+}
+
+function applyShareState(s){
+  try{
+    if(s.g)setGST(parseInt(s.g,10));
+    if(s.m)el('mrp').value=s.m;
+    if(s.cm)setCM(s.cm);
+    if(s.cpms)setCPManual(s.cpms);
+    if(s.cpd!==undefined)el('cpd').value=s.cpd;
+    if(s.cpv!==undefined)el('cpv').value=s.cpv;
+    if(s.sm)setSM(s.sm);
+    if(s.spms)setSPManual(s.spms);
+    if(s.spd!==undefined)el('spd').value=s.spd;
+    if(s.spv!==undefined)el('spv').value=s.spv;
+    if(s.pm)setPM(s.pm);
+    if(s.pri!==undefined)el('pri').value=s.pri;
+    if(s.cdm)setCDMode(s.cdm);
+    if(s.scm)setSchemeMode(s.scm);
+    if(s.fgp!==undefined)el('floor-gp').value=s.fgp;
+    if(s.fmg!==undefined)el('floor-mg').value=s.fmg;
+    if(s.inc){
+      INC_KEYS.forEach(function(k){
+        if(s.inc[k]){
+          el('it-'+k).checked=!!s.inc[k].on;
+          el('iv-'+k).value=s.inc[k].v||'';
+          syncToggle(k);
+        }
+      });
+    }
+    if(s.t)setT(s.t);
+    calc();
+  }catch(e){console.warn('share state restore failed',e)}
+}
+
+function shareLink(){
+  var state=getShareState();
+  var encoded;
+  try{encoded=btoa(unescape(encodeURIComponent(JSON.stringify(state))))}
+  catch(e){encoded=btoa(JSON.stringify(state))}
+  var url=location.href.split('?')[0].split('#')[0]+'?s='+encoded;
+
+  // Use Web Share API on mobile if available
+  if(navigator.share&&window.innerWidth<=800){
+    navigator.share({title:'Pricing Calculation — Sterling Spares',url:url})
+      .catch(function(){copyUrl(url)});
+    return;
+  }
+  copyUrl(url);
+}
+
+function copyUrl(url){
+  navigator.clipboard.writeText(url).then(function(){
+    var btn=el('share-btn');
+    if(!btn)return;
+    var orig=btn.innerHTML;
+    btn.textContent='✓ Copied!';
+    setTimeout(function(){btn.innerHTML=orig},2000);
+  }).catch(function(){
+    prompt('Copy this link:',url);
+  });
+}
+
+function restoreFromUrl(){
+  try{
+    var params=new URLSearchParams(location.search);
+    var s=params.get('s');
+    if(!s)return false;
+    var decoded=JSON.parse(decodeURIComponent(escape(atob(s))));
+    applyShareState(decoded);
+    // Show a subtle banner
+    showRestoreBanner();
+    return true;
+  }catch(e){return false}
+}
+
+function showRestoreBanner(){
+  var b=document.createElement('div');
+  b.style.cssText='position:fixed;top:64px;left:50%;transform:translateX(-50%);background:var(--blue);color:#fff;font-family:var(--font,sans-serif);font-size:12px;padding:7px 16px;border-radius:20px;z-index:400;box-shadow:0 2px 12px rgba(0,0,0,0.2);white-space:nowrap;pointer-events:none';
+  b.textContent='Shared calculation loaded';
+  document.body.appendChild(b);
+  setTimeout(function(){
+    b.style.transition='opacity .4s';b.style.opacity='0';
+    setTimeout(function(){b.remove()},500);
+  },2500);
+}
+
+/* ── Service Worker & PWA ── */
+function registerSW(){
+  if(!('serviceWorker' in navigator))return;
+  navigator.serviceWorker.register('./sw.js').then(function(reg){
+    reg.addEventListener('updatefound',function(){
+      var nw=reg.installing;
+      nw.addEventListener('statechange',function(){
+        if(nw.state==='installed'&&navigator.serviceWorker.controller){
+          showUpdateBanner();
+        }
+      });
+    });
+  }).catch(function(e){console.log('SW registration skipped:',e.message)});
+}
+
+function showUpdateBanner(){
+  var b=document.createElement('div');
+  b.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-family:sans-serif;font-size:12px;padding:8px 18px;border-radius:20px;z-index:400;box-shadow:0 2px 12px rgba(0,0,0,0.3);cursor:pointer;white-space:nowrap';
+  b.innerHTML='Update available — tap to reload';
+  b.onclick=function(){location.reload()};
+  document.body.appendChild(b);
+}
+
+/* ── Keyboard Shortcuts ── */
+document.addEventListener('keydown',function(e){
+  // Ignore if typing in an input/textarea
+  var tag=document.activeElement&&document.activeElement.tagName;
+  var inInput=(tag==='INPUT'||tag==='TEXTAREA'||document.activeElement.isContentEditable);
+
+  // Escape closes onboarding
+  if(e.key==='Escape'){
+    if(el('ob-overlay')&&el('ob-overlay').classList.contains('show')){obSkip();return}
+  }
+
+  // "?" always opens shortcuts (even in input, but we use shift+/)
+  if(e.key==='?'&&!inInput){openModal('shortcuts');return}
+
+  if(inInput)return; // all others require no active input
+
+  // Quick mode arrow keys already handled in keyboard nav block; apply defaults only
+  if(APP_MODE==='quick'){
+    // Quick mode keys handled separately
+    return;
+  }
+
+  switch(e.key){
+    case '?': openModal('shortcuts'); break;
+    case 's': case 'S':
+      if(e.metaKey||e.ctrlKey){e.preventDefault();saveToHistory();}
+      else openModal('settings');
+      break;
+    case 'r': case 'R': if(!e.metaKey&&!e.ctrlKey)resetAll(); break;
+    case 'c': case 'C':
+      if(e.metaKey||e.ctrlKey){/* let browser copy */}
+      break;
+    case 'q': case 'Q': setMode(APP_MODE==='default'?'quick':'default'); break;
+    case '1': setGST(18); break;
+    case '2': setGST(5); break;
+    case 'p': case 'P': setT('profit'); break;
+    case 'l': case 'L': setT('sp'); break;
+    case 'k': case 'K': setT('cp'); break;
+  }
+});
+
+/* ── Onboarding ── */
+var OB_STEPS=[
+  {icon:'₹',iconBg:'#1a191614',title:'Welcome to Pricing Calc',body:'A fast calculator for MRP-based pricing with GST, incentives, and margin analysis — built for Sterling Spares.',tip:'This tour takes about 30 seconds.'},
+  {icon:'📊',iconBg:'var(--blue-bg)',title:'Default Mode',body:'Enter MRP, Cost Price disc%, and Selling Price disc%. The calculator shows GP%, Margin%, CP incl/excl GST, and flags if prices exceed MRP.',tip:'Use the <b>Calculate</b> bar to solve for Profit, SP, or CP.'},
+  {icon:'⚡',iconBg:'var(--green-bg)',title:'Quick / Flashcard Mode',body:'Tap <b>Quick</b> in the header for a swipeable card-by-card flow. Enter MRP → CP → SP and get an instant summary. Works like Tinder — swipe left to advance.',tip:'On desktop, use Enter or arrow keys to navigate.'},
+  {icon:'🎯',iconBg:'var(--amber-bg)',title:'Incentives',body:'CD, Early Bird, Quarterly, Annual, and Scheme incentives all reduce effective CP. Toggle them on with the Incentives panel — they feed into profit and margin automatically.',tip:'CD can be calculated on CP excl or incl GST.'},
+  {icon:'📈',iconBg:'var(--surface2)',title:'Summary &amp; What-If',body:'The Summary bar shows all key metrics at a glance. The <b>What-if</b> button lets you compare three SP scenarios side-by-side to find the best margin.',tip:'History auto-saves calculations. Use <b>Compare</b> to diff two entries.'},
+  {icon:'⌨️',iconBg:'var(--surface2)',title:'Shortcuts &amp; Settings',body:'Press <b>?</b> anytime to see keyboard shortcuts. Settings lets you set floor limits for GP% and Margin%, toggle dark mode, and control auto-save.',tip:'Press Q to toggle between Default and Quick mode instantly.'},
+];
+var OB_STEP=0;
+
+function obShow(){
+  OB_STEP=0;
+  el('ob-overlay').classList.add('show');
+  obRender();
+}
+function obSkip(){
+  el('ob-overlay').classList.remove('show');
+  localStorage.setItem('ob-done','1');
+}
+function obNext(){
+  OB_STEP++;
+  if(OB_STEP>=OB_STEPS.length){obSkip();return}
+  obRender();
+}
+function obRender(){
+  var s=OB_STEPS[OB_STEP];
+  // dots
+  var dots='';
+  for(var i=0;i<OB_STEPS.length;i++)dots+='<div class="ob-dot'+(i===OB_STEP?' cur':'')+'" onclick="OB_STEP='+i+';obRender()"></div>';
+  el('ob-dots').innerHTML=dots;
+  // icon
+  var icon=el('ob-icon');
+  icon.style.background=s.iconBg;
+  icon.innerHTML=s.icon.length===1&&s.icon.charCodeAt(0)<256
+    ?'<span style="font-family:\'Syne\',sans-serif;font-size:24px;font-weight:700;color:var(--text)">'+s.icon+'</span>'
+    :'<span>'+s.icon+'</span>';
+  el('ob-title').innerHTML=s.title;
+  el('ob-body').innerHTML=s.body;
+  var tip=el('ob-tip');
+  if(s.tip){tip.innerHTML=s.tip;tip.style.display=''}else{tip.style.display='none'}
+  el('ob-next').textContent=OB_STEP===OB_STEPS.length-1?'Get started →':'Next →';
+  el('ob-skip').textContent=OB_STEP===0?'Skip tour':'Back';
+  // animate card
+  var card=el('ob-card');
+  card.style.animation='none';
+  requestAnimationFrame(function(){card.style.animation='popIn .25s ease'});
+}
+
+/* ── Init ── */
+initTheme();
+updateLayout();
+if(!restoreFromUrl()){
+  calc();
+}
+registerSW();
+// Show onboarding on first visit
+setTimeout(function(){
+  if(!localStorage.getItem('ob-done'))obShow();
+},600);
+// Refresh relative times in history every 60 seconds
+setInterval(function(){
+  if(HISTORY.length>0&&el('body-hist').style.display==='block')renderHistory();
+},60000);
+</script>
+</body>
+</html>
