@@ -826,7 +826,7 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
         <div class="inc-row" id="ir-cd">
           <div class="inc-row-main">
             <label class="toggle"><input type="checkbox" id="it-cd" onchange="syncToggle('cd');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name">Cash Discount (CD)</span>
+            <span class="inc-name" id="lbl-cp-cd">Cash Discount (CD)</span>
             <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="iv-cd" value="2" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
           </div>
           <div class="inc-row-sub">
@@ -840,21 +840,21 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
         <div class="inc-row" id="ir-eb">
           <div class="inc-row-main">
             <label class="toggle"><input type="checkbox" id="it-eb" onchange="syncToggle('eb');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name">Early Bird Discount</span>
+            <span class="inc-name" id="lbl-cp-eb">Early Bird Discount</span>
             <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="iv-eb" value="1" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
           </div>
         </div>
         <div class="inc-row" id="ir-qt">
           <div class="inc-row-main">
             <label class="toggle"><input type="checkbox" id="it-qt" onchange="syncToggle('qt');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name">Quarterly Discount</span>
+            <span class="inc-name" id="lbl-cp-qt">Quarterly Discount</span>
             <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="iv-qt" value="2" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
           </div>
         </div>
         <div class="inc-row" id="ir-an">
           <div class="inc-row-main">
             <label class="toggle"><input type="checkbox" id="it-an" onchange="syncToggle('an');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name">Annual Discount</span>
+            <span class="inc-name" id="lbl-cp-an">Annual Discount</span>
             <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="iv-an" value="1" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
           </div>
         </div>
@@ -862,7 +862,7 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
         <div class="inc-row" id="ir-sc">
           <div class="inc-row-main">
             <label class="toggle"><input type="checkbox" id="it-sc" onchange="syncToggle('sc');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name">Scheme</span>
+            <span class="inc-name" id="lbl-cp-sc">Scheme</span>
             <div class="inc-pct-wrap" id="sc-pct-wrap">
               <input type="number" inputmode="decimal" id="iv-sc" value="" placeholder="0" min="0" step="0.01" oninput="calc()" autocomplete="off">
               <span class="inc-pct-sym" id="sc-unit">%</span>
@@ -903,7 +903,7 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
         <div class="inc-row" id="sir-cd">
           <div class="inc-row-main">
             <label class="toggle"><input type="checkbox" id="sit-cd" onchange="syncSpToggle('cd');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name">Cash Discount (CD)</span>
+            <span class="inc-name" id="lbl-sp-cd">Cash Discount (CD)</span>
             <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="siv-cd" value="2" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
           </div>
           <div class="inc-row-sub">
@@ -917,21 +917,21 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
         <div class="inc-row" id="sir-eb">
           <div class="inc-row-main">
             <label class="toggle"><input type="checkbox" id="sit-eb" onchange="syncSpToggle('eb');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name">Early Bird Discount</span>
+            <span class="inc-name" id="lbl-sp-eb">Early Bird Discount</span>
             <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="siv-eb" value="1" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
           </div>
         </div>
         <div class="inc-row" id="sir-qt">
           <div class="inc-row-main">
             <label class="toggle"><input type="checkbox" id="sit-qt" onchange="syncSpToggle('qt');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name">Quarterly Discount</span>
+            <span class="inc-name" id="lbl-sp-qt">Quarterly Discount</span>
             <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="siv-qt" value="2" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
           </div>
         </div>
         <div class="inc-row" id="sir-an">
           <div class="inc-row-main">
             <label class="toggle"><input type="checkbox" id="sit-an" onchange="syncSpToggle('an');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name">Annual Discount</span>
+            <span class="inc-name" id="lbl-sp-an">Annual Discount</span>
             <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="siv-an" value="1" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
           </div>
         </div>
@@ -939,7 +939,7 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
         <div class="inc-row" id="sir-sc">
           <div class="inc-row-main">
             <label class="toggle"><input type="checkbox" id="sit-sc" onchange="syncSpToggle('sc');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name">Scheme</span>
+            <span class="inc-name" id="lbl-sp-sc">Scheme</span>
             <div class="inc-pct-wrap">
               <input type="number" inputmode="decimal" id="siv-sc" value="" placeholder="0" min="0" step="0.01" oninput="calc()" autocomplete="off">
               <span class="inc-pct-sym" id="ssc-unit">%</span>
@@ -1285,7 +1285,7 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
           </div>
           <div class="settings-control">
             <div class="floor-input-wrap">
-              <input type="number" inputmode="decimal" id="floor-gp" value="5" placeholder="—" min="0" max="100" step="0.1" oninput="calc()">
+              <input type="number" inputmode="decimal" id="floor-gp" value="5" placeholder="—" min="0" max="100" step="0.1" oninput="calc();saveCalcState()">
               <span>%</span>
             </div>
           </div>
@@ -1297,7 +1297,7 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
           </div>
           <div class="settings-control">
             <div class="floor-input-wrap">
-              <input type="number" inputmode="decimal" id="floor-mg" value="" placeholder="—" min="0" max="100" step="0.1" oninput="calc()">
+              <input type="number" inputmode="decimal" id="floor-mg" value="" placeholder="—" min="0" max="100" step="0.1" oninput="calc();saveCalcState()">
               <span>%</span>
             </div>
           </div>
@@ -1319,6 +1319,34 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
             </label>
           </div>
         </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Incentive Labels</div>
+        <small style="display:block;color:var(--text-secondary);margin-bottom:10px;font-size:12px">Rename incentive types to match your terminology.</small>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="settings-row" style="align-items:center">
+            <span style="min-width:36px;font-size:12px;font-weight:600;color:var(--text-secondary)">CD</span>
+            <input type="text" class="num-input" id="lbl-input-cd" value="Cash Discount (CD)" oninput="updateLabel('cd',this.value)" maxlength="30" style="flex:1">
+          </div>
+          <div class="settings-row" style="align-items:center">
+            <span style="min-width:36px;font-size:12px;font-weight:600;color:var(--text-secondary)">EB</span>
+            <input type="text" class="num-input" id="lbl-input-eb" value="Early Bird Discount" oninput="updateLabel('eb',this.value)" maxlength="30" style="flex:1">
+          </div>
+          <div class="settings-row" style="align-items:center">
+            <span style="min-width:36px;font-size:12px;font-weight:600;color:var(--text-secondary)">QT</span>
+            <input type="text" class="num-input" id="lbl-input-qt" value="Quarterly Discount" oninput="updateLabel('qt',this.value)" maxlength="30" style="flex:1">
+          </div>
+          <div class="settings-row" style="align-items:center">
+            <span style="min-width:36px;font-size:12px;font-weight:600;color:var(--text-secondary)">AN</span>
+            <input type="text" class="num-input" id="lbl-input-an" value="Annual Discount" oninput="updateLabel('an',this.value)" maxlength="30" style="flex:1">
+          </div>
+          <div class="settings-row" style="align-items:center">
+            <span style="min-width:36px;font-size:12px;font-weight:600;color:var(--text-secondary)">SC</span>
+            <input type="text" class="num-input" id="lbl-input-sc" value="Scheme" oninput="updateLabel('sc',this.value)" maxlength="30" style="flex:1">
+          </div>
+        </div>
+        <button class="pill" onclick="resetLabels()" style="font-size:11px;padding:5px 12px;margin-top:10px">Reset to defaults</button>
       </div>
 
       <div class="modal-section">
@@ -1426,6 +1454,8 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
 var G=0.18,CM='excl',CPMS='incl',SM='excl',SPMS='incl',PM='val',T='profit',CDM='before';
 var ME=0,MI=0;
 var INC_KEYS=['cd','eb','qt','an','sc'];
+var INC_LABELS_DEFAULT={cd:'Cash Discount (CD)',eb:'Early Bird Discount',qt:'Quarterly Discount',an:'Annual Discount',sc:'Scheme'};
+var INC_LABELS={cd:'Cash Discount (CD)',eb:'Early Bird Discount',qt:'Quarterly Discount',an:'Annual Discount',sc:'Scheme'};
 var SCM='pct'; // scheme mode: 'pct' | 'abs'
 var SP_INC_KEYS=['cd','eb','qt','an','sc'];
 var SSCM='pct'; // SP scheme mode: 'pct' | 'abs'
@@ -1585,6 +1615,7 @@ function setAutosave(val) {
 function syncAutosave(src) {
   var val = (src === 'settings') ? el('autosave-toggle-settings').checked : el('autosave-toggle').checked;
   setAutosave(val);
+  saveCalcState();
 }
 
 /* ── Dark mode ── */
@@ -1598,6 +1629,75 @@ function initTheme() {
   var dark = saved ? saved === 'dark' : prefersDark;
   if (dark) { document.documentElement.setAttribute('data-theme','dark'); }
   var tog = el('darkmode-toggle'); if (tog) tog.checked = dark;
+}
+
+/* ── State persistence ── */
+function saveCalcState(){
+  try{
+    var s=getShareState();
+    s._as=AUTOSAVE;
+    localStorage.setItem('pc-state',JSON.stringify(s));
+  }catch(e){}
+}
+function loadCalcState(){
+  try{
+    var raw=localStorage.getItem('pc-state');
+    if(!raw)return false;
+    var s=JSON.parse(raw);
+    if(s._as!==undefined){
+      AUTOSAVE=!!s._as;
+      var tog=el('autosave-toggle-settings');
+      if(tog)tog.checked=AUTOSAVE;
+      var tog2=el('autosave-toggle');
+      if(tog2)tog2.checked=AUTOSAVE;
+    }
+    applyShareState(s);
+    return true;
+  }catch(e){return false;}
+}
+function debouncedSaveCalcState(){
+  clearTimeout(_saveStateTimer);
+  _saveStateTimer=setTimeout(saveCalcState,800);
+}
+
+/* ── Custom incentive labels ── */
+function applyLabels(){
+  INC_KEYS.forEach(function(k){
+    var cp=el('lbl-cp-'+k),sp=el('lbl-sp-'+k);
+    var lbl=INC_LABELS[k];
+    if(cp)cp.textContent=lbl;
+    if(sp)sp.textContent=lbl;
+  });
+}
+function updateLabel(k,v){
+  INC_LABELS[k]=v.trim()||INC_LABELS_DEFAULT[k];
+  applyLabels();
+  saveLabels();
+}
+function saveLabels(){
+  try{localStorage.setItem('pc-labels',JSON.stringify(INC_LABELS));}catch(e){}
+}
+function loadLabels(){
+  try{
+    var raw=localStorage.getItem('pc-labels');
+    if(!raw)return;
+    var parsed=JSON.parse(raw);
+    INC_KEYS.forEach(function(k){if(parsed[k])INC_LABELS[k]=parsed[k];});
+    applyLabels();
+    INC_KEYS.forEach(function(k){
+      var inp=el('lbl-input-'+k);
+      if(inp)inp.value=INC_LABELS[k];
+    });
+  }catch(e){}
+}
+function resetLabels(){
+  INC_KEYS.forEach(function(k){
+    INC_LABELS[k]=INC_LABELS_DEFAULT[k];
+    var inp=el('lbl-input-'+k);
+    if(inp)inp.value=INC_LABELS_DEFAULT[k];
+  });
+  applyLabels();
+  try{localStorage.removeItem('pc-labels');}catch(e){}
 }
 
 /* ── Incentive helpers ── */
@@ -2049,6 +2149,7 @@ function renderWhatIf(cp){
 
 /* ── Auto-save ── */
 var _autoSaveTimer=null;
+var _saveStateTimer=null;
 function autoSave(){
   clearTimeout(_autoSaveTimer);
   _autoSaveTimer=setTimeout(function(){
@@ -2333,6 +2434,7 @@ function calc(){
 
   LAST_CP=cp||null;LAST_SP=sp||null;
   if(LAST_CP&&LAST_SP&&AUTOSAVE)autoSave();
+  debouncedSaveCalcState();
   // refresh what-if if modal is open
   if(el('overlay-whatif').classList.contains('open'))updateWiResults();
   if(el('overlay-compare').classList.contains('open'))renderCompare();
@@ -2385,6 +2487,7 @@ function resetAll(){
     {spDisc:'',spMode:'excl',spVal:'',spManualSub:'incl'},
     {spDisc:'',spMode:'excl',spVal:'',spManualSub:'incl'}
   ];
+  try{localStorage.removeItem('pc-state');}catch(e){}
   updateLayout();
   calc();
 }
@@ -3592,9 +3695,10 @@ function obRender(){
 
 /* ── Init ── */
 initTheme();
+loadLabels();
 updateLayout();
 if(!restoreFromUrl()){
-  calc();
+  if(!loadCalcState()) calc();
 }
 registerSW();
 // Show onboarding on first visit
