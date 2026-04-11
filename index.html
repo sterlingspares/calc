@@ -1415,8 +1415,8 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
         <div class="kb-row"><span class="kb-desc">Open shortcuts</span><span class="kb-keys"><span class="kbd">?</span></span></div>
         <div class="kb-row"><span class="kb-desc">Open settings</span><span class="kb-keys"><span class="kbd">S</span></span></div>
         <div class="kb-row"><span class="kb-desc">Reset all</span><span class="kb-keys"><span class="kbd">R</span></span></div>
-        <div class="kb-row"><span class="kb-desc">Save to history</span><span class="kb-keys"><span class="kbd">⌘</span><span class="kbd">S</span></span></div>
-        <div class="kb-row"><span class="kb-desc">Copy summary</span><span class="kb-keys"><span class="kbd">⌘</span><span class="kbd">C</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Save to history</span><span class="kb-keys"><span class="kbd kbd-mod">⌘</span><span class="kbd">S</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Copy summary</span><span class="kb-keys"><span class="kbd kbd-mod">⌘</span><span class="kbd">C</span></span></div>
         <div class="kb-section-title">Mode &amp; GST</div>
         <div class="kb-row"><span class="kb-desc">Switch Default / Quick</span><span class="kb-keys"><span class="kbd">Q</span></span></div>
         <div class="kb-row"><span class="kb-desc">GST 18%</span><span class="kb-keys"><span class="kbd">1</span></span></div>
@@ -1450,6 +1450,9 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
 </div>
 
 <script>
+/* ── Platform ── */
+var IS_MAC=/Mac/.test(navigator.platform);
+var MOD_KEY=IS_MAC?'⌘':'Ctrl';
 /* ── State ── */
 var G=0.18,CM='excl',CPMS='incl',SM='excl',SPMS='incl',PM='val',T='profit',CDM='before';
 var ME=0,MI=0;
@@ -3696,6 +3699,7 @@ function obRender(){
 /* ── Init ── */
 initTheme();
 loadLabels();
+document.querySelectorAll('.kbd-mod').forEach(function(el){el.textContent=MOD_KEY;});
 updateLayout();
 if(!restoreFromUrl()){
   if(!loadCalcState()) calc();
