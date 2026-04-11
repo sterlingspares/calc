@@ -61,7 +61,7 @@ html[data-theme="dark"] .modal-overlay{background:rgba(0,0,0,0.75)}
 html[data-theme="dark"] .mtab.on{box-shadow:0 1px 3px rgba(0,0,0,0.4)}
 html{font-size:16px;scroll-behavior:smooth;overflow-x:hidden;overscroll-behavior-y:none}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;overflow-x:hidden;transition:background .2s,color .2s}
-#pull-reset{position:fixed;top:0;left:0;right:0;height:56px;z-index:9999;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface2);color:var(--text2);font-size:13px;font-weight:500;transform:translateY(-100%);pointer-events:none;transition:none;border-bottom:1px solid var(--border)}
+#pull-reset{position:fixed;top:0;left:0;right:0;height:56px;z-index:9999;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface2);color:var(--text2);font-size:13px;font-weight:500;transform:translateY(-100%);pointer-events:none;transition:transform .15s ease,color .15s;border-bottom:1px solid var(--border)}
 #pull-reset.pr-ready{color:#ef4444}
 
 /* ── HEADER ── */
@@ -544,6 +544,7 @@ input[type=number]{-moz-appearance:textfield}
 .pill:active,.btn-reset:active,.mtab:active,.stab:active,.hbtn:active,.fc-tab:active{animation:pressDown .18s ease}
 .fc-btn:active{animation:pressDown .15s ease;transform:scale(0.97)}
 .hmenu-item:active{animation:pressDown .12s ease}
+.modal-close:active,.hist-btn:active,.cmp-hist-btn:active,.btn-whatif:active{animation:pressDown .15s ease}
 .toggle-track{cursor:pointer}
 
 /* Progress dot active pop */
@@ -572,8 +573,16 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
 /* Summary value pop when updated */
 .sum-val.updated{animation:popIn .22s ease}
 
-/* History row slide in */
-.hist-table tbody tr{animation:slideUp .2s ease both}
+/* History card slide-in */
+.hist-entry{animation:slideUp .22s ease both}
+.hist-entry:nth-child(2){animation-delay:.04s}
+.hist-entry:nth-child(3){animation-delay:.08s}
+.hist-entry:nth-child(4){animation-delay:.12s}
+.hist-entry:nth-child(5){animation-delay:.16s}
+.hist-entry:nth-child(n+6){animation-delay:.18s}
+
+/* History card hover — only when not mid-swipe */
+.hist-inner:hover{background:var(--surface2)}
 
 /* Mode toggle pop */
 .mode-pill-on{animation:popIn .18s ease}
@@ -581,6 +590,28 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
 .card:nth-child(1){animation-delay:.05s}
 .card:nth-child(2){animation-delay:.10s}
 .card:nth-child(3){animation-delay:.15s}
+
+/* Floor-limit input focus glow */
+.floor-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(26,25,22,0.08)}
+html[data-theme="dark"] .floor-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(240,237,232,0.1)}
+
+/* Settings row subtle hover */
+.settings-row{transition:background .12s}
+.settings-row:hover{background:var(--surface2)}
+
+/* Panel header hover */
+.panel-header{transition:background .15s}
+.panel-header:hover{background:var(--surface2)}
+
+/* Incentive label field — prefix-input widget */
+.lbl-fields{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.lbl-field{display:flex;align-items:stretch;border:1.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface2);overflow:hidden;transition:border-color .15s,background .15s,box-shadow .15s}
+.lbl-field:focus-within{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px rgba(26,25,22,0.07)}
+html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,237,232,0.09)}
+.lbl-field.lbl-saved{border-color:var(--green)}
+.lbl-abbr{padding:0 10px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-family:'DM Sans',sans-serif;display:flex;align-items:center;border-right:1px solid var(--border);background:transparent;user-select:none;white-space:nowrap;min-width:38px;justify-content:center}
+.lbl-input{flex:1;border:none;outline:none;background:transparent;padding:7px 10px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:400;color:var(--text);min-width:0}
+.lbl-input::placeholder{color:var(--text3)}
 
 @media print{
   .header,.control-bar,.mrp-bar,.cards,.panel,.footer,
@@ -1345,30 +1376,30 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
 
       <div class="modal-section">
         <div class="modal-section-title">Incentive Labels</div>
-        <small style="display:block;color:var(--text-secondary);margin-bottom:10px;font-size:12px">Rename incentive types to match your terminology.</small>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <div class="settings-row" style="align-items:center">
-            <span style="min-width:36px;font-size:12px;font-weight:600;color:var(--text-secondary)">CD</span>
-            <input type="text" class="num-input" id="lbl-input-cd" value="Cash Discount (CD)" oninput="updateLabel('cd',this.value)" maxlength="30" style="flex:1">
+        <small style="display:block;color:var(--text3);margin-bottom:10px;font-size:11px">Rename incentive types to match your terminology.</small>
+        <div class="lbl-fields">
+          <div class="lbl-field" id="lbl-field-cd">
+            <span class="lbl-abbr">CD</span>
+            <input type="text" class="lbl-input" id="lbl-input-cd" value="Cash Discount (CD)" oninput="updateLabel('cd',this.value)" maxlength="30" placeholder="Cash Discount (CD)" autocomplete="off" spellcheck="false">
           </div>
-          <div class="settings-row" style="align-items:center">
-            <span style="min-width:36px;font-size:12px;font-weight:600;color:var(--text-secondary)">EB</span>
-            <input type="text" class="num-input" id="lbl-input-eb" value="Early Bird Discount" oninput="updateLabel('eb',this.value)" maxlength="30" style="flex:1">
+          <div class="lbl-field" id="lbl-field-eb">
+            <span class="lbl-abbr">EB</span>
+            <input type="text" class="lbl-input" id="lbl-input-eb" value="Early Bird Discount" oninput="updateLabel('eb',this.value)" maxlength="30" placeholder="Early Bird Discount" autocomplete="off" spellcheck="false">
           </div>
-          <div class="settings-row" style="align-items:center">
-            <span style="min-width:36px;font-size:12px;font-weight:600;color:var(--text-secondary)">QT</span>
-            <input type="text" class="num-input" id="lbl-input-qt" value="Quarterly Discount" oninput="updateLabel('qt',this.value)" maxlength="30" style="flex:1">
+          <div class="lbl-field" id="lbl-field-qt">
+            <span class="lbl-abbr">QT</span>
+            <input type="text" class="lbl-input" id="lbl-input-qt" value="Quarterly Discount" oninput="updateLabel('qt',this.value)" maxlength="30" placeholder="Quarterly Discount" autocomplete="off" spellcheck="false">
           </div>
-          <div class="settings-row" style="align-items:center">
-            <span style="min-width:36px;font-size:12px;font-weight:600;color:var(--text-secondary)">AN</span>
-            <input type="text" class="num-input" id="lbl-input-an" value="Annual Discount" oninput="updateLabel('an',this.value)" maxlength="30" style="flex:1">
+          <div class="lbl-field" id="lbl-field-an">
+            <span class="lbl-abbr">AN</span>
+            <input type="text" class="lbl-input" id="lbl-input-an" value="Annual Discount" oninput="updateLabel('an',this.value)" maxlength="30" placeholder="Annual Discount" autocomplete="off" spellcheck="false">
           </div>
-          <div class="settings-row" style="align-items:center">
-            <span style="min-width:36px;font-size:12px;font-weight:600;color:var(--text-secondary)">SC</span>
-            <input type="text" class="num-input" id="lbl-input-sc" value="Scheme" oninput="updateLabel('sc',this.value)" maxlength="30" style="flex:1">
+          <div class="lbl-field" id="lbl-field-sc">
+            <span class="lbl-abbr">SC</span>
+            <input type="text" class="lbl-input" id="lbl-input-sc" value="Scheme" oninput="updateLabel('sc',this.value)" maxlength="30" placeholder="Scheme" autocomplete="off" spellcheck="false">
           </div>
         </div>
-        <button class="pill" onclick="resetLabels()" style="font-size:11px;padding:5px 12px;margin-top:10px">Reset to defaults</button>
+        <button class="pill" onclick="resetLabels()" style="font-size:11px;padding:5px 12px">Reset to defaults</button>
       </div>
 
       <div class="modal-section">
@@ -1698,6 +1729,13 @@ function updateLabel(k,v){
   INC_LABELS[k]=v.trim()||INC_LABELS_DEFAULT[k];
   applyLabels();
   saveLabels();
+  haptic('light');
+  var field=el('lbl-field-'+k);
+  if(field){
+    clearTimeout(field._lblTimer);
+    field.classList.add('lbl-saved');
+    field._lblTimer=setTimeout(function(){field.classList.remove('lbl-saved');},900);
+  }
 }
 function saveLabels(){
   try{localStorage.setItem('pc-labels',JSON.stringify(INC_LABELS));}catch(e){}
