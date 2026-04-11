@@ -59,8 +59,10 @@ html[data-theme="dark"] .summary .sum-lbl{color:rgba(240,237,232,0.35)}
 html[data-theme="dark"] .summary .sum-val{color:rgba(240,237,232,0.9)}
 html[data-theme="dark"] .modal-overlay{background:rgba(0,0,0,0.75)}
 html[data-theme="dark"] .mtab.on{box-shadow:0 1px 3px rgba(0,0,0,0.4)}
-html{font-size:16px;scroll-behavior:smooth;overflow-x:hidden}
+html{font-size:16px;scroll-behavior:smooth;overflow-x:hidden;overscroll-behavior-y:none}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;overflow-x:hidden;transition:background .2s,color .2s}
+#pull-reset{position:fixed;top:0;left:0;right:0;height:56px;z-index:9999;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface2);color:var(--text2);font-size:13px;font-weight:500;transform:translateY(-100%);pointer-events:none;transition:none;border-bottom:1px solid var(--border)}
+#pull-reset.pr-ready{color:#ef4444}
 
 /* ── HEADER ── */
 .header{background:var(--accent);color:var(--accent-fg);padding-left:max(clamp(1rem,4vw,2.5rem),env(safe-area-inset-left));padding-right:max(clamp(1rem,4vw,2.5rem),env(safe-area-inset-right));padding-top:calc(env(safe-area-inset-top,0px) + 10px);padding-bottom:10px;display:flex;align-items:center;justify-content:space-between;min-height:calc(56px + env(safe-area-inset-top,0px));position:fixed;top:0;left:0;right:0;z-index:200}
@@ -234,6 +236,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .hist-table .td-warn::after{content:' ▼';font-size:8px}
 .hist-table .td-amber{color:var(--amber)}
 .hist-empty{text-align:center;padding:28px;color:var(--text3);font-size:12px;font-style:italic}
+/* History card layout (swipe-to-delete) */
+.hist-entry{position:relative;overflow:hidden;border-bottom:1px solid var(--border)}
+.hist-entry:last-child{border-bottom:none}
+.hist-del{position:absolute;right:0;top:0;bottom:0;width:80px;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;letter-spacing:.03em;pointer-events:none}
+.hist-inner{position:relative;background:var(--surface1);padding:10px 12px;transition:transform .2s ease;will-change:transform}
+.hist-inner.swiping{transition:none}
+.hist-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.hist-time{font-size:11px;color:var(--text2);cursor:help;border-bottom:1px dashed var(--border2)}
+.hist-gst{font-size:10px;color:var(--text3);background:var(--surface2);padding:1px 6px;border-radius:8px}
+.hist-row-vals,.hist-row-profit{display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:5px}
+.hist-kv{display:inline-flex;flex-direction:column;gap:1px}
+.hist-k{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600}
+.hist-v{font-size:12px;font-family:'JetBrains Mono',monospace}
+.hist-v.td-pos{color:var(--green)}
+.hist-v.td-neg{color:var(--red)}
+.hist-v.td-warn{color:var(--red)}
+.hist-v.td-warn::after{content:' ▼';font-size:8px}
+.hist-v.td-amber{color:var(--amber)}
+.hist-row-actions{margin-top:7px}
 .hist-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--border);margin-top:2px}
 .hist-btn{padding:5px 13px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
 .hist-btn:hover{background:var(--surface2);color:var(--text)}
@@ -572,6 +593,7 @@ html[data-theme="dark"] .fc-input-wrap:focus-within{box-shadow:0 0 0 3px rgba(24
 </style>
 </head>
 <body>
+<div id="pull-reset" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 12V4M8 4L5 7M8 4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 11a5.5 5.5 0 1 0 11 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span id="pull-reset-txt">Pull down to reset</span></div>
 
 <!-- ═══ HEADER ═══ -->
 <header class="header">
@@ -2153,6 +2175,25 @@ function renderWhatIf(cp){
 /* ── Auto-save ── */
 var _autoSaveTimer=null;
 var _saveStateTimer=null;
+var _saveQTimer=null;
+function saveQState(){
+  try{
+    localStorage.setItem('pc-qstate',JSON.stringify({
+      t:FC_T,g:Math.round(FC_G*100),
+      cm:FC_CM,cpms:FC_CPMS,sm:FC_SM,spms:FC_SPMS,pm:FC_PM,
+      mrp:el('fc-mrp')?el('fc-mrp').value:'',
+      cpd:el('fc-cpd')?el('fc-cpd').value:'',
+      cpv:el('fc-cpv')?el('fc-cpv').value:'',
+      spd:el('fc-spd')?el('fc-spd').value:'',
+      spv:el('fc-spv')?el('fc-spv').value:'',
+      prv:el('fc-pr-val')?el('fc-pr-val').value:''
+    }));
+  }catch(e){}
+}
+function debouncedSaveQState(){
+  clearTimeout(_saveQTimer);
+  _saveQTimer=setTimeout(saveQState,500);
+}
 function autoSave(){
   clearTimeout(_autoSaveTimer);
   _autoSaveTimer=setTimeout(function(){
@@ -2179,34 +2220,64 @@ function saveToHistory(){
   var pr=effSP-eff;
   HISTORY.unshift({time:now(),ts:Date.now(),mrp:MI,cpE:LAST_CP.e,cpI:LAST_CP.i,spE:LAST_SP.e,spI:LAST_SP.i,effCPE:eff,effSPE:effSP,incInr:inc,spIncInr:spInc,pr:pr,gp:(effSP>0)?(pr/effSP)*100:null,mg:(eff>0)?(pr/eff)*100:null,gst:G*100});
   if(HISTORY.length>MAX_HIST)HISTORY.pop();
+  saveHistoryToStorage();
   renderHistory();
   if(el('body-hist').style.display!=='block')togglePanel('hist');
 }
-function clearHistory(){HISTORY=[];renderHistory()}
+function clearHistory(){
+  HISTORY=[];
+  try{localStorage.removeItem('pc-history');}catch(e){}
+  renderHistory();
+}
+function saveHistoryToStorage(){
+  try{localStorage.setItem('pc-history',JSON.stringify(HISTORY));}catch(e){}
+}
+function loadHistoryFromStorage(){
+  try{
+    var raw=localStorage.getItem('pc-history');
+    if(!raw)return;
+    var arr=JSON.parse(raw);
+    if(!Array.isArray(arr))return;
+    HISTORY=arr.slice(0,MAX_HIST);
+    if(HISTORY.length>0)renderHistory();
+  }catch(e){}
+}
 function renderHistory(){
   el('hist-tag').textContent=HISTORY.length+' entr'+(HISTORY.length===1?'y':'ies');
   var c=el('hist-content');
-  if(HISTORY.length===0){c.innerHTML='<div class="hist-empty">No entries yet.</div>';return}
+  if(HISTORY.length===0){c.innerHTML='<div class="hist-empty">No entries yet — save a calculation to start.</div>';return}
   var floor=getFloor();
-  var html='<table class="hist-table"><thead><tr><th>Time</th><th>MRP</th><th>CP excl</th><th>SP excl</th><th>Eff CP</th><th>Inc ₹</th><th>Profit ₹</th><th>GP %</th><th>Margin %</th><th>GST</th><th></th></tr></thead><tbody>';
+  var html='';
   HISTORY.forEach(function(h,idx){
     var timeDisp=h.ts?relTime(h.ts):h.time;
     var timeFull=h.ts?fmtTime(h.ts):h.time;
-    html+='<tr>'
-      +'<td class="td-lbl"><span title="'+timeFull+'" style="cursor:help;border-bottom:1px dashed var(--border2)">'+timeDisp+'</span></td>'
-      +'<td>'+INR(h.mrp)+'</td>'
-      +'<td>'+INR(h.cpE)+'</td>'
-      +'<td>'+INR(h.spE)+'</td>'
-      +'<td class="'+(h.incInr>0?'td-amber':'')+'">'+INR(h.effCPE)+'</td>'
-      +'<td class="'+(h.incInr>0?'td-amber':'')+'">'+( h.incInr>0?INR(h.incInr):'—')+'</td>'
-      +'<td class="'+(h.pr>=0?'td-pos':'td-neg')+'">'+INR(h.pr)+'</td>'
-      +'<td class="'+(belowFloor(h.gp,floor.gp)?'td-warn':(h.gp>=0?'td-pos':'td-neg'))+'">'+PCT(h.gp)+'</td>'
-      +'<td class="'+(belowFloor(h.mg,floor.mg)?'td-warn':(h.mg>=0?'td-pos':'td-neg'))+'">'+PCT(h.mg)+'</td>'
-      +'<td class="td-lbl">'+h.gst+'%</td>'
-      +'<td style="padding:4px 8px"><button class="cmp-hist-btn" onclick="openCompare('+idx+')">Compare</button></td>'
-      +'</tr>';
+    var gpCls=belowFloor(h.gp,floor.gp)?'td-warn':(h.gp>=0?'td-pos':'td-neg');
+    var mgCls=belowFloor(h.mg,floor.mg)?'td-warn':(h.mg>=0?'td-pos':'td-neg');
+    html+='<div class="hist-entry" data-idx="'+idx+'">'
+      +'<div class="hist-del">Delete</div>'
+      +'<div class="hist-inner">'
+        +'<div class="hist-row-top">'
+          +'<span class="hist-time" title="'+timeFull+'">'+timeDisp+'</span>'
+          +'<span class="hist-gst">GST '+h.gst+'%</span>'
+        +'</div>'
+        +'<div class="hist-row-vals">'
+          +'<span class="hist-kv"><span class="hist-k">MRP</span><span class="hist-v">'+INR(h.mrp)+'</span></span>'
+          +'<span class="hist-kv"><span class="hist-k">CP excl</span><span class="hist-v">'+INR(h.cpE)+'</span></span>'
+          +'<span class="hist-kv"><span class="hist-k">SP excl</span><span class="hist-v">'+INR(h.spE)+'</span></span>'
+          +(h.incInr>0?'<span class="hist-kv"><span class="hist-k">Inc ₹</span><span class="hist-v td-amber">'+INR(h.incInr)+'</span></span>':'')
+        +'</div>'
+        +'<div class="hist-row-profit">'
+          +'<span class="hist-kv"><span class="hist-k">Profit</span><span class="hist-v '+(h.pr>=0?'td-pos':'td-neg')+'">'+INR(h.pr)+'</span></span>'
+          +'<span class="hist-kv"><span class="hist-k">GP %</span><span class="hist-v '+gpCls+'">'+PCT(h.gp)+'</span></span>'
+          +'<span class="hist-kv"><span class="hist-k">Margin %</span><span class="hist-v '+mgCls+'">'+PCT(h.mg)+'</span></span>'
+        +'</div>'
+        +'<div class="hist-row-actions">'
+          +'<button class="cmp-hist-btn" onclick="openCompare('+idx+')">Compare</button>'
+        +'</div>'
+      +'</div>'
+    +'</div>';
   });
-  html+='</tbody></table>';c.innerHTML=html;
+  c.innerHTML=html;
 }
 
 /* ── History export ── */
@@ -2724,7 +2795,34 @@ function setMode(m){
   if(el('wizard-mode'))el('wizard-mode').style.display='none';
   if(m==='quick'){
     FC_STEP=0;
+    // Phase 1: restore FC_* vars before building cards (FC_T drives card layout)
+    var _qs=null;
+    try{_qs=JSON.parse(localStorage.getItem('pc-qstate'));}catch(e){}
+    if(_qs){
+      if(_qs.t)  FC_T=_qs.t;
+      if(_qs.g)  FC_G=_qs.g/100;
+      if(_qs.cm) FC_CM=_qs.cm;
+      if(_qs.cpms) FC_CPMS=_qs.cpms;
+      if(_qs.sm) FC_SM=_qs.sm;
+      if(_qs.spms) FC_SPMS=_qs.spms;
+      if(_qs.pm) FC_PM=_qs.pm;
+    }
     fcBuildCards();
+    // Phase 2: restore input values + sync tab UI after cards are built
+    if(_qs){
+      ['profit','sp','cp'].forEach(function(k){var b=el('fc-t-'+k);if(b)b.className='fc-tab'+(k===FC_T?' on':'');});
+      var gst=Math.round(FC_G*100);
+      var g18=el('fcg18'),g5=el('fcg5');
+      if(g18)g18.className='fc-tab'+(gst===18?' on':'');
+      if(g5) g5.className='fc-tab'+(gst===5?' on':'');
+      if(el('fc-mrp')   &&_qs.mrp)el('fc-mrp').value   =_qs.mrp;
+      if(el('fc-cpd')   &&_qs.cpd)el('fc-cpd').value   =_qs.cpd;
+      if(el('fc-cpv')   &&_qs.cpv)el('fc-cpv').value   =_qs.cpv;
+      if(el('fc-spd')   &&_qs.spd)el('fc-spd').value   =_qs.spd;
+      if(el('fc-spv')   &&_qs.spv)el('fc-spv').value   =_qs.spv;
+      if(el('fc-pr-val')&&_qs.prv)el('fc-pr-val').value=_qs.prv;
+      fcCalc();
+    }
     fcGoto(0,false);
   }
 }
@@ -2744,6 +2842,7 @@ function fcSetGST(p){
   el('fcg18').className='fc-tab'+(p===18?' on':'');
   el('fcg5').className='fc-tab'+(p===5?' on':'');
   fcCalc();
+  saveQState();
 }
 function fcSetT(t){
   FC_T=t;
@@ -2754,6 +2853,7 @@ function fcSetT(t){
   fcBuildCards();
   // If already past step 0, reset to step 1
   if(FC_STEP>0)fcGoto(1,false);
+  saveQState();
 }
 function fcSetPM(m){
   FC_PM=m;
@@ -2885,6 +2985,7 @@ function fcCalc(){
     if(el('fc-sp-i'))el('fc-sp-i').textContent=spPrev?fcINR(spPrev.i):'—';
   }
   if(FC_STEP===3)fcRenderResult();
+  debouncedSaveQState();
 }
 
 /* ── Build CP/SP cards dynamically ── */
@@ -3311,6 +3412,96 @@ function fcToDefault(){
   document.addEventListener('touchend',onEnd,{passive:true});
 })();
 
+/* ── Swipe-to-delete history ── */
+function deleteHistEntry(idx){
+  HISTORY.splice(idx,1);
+  saveHistoryToStorage();
+  renderHistory();
+}
+(function(){
+  var startX=0,startY=0,inner=null,locked=false,dragging=false;
+  var THRESH=75;
+  var hc=document.getElementById('hist-content');
+  if(!hc)return;
+
+  hc.addEventListener('touchstart',function(e){
+    var entry=e.target.closest('.hist-entry');
+    if(!entry)return;
+    var t=e.touches[0];
+    startX=t.clientX;startY=t.clientY;
+    inner=entry.querySelector('.hist-inner');
+    locked=false;dragging=false;
+  },{passive:true});
+
+  hc.addEventListener('touchmove',function(e){
+    if(!inner)return;
+    var t=e.touches[0];
+    var dx=t.clientX-startX,dy=t.clientY-startY;
+    if(!dragging&&!locked){
+      if(Math.abs(dy)>Math.abs(dx)){locked=true;return;}
+      if(Math.abs(dx)>6)dragging=true;
+    }
+    if(!dragging)return;
+    if(dx>0){inner.style.transform='';return;}
+    inner.classList.add('swiping');
+    inner.style.transform='translateX('+Math.max(dx,-THRESH*1.6)+'px)';
+  },{passive:true});
+
+  hc.addEventListener('touchend',function(e){
+    if(!inner||!dragging){inner=null;return;}
+    var dx=e.changedTouches[0].clientX-startX;
+    inner.classList.remove('swiping');
+    if(dx<-THRESH){
+      inner.style.transform='translateX(-110%)';
+      var entry=inner.parentElement;
+      var idx=parseInt(entry.dataset.idx,10);
+      setTimeout(function(){deleteHistEntry(idx);},200);
+    }else{
+      inner.style.transform='';
+    }
+    inner=null;dragging=false;
+  },{passive:true});
+})();
+
+/* ── Pull to reset ── */
+(function(){
+  var startY=0,active=false;
+  var TRIGGER=90,bar=null,txt=null;
+  function getBar(){return bar||(bar=document.getElementById('pull-reset'));}
+  function getTxt(){return txt||(txt=document.getElementById('pull-reset-txt'));}
+
+  document.addEventListener('touchstart',function(e){
+    if(APP_MODE!=='default')return;
+    if((window.pageYOffset||document.documentElement.scrollTop)>2)return;
+    startY=e.touches[0].clientY;active=true;
+  },{passive:true});
+
+  document.addEventListener('touchmove',function(e){
+    if(!active)return;
+    var dy=e.touches[0].clientY-startY;
+    if(dy<=0){active=false;return;}
+    var show=Math.min(dy,TRIGGER);
+    getBar().style.transform='translateY(calc(-100% + '+show+'px))';
+    if(dy>=TRIGGER){
+      getBar().classList.add('pr-ready');
+      getTxt().textContent='Release to reset';
+    }else{
+      getBar().classList.remove('pr-ready');
+      getTxt().textContent='Pull down to reset';
+    }
+  },{passive:true});
+
+  document.addEventListener('touchend',function(e){
+    if(!active)return;
+    active=false;
+    var dy=e.changedTouches[0].clientY-startY;
+    getBar().style.transform='';
+    getBar().classList.remove('pr-ready');
+    getTxt().textContent='Pull down to reset';
+    if(dy>=TRIGGER){haptic('success');resetAll();}
+  },{passive:true});
+})();
+
 /* ════════════════════════════════════════════
    WIZARD MODE — Landed Cost Calculator
 ════════════════════════════════════════════ */
@@ -3699,6 +3890,7 @@ function obRender(){
 /* ── Init ── */
 initTheme();
 loadLabels();
+loadHistoryFromStorage();
 document.querySelectorAll('.kbd-mod').forEach(function(el){el.textContent=MOD_KEY;});
 updateLayout();
 if(!restoreFromUrl()){
