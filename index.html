@@ -136,6 +136,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .field input{border:none;outline:none;background:transparent;padding:0 10px;height:38px;font-size:15px;font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text);width:100%;min-width:0}
 .field-next{display:none;flex-shrink:0;width:30px;height:30px;border-radius:50%;border:none;background:var(--accent);color:var(--accent-fg);cursor:pointer;margin-right:4px;align-items:center;justify-content:center;transition:opacity .15s;opacity:0.7}
 .field-next:hover{opacity:1}
+.field .field-suf{padding:0 10px;font-size:12px;font-weight:500;color:var(--text3);border-left:1px solid var(--border);height:38px;display:flex;align-items:center;white-space:nowrap;background:var(--surface2);flex-shrink:0}
 @media(max-width:800px){.field-next{display:flex}}
 .rows{display:flex;flex-direction:column}
 .row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border);gap:8px}
@@ -447,6 +448,7 @@ html[data-theme="dark"] .fc-dot.cur{background:var(--text)}
 .fc-input-wrap:focus-within{border-color:var(--accent)}
 .fc-input-sym{padding:0 14px;font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--text3);border-right:1px solid var(--border);height:56px;display:flex;align-items:center}
 .fc-input{border:none;outline:none;background:transparent;padding:0 16px;height:56px;font-size:26px;font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text);width:100%;min-width:0;user-select:text;-webkit-user-select:text}
+.fc-input-suf{padding:0 12px;font-size:13px;font-weight:500;color:var(--text3);border-left:1px solid var(--border);height:56px;display:flex;align-items:center;white-space:nowrap;flex-shrink:0;font-family:'DM Sans',sans-serif}
 
 .fc-mode-tabs{display:flex;gap:6px;flex-wrap:wrap}
 .fc-tab{padding:6px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-size:11.5px;font-weight:500;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
@@ -489,6 +491,7 @@ html[data-theme="dark"] .fc-dot.cur{background:var(--text)}
 .wz-field{display:flex;align-items:center;background:var(--surface2);border:1.5px solid var(--border2);border-radius:8px;overflow:hidden;flex:1;transition:border .15s}
 .wz-field:focus-within{border-color:var(--accent)}
 .wz-sym{padding:0 10px;font-size:13px;font-weight:600;color:var(--text3);border-right:1px solid var(--border);height:36px;display:flex;align-items:center;white-space:nowrap;background:var(--surface)}
+.wz-suf{padding:0 10px;font-size:12px;font-weight:500;color:var(--text3);border-left:1px solid var(--border);height:36px;display:flex;align-items:center;white-space:nowrap;flex-shrink:0;background:var(--surface)}
 .wz-input{border:none;outline:none;background:transparent;padding:0 10px;height:36px;font-size:15px;font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text);width:100%;min-width:0;user-select:text;-webkit-user-select:text}
 .wz-inc-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
 .wz-inc-row:last-child{border-bottom:none}
@@ -784,16 +787,17 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         <button class="mtab"    id="cmm"  onclick="setCM('manual')">Enter ₹<br>directly</button>
       </div>
       <div class="field" id="cpf-disc">
-        <span class="sym">Disc %</span>
+        <span class="sym">Disc</span>
         <input type="number" inputmode="decimal" id="cpd" placeholder="e.g. 30" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off">
+        <span class="field-suf" id="cpd-suf">% + 18% GST</span>
         <button class="field-next" onclick="nextFrom('cpd')" title="Next" tabindex="-1">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
       <div id="cpf-manual" style="display:none;flex-direction:column;gap:8px">
         <div class="sub-tabs">
-          <button class="stab on" id="cpm-incl" onclick="setCPManual('incl')">CP incl GST</button>
-          <button class="stab"    id="cpm-excl" onclick="setCPManual('excl')">CP excl GST</button>
+          <button class="stab on" id="cpm-incl" onclick="setCPManual('incl')">CP incl 18% GST</button>
+          <button class="stab"    id="cpm-excl" onclick="setCPManual('excl')">CP excl 18% GST</button>
         </div>
         <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="cpv" placeholder="e.g. 77.88" oninput="onAmtInput(this)" autocomplete="off">
           <button class="field-next" onclick="nextFrom('cpv')" title="Next" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -809,8 +813,8 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         <div class="rows">
           <div class="row"><span class="row-lbl">Discount + GST %</span><span class="row-val" id="cde">—</span></div>
           <div class="row"><span class="row-lbl">Nett Discount %</span><span class="row-val" id="cdi">—</span></div>
-          <div class="row"><span class="row-lbl">CP excl GST</span><span class="row-val" id="cve">—</span></div>
-          <div class="row"><span class="row-lbl">CP incl GST</span><span class="row-val" id="cvi">—</span></div>
+          <div class="row"><span class="row-lbl" id="lbl-cve">CP excl 18% GST</span><span class="row-val" id="cve">—</span></div>
+          <div class="row"><span class="row-lbl" id="lbl-cvi">CP incl 18% GST</span><span class="row-val" id="cvi">—</span></div>
           <div class="row"><span class="row-lbl">GST amount on CP</span><span class="row-val dim" id="cga">—</span></div>
         </div>
         <p class="footnote" id="cp-footnote">Enter disc % in either mode — both shown above.</p>
@@ -827,16 +831,17 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         <button class="mtab"    id="smm" onclick="setSM('manual')">Enter ₹<br>directly</button>
       </div>
       <div class="field" id="spf-disc">
-        <span class="sym">Disc %</span>
+        <span class="sym">Disc</span>
         <input type="number" inputmode="decimal" id="spd" placeholder="e.g. 20" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off">
+        <span class="field-suf" id="spd-suf">% + 18% GST</span>
         <button class="field-next" onclick="nextFrom('spd')" title="Next" tabindex="-1">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
       <div id="spf-manual" style="display:none;flex-direction:column;gap:8px">
         <div class="sub-tabs">
-          <button class="stab on" id="spm-incl" onclick="setSPManual('incl')">SP incl GST</button>
-          <button class="stab"    id="spm-excl" onclick="setSPManual('excl')">SP excl GST</button>
+          <button class="stab on" id="spm-incl" onclick="setSPManual('incl')">SP incl 18% GST</button>
+          <button class="stab"    id="spm-excl" onclick="setSPManual('excl')">SP excl 18% GST</button>
         </div>
         <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="spv" placeholder="e.g. 90.00" oninput="onAmtInput(this)" autocomplete="off">
           <button class="field-next" onclick="nextFrom('spv')" title="Next" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -852,8 +857,8 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         <div class="rows">
           <div class="row"><span class="row-lbl">Discount + GST %</span><span class="row-val" id="sde">—</span></div>
           <div class="row"><span class="row-lbl">Nett Discount %</span><span class="row-val" id="sdi">—</span></div>
-          <div class="row"><span class="row-lbl">SP excl GST</span><span class="row-val" id="sve">—</span></div>
-          <div class="row"><span class="row-lbl">SP incl GST</span><span class="row-val" id="svi">—</span></div>
+          <div class="row"><span class="row-lbl" id="lbl-sve">SP excl 18% GST</span><span class="row-val" id="sve">—</span></div>
+          <div class="row"><span class="row-lbl" id="lbl-svi">SP incl 18% GST</span><span class="row-val" id="svi">—</span></div>
           <div class="row"><span class="row-lbl">GST amount on SP</span><span class="row-val dim" id="sga">—</span></div>
         </div>
         <p class="footnote" id="sp-footnote">Enter disc % in either mode — both shown above.</p>
@@ -901,8 +906,8 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
           <div class="inc-row-sub">
             <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Calculate CD on:</div>
             <div class="sub-tabs" style="width:100%">
-              <button class="stab on" id="cdm-before" onclick="setCDMode('before')" style="padding:6px 8px;line-height:1.3">CP excl GST<br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button>
-              <button class="stab"    id="cdm-after"  onclick="setCDMode('after')"  style="padding:6px 8px;line-height:1.3">CP incl GST<br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button>
+              <button class="stab on" id="cdm-before" onclick="setCDMode('before')" style="padding:6px 8px;line-height:1.3"><span id="lbl-cdm-before">CP excl 18% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button>
+              <button class="stab"    id="cdm-after"  onclick="setCDMode('after')"  style="padding:6px 8px;line-height:1.3"><span id="lbl-cdm-after">CP incl 18% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button>
             </div>
           </div>
         </div>
@@ -940,7 +945,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
           <div class="inc-row-sub" id="sc-sub">
             <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div>
             <div class="sub-tabs" style="width:100%">
-              <button class="stab on" id="scm-pct" onclick="setSchemeMode('pct')" style="padding:6px 8px;line-height:1.3">% of CP excl GST<br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button>
+              <button class="stab on" id="scm-pct" onclick="setSchemeMode('pct')" style="padding:6px 8px;line-height:1.3"><span id="lbl-scm-pct">% of CP excl 18% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button>
               <button class="stab"    id="scm-abs" onclick="setSchemeMode('abs')" style="padding:6px 8px;line-height:1.3">₹ Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button>
             </div>
           </div>
@@ -949,7 +954,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
       <div class="inc-footer">
         <div class="inc-total-item"><span class="inc-total-lbl">Total incentive ₹</span><span class="inc-total-val" id="inc-total-inr">—</span></div>
         <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on CP</span><span class="inc-total-val" id="inc-total-pct">0.00%</span></div>
-        <div class="inc-total-item"><span class="inc-total-lbl">Effective CP excl GST</span><span class="inc-total-val" id="inc-eff-cp">—</span></div>
+        <div class="inc-total-item"><span class="inc-total-lbl" id="lbl-inc-eff-cp">Effective CP excl 18% GST</span><span class="inc-total-val" id="inc-eff-cp">—</span></div>
         <p class="inc-note">CD can be on CP excl or incl GST.<br>Scheme can be % or fixed ₹. All others on CP excl GST.</p>
       </div>
     </div>
@@ -978,8 +983,8 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
           <div class="inc-row-sub">
             <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Calculate CD on:</div>
             <div class="sub-tabs" style="width:100%">
-              <button class="stab on" id="scdm-before" onclick="setSCDMode('before')" style="padding:6px 8px;line-height:1.3">SP excl GST<br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button>
-              <button class="stab"    id="scdm-after"  onclick="setSCDMode('after')"  style="padding:6px 8px;line-height:1.3">SP incl GST<br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button>
+              <button class="stab on" id="scdm-before" onclick="setSCDMode('before')" style="padding:6px 8px;line-height:1.3"><span id="lbl-scdm-before">SP excl 18% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button>
+              <button class="stab"    id="scdm-after"  onclick="setSCDMode('after')"  style="padding:6px 8px;line-height:1.3"><span id="lbl-scdm-after">SP incl 18% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button>
             </div>
           </div>
         </div>
@@ -1017,7 +1022,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
           <div class="inc-row-sub">
             <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div>
             <div class="sub-tabs" style="width:100%">
-              <button class="stab on" id="sscm-pct" onclick="setSpSchemeMode('pct')" style="padding:6px 8px;line-height:1.3">% of SP excl GST<br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button>
+              <button class="stab on" id="sscm-pct" onclick="setSpSchemeMode('pct')" style="padding:6px 8px;line-height:1.3"><span id="lbl-sscm-pct">% of SP excl 18% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button>
               <button class="stab"    id="sscm-abs" onclick="setSpSchemeMode('abs')" style="padding:6px 8px;line-height:1.3">₹ Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button>
             </div>
           </div>
@@ -1026,7 +1031,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
       <div class="inc-footer">
         <div class="inc-total-item"><span class="inc-total-lbl">Total SP incentive ₹</span><span class="inc-total-val" id="sp-inc-total-inr">—</span></div>
         <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on SP</span><span class="inc-total-val" id="sp-inc-total-pct">0.00%</span></div>
-        <div class="inc-total-item"><span class="inc-total-lbl">Effective SP excl GST</span><span class="inc-total-val" id="sp-inc-eff-sp">—</span></div>
+        <div class="inc-total-item"><span class="inc-total-lbl" id="lbl-sp-inc-eff-sp">Effective SP excl 18% GST</span><span class="inc-total-val" id="sp-inc-eff-sp">—</span></div>
         <p class="inc-note">CD can be on SP excl or incl GST.<br>Scheme can be % or fixed ₹. All others on SP excl GST.</p>
       </div>
     </div>
@@ -1044,10 +1049,10 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
       </div>
       <div class="summary-grid">
         <div class="sum-item"><div class="sum-lbl">MRP (incl GST)</div><div class="sum-val dim" id="s-mrp">—</div></div>
-        <div class="sum-item"><div class="sum-lbl">CP excl GST</div><div class="sum-val dim" id="s-cp">—</div></div>
-        <div class="sum-item"><div class="sum-lbl">Effective CP excl GST</div><div class="sum-val dim" id="s-ecp">—</div></div>
-        <div class="sum-item"><div class="sum-lbl">SP excl GST</div><div class="sum-val dim" id="s-sp">—</div></div>
-        <div class="sum-item"><div class="sum-lbl">Effective SP excl GST</div><div class="sum-val dim" id="s-esp">—</div></div>
+        <div class="sum-item"><div class="sum-lbl" id="s-lbl-cp">CP excl 18% GST</div><div class="sum-val dim" id="s-cp">—</div></div>
+        <div class="sum-item"><div class="sum-lbl" id="s-lbl-ecp">Effective CP excl 18% GST</div><div class="sum-val dim" id="s-ecp">—</div></div>
+        <div class="sum-item"><div class="sum-lbl" id="s-lbl-sp">SP excl 18% GST</div><div class="sum-val dim" id="s-sp">—</div></div>
+        <div class="sum-item"><div class="sum-lbl" id="s-lbl-esp">Effective SP excl 18% GST</div><div class="sum-val dim" id="s-esp">—</div></div>
         <div class="sum-item"><div class="sum-lbl">CP Incentives ₹</div><div class="sum-val dim" id="s-inc">—</div></div>
         <div class="sum-item"><div class="sum-lbl">SP Incentives ₹</div><div class="sum-val dim" id="s-spinc">—</div></div>
         <div class="sum-item"><div class="sum-lbl">Profit ₹</div><div class="sum-val dim" id="s-pr">—</div></div>
@@ -1127,8 +1132,9 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
     </div>
     <div id="wz-disc-wrap">
       <div class="wz-field">
-        <span class="wz-sym">Disc %</span>
+        <span class="wz-sym">Disc</span>
         <input class="wz-input" type="number" inputmode="decimal" id="wz-disc" placeholder="e.g. 34" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off">
+        <span class="wz-suf" id="wz-disc-suf">% + 18% GST</span>
       </div>
     </div>
     <div id="wz-manual-wrap" style="display:none;flex-direction:column;gap:8px">
@@ -1882,7 +1888,73 @@ function fillSpIncPanel(sp){
   R('sp-inc-total-inr',inc>0?INR(inc):'—');
   R('sp-inc-eff-sp',INR(eff));
 }
-function setGST(p){haptic('select');G=p/100;el('g18').className=(p===18)?'pill on':'pill';el('g5').className=(p===5)?'pill on':'pill';el('grate').textContent=p+'%';calc()}
+/* ── Dynamic GST label updater ── */
+function updateGSTLabels(){
+  var g   = Math.round(G   * 100); // main mode
+  var fcg = Math.round(FC_G * 100); // quick mode
+  var wzg = Math.round(WZ_G * 100); // wizard mode
+  var wzLbl = (WZ_T === 'cp') ? 'Cost Price' : 'Selling Price';
+  function R(id,t){var e=el(id);if(e)e.textContent=t;}
+
+  // Main mode — disc field suffixes
+  var cpSuf=el('cpd-suf');
+  if(cpSuf) cpSuf.textContent = (CM==='excl') ? '% + '+g+'% GST' : '%';
+  var spSuf=el('spd-suf');
+  if(spSuf) spSuf.textContent = (SM==='excl') ? '% + '+g+'% GST' : '%';
+
+  // Manual entry sub-tabs
+  R('cpm-incl','CP incl '+g+'% GST'); R('cpm-excl','CP excl '+g+'% GST');
+  R('spm-incl','SP incl '+g+'% GST'); R('spm-excl','SP excl '+g+'% GST');
+
+  // Accordion row labels
+  R('lbl-cve','CP excl '+g+'% GST'); R('lbl-cvi','CP incl '+g+'% GST');
+  R('lbl-sve','SP excl '+g+'% GST'); R('lbl-svi','SP incl '+g+'% GST');
+
+  // CD mode buttons
+  R('lbl-cdm-before','CP excl '+g+'% GST'); R('lbl-cdm-after','CP incl '+g+'% GST');
+  R('lbl-scdm-before','SP excl '+g+'% GST'); R('lbl-scdm-after','SP incl '+g+'% GST');
+
+  // Scheme buttons
+  R('lbl-scm-pct','% of CP excl '+g+'% GST');
+  R('lbl-sscm-pct','% of SP excl '+g+'% GST');
+
+  // Incentive totals
+  R('lbl-inc-eff-cp','Effective CP excl '+g+'% GST');
+  R('lbl-sp-inc-eff-sp','Effective SP excl '+g+'% GST');
+
+  // Summary bar
+  R('s-lbl-cp','CP excl '+g+'% GST');
+  R('s-lbl-ecp','Effective CP excl '+g+'% GST');
+  R('s-lbl-sp','SP excl '+g+'% GST');
+  R('s-lbl-esp','Effective SP excl '+g+'% GST');
+
+  // Quick mode — disc field suffixes
+  var fcCpSuf=el('fc-cpd-suf');
+  if(fcCpSuf) fcCpSuf.textContent = (FC_CM==='excl') ? '% + '+fcg+'% GST' : '%';
+  var fcSpSuf=el('fc-spd-suf');
+  if(fcSpSuf) fcSpSuf.textContent = (FC_SM==='excl') ? '% + '+fcg+'% GST' : '%';
+
+  // Quick mode manual sub-tabs
+  R('fc-cpms-incl','CP incl '+fcg+'% GST'); R('fc-cpms-excl','CP excl '+fcg+'% GST');
+  R('fc-spms-incl','SP incl '+fcg+'% GST'); R('fc-spms-excl','SP excl '+fcg+'% GST');
+
+  // Wizard — disc field suffix
+  var wzSuf=el('wz-disc-suf');
+  if(wzSuf) wzSuf.textContent = (WZ_CM==='excl') ? '% + '+wzg+'% GST' : '%';
+
+  // Wizard labels (replaces inline textContent calls in wzSetT)
+  R('wz-ms-incl-lbl',  wzLbl+' incl '+wzg+'% GST');
+  R('wz-ms-excl-lbl',  wzLbl+' excl '+wzg+'% GST');
+  R('wz-cdm-before-lbl', wzLbl+' excl '+wzg+'% GST');
+  R('wz-cdm-after-lbl',  wzLbl+' incl '+wzg+'% GST');
+  R('wz-scm-pct-lbl','% of '+wzLbl+' excl '+wzg+'% GST');
+  R('wz-rlbl-e',   wzLbl+' excl '+wzg+'% GST');
+  R('wz-rlbl-i',   wzLbl+' incl '+wzg+'% GST');
+  R('wz-rlbl-eff', 'Eff. '+wzLbl+' excl '+wzg+'% GST');
+  R('wz-rlbl-effi','Eff. '+wzLbl+' incl '+wzg+'% GST');
+}
+
+function setGST(p){haptic('select');G=p/100;el('g18').className=(p===18)?'pill on':'pill';el('g5').className=(p===5)?'pill on':'pill';el('grate').textContent=p+'%';updateGSTLabels();calc()}
 function setT(t){haptic('select');T=t;el('tprofit').className=(t==='profit')?'pill on':'pill';el('tsp').className=(t==='sp')?'pill on':'pill';el('tcp').className=(t==='cp')?'pill on':'pill';updateLayout();calc()}
 function setCM(m){
   CM=m;
@@ -1890,6 +1962,7 @@ function setCM(m){
   el('cpf-disc').style.display=(m==='manual')?'none':'';
   el('cpf-manual').style.display=(m==='manual')?'flex':'none';
   el('cp-footnote').textContent=(m==='manual')?'Enter CP directly in ₹.':'Enter disc % in either mode — both shown above.';
+  updateGSTLabels();
   calc();
 }
 function setCPManual(s){haptic('select');CPMS=s;el('cpm-incl').className=(s==='incl')?'stab on':'stab';el('cpm-excl').className=(s==='excl')?'stab on':'stab';calc()}
@@ -1902,6 +1975,7 @@ function setSM(m){
   el('spf-disc').style.display=(m==='manual')?'none':'';
   el('spf-manual').style.display=(m==='manual')?'flex':'none';
   el('sp-footnote').textContent=(m==='manual')?'Enter SP directly in ₹.':'Enter disc % in either mode — both shown above.';
+  updateGSTLabels();
   calc();
 }
 function setSPManual(s){
@@ -2932,6 +3006,7 @@ function fcSetGST(p){
   FC_G=p/100;
   el('fcg18').className='fc-tab'+(p===18?' on':'');
   el('fcg5').className='fc-tab'+(p===5?' on':'');
+  updateGSTLabels();
   fcCalc();
   saveQState();
 }
@@ -2974,6 +3049,7 @@ function fcSetCM(m){
   });
   el('fc-cp-disc-wrap') && (el('fc-cp-disc-wrap').style.display = m==='manual'?'none':'');
   el('fc-cp-manual-wrap') && (el('fc-cp-manual-wrap').style.display = m==='manual'?'':'none');
+  updateGSTLabels();
   fcCalc();
 }
 function fcSetCPMS(s){
@@ -2991,6 +3067,7 @@ function fcSetSM(m){
   });
   el('fc-sp-disc-wrap') && (el('fc-sp-disc-wrap').style.display = m==='manual'?'none':'');
   el('fc-sp-manual-wrap') && (el('fc-sp-manual-wrap').style.display = m==='manual'?'':'none');
+  updateGSTLabels();
   fcCalc();
 }
 function fcSetSPMS(s){
@@ -3093,9 +3170,11 @@ function fcBuildCards(){
   }
   // Update progress dots label count
   fcUpdateDots();
+  // Sync all GST-rate labels for the newly built cards
+  updateGSTLabels();
 }
 
-function fcMkField(symTxt,inputId,placeholder,extraStyle){
+function fcMkField(symTxt,inputId,placeholder,extraStyle,sufId){
   var isRupee=(symTxt==='₹');
   var wrap=document.createElement('div');wrap.className='fc-input-wrap';if(extraStyle)wrap.style.cssText=extraStyle;
   var sym=document.createElement('span');sym.className='fc-input-sym';sym.textContent=symTxt;
@@ -3111,6 +3190,7 @@ function fcMkField(symTxt,inputId,placeholder,extraStyle){
     inp.oninput=fcCalc;
   }
   wrap.appendChild(sym);wrap.appendChild(inp);
+  if(sufId){var suf=document.createElement('span');suf.className='fc-input-suf';suf.id=sufId;wrap.appendChild(suf);}
   return wrap;
 }
 
@@ -3148,7 +3228,7 @@ function fcBuildCPCard(){
   // disc input
   var discWrap=document.createElement('div');discWrap.id='fc-cp-disc-wrap';
   discWrap.style.display=FC_CM==='manual'?'none':'';
-  discWrap.appendChild(fcMkField('Disc %','fc-cpd','e.g. 34'));
+  discWrap.appendChild(fcMkField('Disc','fc-cpd','e.g. 34',null,'fc-cpd-suf'));
   card.appendChild(discWrap);
 
   // manual input
@@ -3201,7 +3281,7 @@ function fcBuildSPCard(){
 
   var discWrap=document.createElement('div');discWrap.id='fc-sp-disc-wrap';
   discWrap.style.display=FC_SM==='manual'?'none':'';
-  discWrap.appendChild(fcMkField('Disc %','fc-spd','e.g. 20'));
+  discWrap.appendChild(fcMkField('Disc','fc-spd','e.g. 20',null,'fc-spd-suf'));
   card.appendChild(discWrap);
 
   var manWrap=document.createElement('div');manWrap.id='fc-sp-manual-wrap';manWrap.style.cssText='display:'+(FC_SM==='manual'?'flex':'none')+';flex-direction:column;gap:8px';
@@ -3563,6 +3643,7 @@ function wzSetGST(p){
   WZ_G=p/100;
   el('wzg18').className='stab'+(p===18?' on':'');
   el('wzg5').className='stab'+(p===5?' on':'');
+  updateGSTLabels();
   wzCalc();
 }
 function wzSetT(t){
@@ -3572,16 +3653,7 @@ function wzSetT(t){
   var lbl=t==='cp'?'Cost Price':'Selling Price';
   el('wz-price-title').textContent=lbl+' Input';
   el('wz-result-title').textContent=lbl+' Breakdown';
-  // Update field labels
-  el('wz-ms-incl-lbl').textContent=lbl+' incl GST';
-  el('wz-ms-excl-lbl').textContent=lbl+' excl GST';
-  el('wz-cdm-before-lbl').textContent=lbl+' excl GST';
-  el('wz-cdm-after-lbl').textContent=lbl+' incl GST';
-  el('wz-scm-pct-lbl').textContent='% of '+lbl+' excl GST';
-  el('wz-rlbl-e').textContent=lbl+' excl GST';
-  el('wz-rlbl-i').textContent=lbl+' incl GST';
-  el('wz-rlbl-eff').textContent='Eff. '+lbl+' excl GST';
-  el('wz-rlbl-effi').textContent='Eff. '+lbl+' incl GST';
+  updateGSTLabels(); // updates all wizard incl/excl labels with current WZ_G
   wzCalc();
 }
 function wzSetCM(m){
@@ -3589,6 +3661,7 @@ function wzSetCM(m){
   ['excl','incl','manual'].forEach(function(k){el('wz-cm-'+k).className='stab'+(m===k?' on':'')});
   el('wz-disc-wrap').style.display=m==='manual'?'none':'';
   el('wz-manual-wrap').style.display=m==='manual'?'flex':'none';
+  updateGSTLabels();
   wzCalc();
 }
 function wzSetMS(s){
@@ -3943,6 +4016,7 @@ updateLayout();
 if(!restoreFromUrl()){
   if(!loadCalcState()) calc();
 }
+updateGSTLabels();
 registerSW();
 // Show onboarding on first visit
 setTimeout(function(){
