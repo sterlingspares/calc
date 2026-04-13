@@ -240,11 +240,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* History card layout (swipe-to-delete) */
 .hist-entry{position:relative;overflow:hidden;border-bottom:1px solid var(--border)}
 .hist-entry:last-child{border-bottom:none}
-/* Red delete zone revealed when inner slides left */
-.hist-del{position:absolute;right:0;top:0;bottom:0;width:72px;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;user-select:none;pointer-events:none}
-/* Sliding card face */
-.hist-inner{position:relative;background:var(--surface1);padding:8px 12px;transition:transform .2s ease;will-change:transform}
-.hist-inner.swiping{transition:none}
+/* Card face */
+.hist-inner{position:relative;background:var(--surface1);padding:8px 12px}
 /* Meta row: time — gst badge — compare button — delete button */
 .hist-meta{display:flex;align-items:center;gap:6px;margin-bottom:5px}
 .hist-time{font-size:11px;color:var(--text2);cursor:help;border-bottom:1px dashed var(--border2);margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1322,7 +1319,15 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 </nav>
 
 <footer class="footer">
-  All profit/margin figures on excl-GST basis. Incentives on CP excl GST (CD optionally on incl GST). GST is a pass-through.
+  <div>All profit/margin figures on excl-GST basis. Incentives on CP excl GST (CD optionally on incl GST). GST is a pass-through.</div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px;flex-wrap:wrap">
+    <a href="https://github.com/sterlingspares/calc" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;color:var(--text3);text-decoration:none;font-size:11px;transition:color .15s" aria-label="View source on GitHub">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      github.com/sterlingspares/calc
+    </a>
+    <span style="color:var(--border2)" aria-hidden="true">·</span>
+    <span>Made with ♡ by <a href="https://sterlingspares.com" target="_blank" rel="noopener noreferrer" style="color:var(--text2);text-decoration:none;font-weight:500">Sterling Spares</a></span>
+  </div>
 </footer>
 
 <!-- ═══ SETTINGS MODAL ═══ -->
@@ -1344,7 +1349,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
           <div class="settings-control">
             <label class="toggle" style="width:36px;height:20px">
               <input type="checkbox" id="darkmode-toggle" onchange="toggleDarkMode(this.checked)" aria-label="Dark mode">
-              <span class="toggle-track" style="background:var(--border2)"></span>
+              <span class="toggle-track"></span>
               <span class="toggle-thumb" style="width:14px;height:14px;top:3px;left:3px"></span>
             </label>
           </div>
@@ -1381,7 +1386,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
           <div class="settings-control">
             <label class="toggle" style="width:36px;height:20px">
               <input type="checkbox" id="autosave-toggle-settings" checked onchange="syncAutosave('settings')" aria-label="Auto-save calculations to history">
-              <span class="toggle-track" style="background:var(--border2)"></span>
+              <span class="toggle-track"></span>
               <span class="toggle-thumb" style="width:14px;height:14px;top:3px;left:3px"></span>
             </label>
           </div>
@@ -2383,7 +2388,6 @@ function renderHistory(){
     var mgCls=belowFloor(h.mg,floor.mg)?'warn':(h.mg>=0?'pos':'neg');
     var prCls=h.pr>=0?'pos':'neg';
     html+='<div class="hist-entry" data-idx="'+idx+'" role="listitem">'
-      +'<div class="hist-del" aria-hidden="true">Delete</div>'
       +'<div class="hist-inner">'
         +'<div class="hist-meta">'
           +'<span class="hist-time" title="'+timeFull+'">'+timeDisp+'</span>'
@@ -2406,42 +2410,6 @@ function renderHistory(){
     +'</div>';
   });
   c.innerHTML=html;
-  /* Attach per-element swipe-to-delete listeners */
-  var THRESH=70;
-  c.querySelectorAll('.hist-inner').forEach(function(inner){
-    var sx=0,sy=0,dragging=false,locked=false;
-    inner.addEventListener('touchstart',function(e){
-      var t=e.touches[0];
-      sx=t.clientX;sy=t.clientY;dragging=false;locked=false;
-    },{passive:true});
-    inner.addEventListener('touchmove',function(e){
-      var t=e.touches[0];
-      var dx=t.clientX-sx,dy=t.clientY-sy;
-      if(!dragging&&!locked){
-        if(Math.abs(dy)>Math.abs(dx)){locked=true;return;}
-        if(Math.abs(dx)>8)dragging=true;
-      }
-      if(!dragging)return;
-      if(dx>4){inner.style.transform='';return;}
-      inner.classList.add('swiping');
-      inner.style.transform='translateX('+Math.max(dx,-THRESH*1.6)+'px)';
-    },{passive:true});
-    inner.addEventListener('touchend',function(e){
-      if(!dragging){inner.style.transform='';dragging=false;return;}
-      var dx=e.changedTouches[0].clientX-sx;
-      inner.classList.remove('swiping');
-      if(dx<-THRESH){
-        inner.style.transform='translateX(-110%)';
-        inner.style.transition='transform .22s ease';
-        var entry=inner.parentElement;
-        var idx=parseInt(entry.dataset.idx,10);
-        setTimeout(function(){deleteHistEntry(idx);},230);
-      }else{
-        inner.style.transform='';
-      }
-      dragging=false;
-    },{passive:true});
-  });
 }
 
 /* ── History export ── */
