@@ -2,6 +2,8 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square)
 
+**Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
+
 A single-file, offline-first web app for MRP-based pricing and profit calculations in automotive parts distribution. No build step, no dependencies — open `index.html` in any browser.
 
 ---
