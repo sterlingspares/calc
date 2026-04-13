@@ -1,10 +1,12 @@
 # Sterling Spares Pricing Calculator
 
+![GitHub stars](https://img.shields.io/github/stars/sterlingspares/calc?style=flat-square&logo=github) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Last commit](https://img.shields.io/github/last-commit/sterlingspares/calc?style=flat-square)
+
 A single-file, offline-first web app for MRP-based pricing and profit calculations in automotive parts distribution. No build step, no dependencies — open `index.html` in any browser.
 
 ---
 
-## Core Calculation
+## 🧮 Core Calculation
 
 ### MRP-Based Pricing
 All prices derive from the Maximum Retail Price (MRP).
@@ -43,7 +45,7 @@ Switch how profit is expressed:
 
 ---
 
-## Incentive System
+## 💰 Incentive System
 
 ### CP Incentives (reduce effective Cost Price)
 Five incentive types, each independently togglable:
@@ -70,7 +72,7 @@ Settings → Incentive Labels: rename any of the five types (CD, EB, QT, AN, SC)
 
 ---
 
-## Calculation Summary
+## 📊 Calculation Summary
 
 A sticky summary bar below the cards shows:
 
@@ -87,7 +89,7 @@ A sticky summary bar below the cards shows:
 
 ---
 
-## What-If Analysis
+## 🔀 What-If Analysis
 
 Three side-by-side SP scenarios (A · B · C) to compare outcomes before committing:
 
@@ -98,7 +100,7 @@ Three side-by-side SP scenarios (A · B · C) to compare outcomes before committ
 
 ---
 
-## History
+## 📋 History
 
 - Calculations are **auto-saved** to history after 900 ms of inactivity (when both CP and SP are filled)
 - Auto-save can be toggled off in Settings
@@ -111,13 +113,13 @@ Each history card shows: Time (relative + absolute on hover), MRP, CP excl, SP e
 ### Actions
 - **Save current** — manually save the active calculation
 - **Compare** — open a side-by-side comparison with the current state showing deltas (↑↓) for CP, SP, Profit, GP %, Margin %
-- **Swipe left** — delete an individual entry
+- **× button** — delete an individual entry
 - **Export CSV** — download full history as a spreadsheet
 - **Clear all** — remove all history entries
 
 ---
 
-## Settings
+## ⚙️ Settings
 
 | Setting | Description |
 |---|---|
@@ -133,7 +135,7 @@ Floor limits and auto-save preference **persist across sessions**.
 
 ---
 
-## Quick (Flashcard) Mode
+## ⚡ Quick (Flashcard) Mode
 
 A mobile-optimised 4-step card interface — like swiping through cards:
 
@@ -154,13 +156,13 @@ Quick mode **remembers your last inputs** (MRP, CP, SP, GST, modes) — restorin
 
 ---
 
-## Pull to Reset
+## 🔄 Pull to Reset
 
 In Default mode, **pull down from the top of the page** to reveal the reset bar. Pull past 90 px and release to reset all inputs to defaults. Clears the saved session state.
 
 ---
 
-## Keyboard Shortcuts
+## ⌨️ Keyboard Shortcuts
 
 | Key | Action |
 |---|---|
@@ -178,7 +180,7 @@ In Default mode, **pull down from the top of the page** to reveal the reset bar.
 
 ---
 
-## State Persistence (localStorage)
+## 💾 State Persistence (localStorage)
 
 | Key | Contents |
 |---|---|
@@ -193,7 +195,7 @@ URL share (`?s=…`) encodes calculator state as base64 JSON and takes **priorit
 
 ---
 
-## Offline / PWA
+## 📱 Offline / PWA
 
 - **Service worker** (`sw.js`) caches the app using a stale-while-revalidate strategy — works offline after first visit
 - **Web app manifest** (`manifest.json`) — installable as a standalone app on Android / iOS
@@ -201,13 +203,13 @@ URL share (`?s=…`) encodes calculator state as base64 JSON and takes **priorit
 
 ---
 
-## Number Formatting
+## 🔢 Number Formatting
 
 All monetary values use **Indian number formatting** (₹1,00,000.00). Percentages are shown to 2 decimal places.
 
 ---
 
-## Technical Notes
+## 🛠️ Technical Notes
 
 - Single HTML file — all CSS and JS embedded, no external dependencies beyond Google Fonts
 - Vanilla JS (ES5-compatible), no frameworks
