@@ -223,7 +223,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sum-val.warn::after{content:' ▼';font-size:10px}
 
 /* ── HISTORY ── */
-.hist-table-wrap{overflow-x:auto;margin-top:2px}
+.hist-table-wrap{overflow:hidden;margin-top:2px}
 .hist-table{width:100%;border-collapse:collapse;font-size:11.5px}
 .hist-table th{text-align:left;padding:6px 10px;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap}
 .hist-table td{padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11.5px}
@@ -239,22 +239,35 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* History card layout (swipe-to-delete) */
 .hist-entry{position:relative;overflow:hidden;border-bottom:1px solid var(--border)}
 .hist-entry:last-child{border-bottom:none}
-.hist-del{position:absolute;right:0;top:0;bottom:0;width:80px;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;letter-spacing:.03em;pointer-events:none}
-.hist-inner{position:relative;background:var(--surface1);padding:10px 12px;transition:transform .2s ease;will-change:transform}
+/* Red delete zone revealed when inner slides left */
+.hist-del{position:absolute;right:0;top:0;bottom:0;width:72px;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;user-select:none;pointer-events:none}
+/* Sliding card face */
+.hist-inner{position:relative;background:var(--surface1);padding:8px 12px;transition:transform .2s ease;will-change:transform}
 .hist-inner.swiping{transition:none}
-.hist-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.hist-time{font-size:11px;color:var(--text2);cursor:help;border-bottom:1px dashed var(--border2)}
-.hist-gst{font-size:10px;color:var(--text3);background:var(--surface2);padding:1px 6px;border-radius:8px}
-.hist-row-vals,.hist-row-profit{display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:5px}
-.hist-kv{display:inline-flex;flex-direction:column;gap:1px}
-.hist-k{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600}
-.hist-v{font-size:12px;font-family:'JetBrains Mono',monospace}
-.hist-v.td-pos{color:var(--green)}
-.hist-v.td-neg{color:var(--red)}
-.hist-v.td-warn{color:var(--red)}
-.hist-v.td-warn::after{content:' ▼';font-size:8px}
-.hist-v.td-amber{color:var(--amber)}
-.hist-row-actions{margin-top:7px}
+/* Meta row: time — gst badge — compare button — delete button */
+.hist-meta{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.hist-time{font-size:11px;color:var(--text2);cursor:help;border-bottom:1px dashed var(--border2);margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-gst{font-size:10px;color:var(--text3);background:var(--surface2);padding:1px 6px;border-radius:8px;white-space:nowrap;flex-shrink:0}
+/* 6-column values grid — collapses to 3-col on very small screens */
+.hist-vals{display:grid;grid-template-columns:repeat(6,1fr);gap:3px 4px}
+@media(max-width:400px){.hist-vals{grid-template-columns:repeat(3,1fr);gap:5px 8px}}
+.hist-kv{display:flex;flex-direction:column;gap:1px;min-width:0}
+.hist-k{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:600;white-space:nowrap}
+.hist-v{font-size:11px;font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-v.pos{color:var(--green)}
+.hist-v.neg{color:var(--red)}
+.hist-v.warn{color:var(--red)}
+.hist-v.warn::after{content:' ▼';font-size:8px}
+.hist-v.amber{color:var(--amber)}
+/* Inline delete × button */
+.hist-del-btn{width:24px;height:24px;padding:0;border-radius:50%;border:1px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text3);flex-shrink:0;transition:background .15s,border-color .15s,color .15s}
+.hist-del-btn:hover{background:#fef2f2;border-color:#ef4444;color:#ef4444}
+html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);border-color:#ef4444;color:#ef4444}
+.hist-del-btn:active{animation:pressDown .15s ease}
+/* Incentive badge row */
+.hist-inc{display:inline-flex;align-items:center;gap:4px;margin-top:5px;font-size:10.5px;color:var(--amber)}
+.hist-inc-k{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:600}
+/* Bottom action bar */
 .hist-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--border);margin-top:2px}
 .hist-btn{padding:5px 13px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
 .hist-btn:hover{background:var(--surface2);color:var(--text)}
@@ -516,6 +529,9 @@ html[data-theme="dark"] .fc-dot.cur{background:var(--text)}
   .acc-body{max-height:0}
   .acc-body.open{max-height:400px}
 }
+/* Settings accordions always collapse regardless of viewport */
+.acc-body-settings{max-height:0}
+.acc-body-settings.open{max-height:600px}
 
 /* ── BOTTOM NAV ── */
 .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,0.08);padding:6px 0 env(safe-area-inset-bottom,6px)}
@@ -655,10 +671,10 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         PDF
       </button>
       <div class="hdivider"></div>
-      <button class="hbtn hbtn-icon" onclick="openModal('shortcuts')" title="Keyboard shortcuts (?)">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 6.2C6.5 5.3 7.1 4.7 8 4.7c.9 0 1.5.6 1.5 1.4 0 .7-.4 1.1-1 1.5C7.8 8 7.5 8.4 7.5 9v.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="7.5" cy="11" r=".7" fill="currentColor"/></svg>
+      <button class="hbtn hbtn-icon" onclick="openModal('shortcuts')" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 6.2C6.5 5.3 7.1 4.7 8 4.7c.9 0 1.5.6 1.5 1.4 0 .7-.4 1.1-1 1.5C7.8 8 7.5 8.4 7.5 9v.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="7.5" cy="11" r=".7" fill="currentColor"/></svg>
       </button>
-      <button class="hbtn hbtn-icon" onclick="openModal('settings')" title="Settings">
+      <button class="hbtn hbtn-icon" onclick="openModal('settings')" title="Settings" aria-label="Settings">
         <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M4 5h12M4 10h12M4 15h12"/><circle cx="7" cy="5" r="1.8" fill="rgba(255,255,255,0.15)" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="10" r="1.8" fill="rgba(255,255,255,0.15)" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="15" r="1.8" fill="rgba(255,255,255,0.15)" stroke="currentColor" stroke-width="1.4"/></svg>
       </button>
     </div>
@@ -783,7 +799,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
           <button class="field-next" onclick="nextFrom('cpv')" title="Next" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
       </div>
-      <button class="acc-toggle" onclick="toggleAcc('cp')" id="acc-btn-cp">
+      <button class="acc-toggle" onclick="toggleAcc('cp')" id="acc-btn-cp" aria-expanded="false" aria-controls="acc-body-cp">
         <div class="acc-bar">
           <span class="acc-lbl">Show details</span>
           <svg class="acc-chevron" id="acc-chev-cp" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -826,7 +842,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
           <button class="field-next" onclick="nextFrom('spv')" title="Next" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
       </div>
-      <button class="acc-toggle" onclick="toggleAcc('sp')" id="acc-btn-sp">
+      <button class="acc-toggle" onclick="toggleAcc('sp')" id="acc-btn-sp" aria-expanded="false" aria-controls="acc-body-sp">
         <div class="acc-bar">
           <span class="acc-lbl">Show details</span>
           <svg class="acc-chevron" id="acc-chev-sp" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1045,14 +1061,14 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 
   <!-- HISTORY PANEL -->
   <div class="panel panel-gray" id="sec-hist">
-    <div class="panel-header" onclick="togglePanel('hist')">
+    <div class="panel-header" id="phdr-hist" role="button" tabindex="0" aria-expanded="false" aria-controls="body-hist" onclick="togglePanel('hist')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePanel('hist')}">
       <div class="panel-header-left">
         <span class="panel-title">History</span>
         <span class="panel-tag" id="hist-tag">0 entries</span>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:4px" onclick="event.stopPropagation()" title="Auto-save every completed calculation">
           <span style="font-size:10px;font-weight:500;color:var(--text2);white-space:nowrap">Auto-save</span>
           <span class="toggle" style="width:28px;height:16px">
-            <input type="checkbox" id="autosave-toggle" checked onchange="calc()">
+            <input type="checkbox" id="autosave-toggle" checked onchange="calc()" aria-label="Auto-save calculations to history">
             <span class="toggle-track"></span>
             <span class="toggle-thumb" style="width:10px;height:10px;top:3px;left:3px"></span>
           </span>
@@ -1061,7 +1077,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
       <svg class="panel-chevron" id="chev-hist" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
     <div class="panel-body" id="body-hist">
-      <div class="hist-table-wrap"><div id="hist-content"><div class="hist-empty">No entries yet — save a calculation to start.</div></div></div>
+      <div class="hist-table-wrap"><div id="hist-content" role="list" aria-label="Calculation history"><div class="hist-empty" role="status">No entries yet — save a calculation to start.</div></div></div>
       <div class="hist-actions">
         <button class="hist-btn save" onclick="saveToHistory()">Save current</button>
         <button class="hist-btn export" onclick="exportHistoryCSV()">Export CSV</button>
@@ -1304,11 +1320,11 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 </footer>
 
 <!-- ═══ SETTINGS MODAL ═══ -->
-<div class="modal-overlay" id="overlay-settings" onclick="overlayClick(event,'settings')">
-  <div class="modal" role="dialog" aria-modal="true">
+<div class="modal-overlay" id="overlay-settings" onclick="overlayClick(event,'settings')" role="presentation">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-settings">
     <div class="modal-header">
-      <span class="modal-title">Settings</span>
-      <button class="modal-close" onclick="closeModal('settings')" aria-label="Close">×</button>
+      <span class="modal-title" id="modal-title-settings">Settings</span>
+      <button class="modal-close" onclick="closeModal('settings')" aria-label="Close settings">×</button>
     </div>
     <div class="modal-body">
 
@@ -1321,7 +1337,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
           </div>
           <div class="settings-control">
             <label class="toggle" style="width:36px;height:20px">
-              <input type="checkbox" id="darkmode-toggle" onchange="toggleDarkMode(this.checked)">
+              <input type="checkbox" id="darkmode-toggle" onchange="toggleDarkMode(this.checked)" aria-label="Dark mode">
               <span class="toggle-track" style="background:var(--border2)"></span>
               <span class="toggle-thumb" style="width:14px;height:14px;top:3px;left:3px"></span>
             </label>
@@ -1331,26 +1347,18 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 
       <div class="modal-section">
         <div class="modal-section-title">Floor Limits</div>
-        <div class="settings-row">
-          <div class="settings-lbl">
-            <span>Minimum GP %</span>
-            <small>Values below this are highlighted in red (profit ÷ SP)</small>
-          </div>
-          <div class="settings-control">
-            <div class="floor-input-wrap">
-              <input type="number" inputmode="decimal" id="floor-gp" value="5" placeholder="—" min="0" max="100" step="0.1" oninput="calc();saveCalcState()">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="display:flex;align-items:center;gap:6px;flex:1">
+            <span style="font-size:12px;color:var(--text2);white-space:nowrap">Min GP %</span>
+            <div class="floor-input-wrap" style="flex:1">
+              <input type="number" inputmode="decimal" id="floor-gp" value="5" placeholder="—" min="0" max="100" step="0.1" oninput="calc();saveCalcState()" aria-label="Minimum GP percentage floor">
               <span>%</span>
             </div>
           </div>
-        </div>
-        <div class="settings-row">
-          <div class="settings-lbl">
-            <span>Minimum Margin %</span>
-            <small>Values below this are highlighted in red (profit ÷ eff. CP)</small>
-          </div>
-          <div class="settings-control">
-            <div class="floor-input-wrap">
-              <input type="number" inputmode="decimal" id="floor-mg" value="" placeholder="—" min="0" max="100" step="0.1" oninput="calc();saveCalcState()">
+          <div style="display:flex;align-items:center;gap:6px;flex:1">
+            <span style="font-size:12px;color:var(--text2);white-space:nowrap">Min Margin %</span>
+            <div class="floor-input-wrap" style="flex:1">
+              <input type="number" inputmode="decimal" id="floor-mg" value="" placeholder="—" min="0" max="100" step="0.1" oninput="calc();saveCalcState()" aria-label="Minimum Margin percentage floor">
               <span>%</span>
             </div>
           </div>
@@ -1366,7 +1374,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
           </div>
           <div class="settings-control">
             <label class="toggle" style="width:36px;height:20px">
-              <input type="checkbox" id="autosave-toggle-settings" checked onchange="syncAutosave('settings')">
+              <input type="checkbox" id="autosave-toggle-settings" checked onchange="syncAutosave('settings')" aria-label="Auto-save calculations to history">
               <span class="toggle-track" style="background:var(--border2)"></span>
               <span class="toggle-thumb" style="width:14px;height:14px;top:3px;left:3px"></span>
             </label>
@@ -1375,31 +1383,36 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
       </div>
 
       <div class="modal-section">
-        <div class="modal-section-title">Incentive Labels</div>
-        <small style="display:block;color:var(--text3);margin-bottom:10px;font-size:11px">Rename incentive types to match your terminology.</small>
-        <div class="lbl-fields">
-          <div class="lbl-field" id="lbl-field-cd">
-            <span class="lbl-abbr">CD</span>
-            <input type="text" class="lbl-input" id="lbl-input-cd" value="Cash Discount (CD)" oninput="updateLabel('cd',this.value)" maxlength="30" placeholder="Cash Discount (CD)" autocomplete="off" spellcheck="false">
+        <button class="acc-btn" id="acc-btn-labels" onclick="toggleAcc('labels')" aria-expanded="false" aria-controls="acc-body-labels" style="width:100%;background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:space-between">
+          <span class="modal-section-title" style="margin:0">Incentive Labels</span>
+          <svg class="acc-chevron" id="acc-chev-labels" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="acc-body acc-body-settings" id="acc-body-labels">
+          <small style="display:block;color:var(--text3);margin-top:8px;margin-bottom:10px;font-size:11px">Rename incentive types to match your terminology.</small>
+          <div class="lbl-fields">
+            <div class="lbl-field" id="lbl-field-cd">
+              <span class="lbl-abbr">CD</span>
+              <input type="text" class="lbl-input" id="lbl-input-cd" value="Cash Discount (CD)" oninput="updateLabel('cd',this.value)" maxlength="30" placeholder="Cash Discount (CD)" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="lbl-field" id="lbl-field-eb">
+              <span class="lbl-abbr">EB</span>
+              <input type="text" class="lbl-input" id="lbl-input-eb" value="Early Bird Discount" oninput="updateLabel('eb',this.value)" maxlength="30" placeholder="Early Bird Discount" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="lbl-field" id="lbl-field-qt">
+              <span class="lbl-abbr">QT</span>
+              <input type="text" class="lbl-input" id="lbl-input-qt" value="Quarterly Discount" oninput="updateLabel('qt',this.value)" maxlength="30" placeholder="Quarterly Discount" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="lbl-field" id="lbl-field-an">
+              <span class="lbl-abbr">AN</span>
+              <input type="text" class="lbl-input" id="lbl-input-an" value="Annual Discount" oninput="updateLabel('an',this.value)" maxlength="30" placeholder="Annual Discount" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="lbl-field" id="lbl-field-sc">
+              <span class="lbl-abbr">SC</span>
+              <input type="text" class="lbl-input" id="lbl-input-sc" value="Scheme" oninput="updateLabel('sc',this.value)" maxlength="30" placeholder="Scheme" autocomplete="off" spellcheck="false">
+            </div>
           </div>
-          <div class="lbl-field" id="lbl-field-eb">
-            <span class="lbl-abbr">EB</span>
-            <input type="text" class="lbl-input" id="lbl-input-eb" value="Early Bird Discount" oninput="updateLabel('eb',this.value)" maxlength="30" placeholder="Early Bird Discount" autocomplete="off" spellcheck="false">
-          </div>
-          <div class="lbl-field" id="lbl-field-qt">
-            <span class="lbl-abbr">QT</span>
-            <input type="text" class="lbl-input" id="lbl-input-qt" value="Quarterly Discount" oninput="updateLabel('qt',this.value)" maxlength="30" placeholder="Quarterly Discount" autocomplete="off" spellcheck="false">
-          </div>
-          <div class="lbl-field" id="lbl-field-an">
-            <span class="lbl-abbr">AN</span>
-            <input type="text" class="lbl-input" id="lbl-input-an" value="Annual Discount" oninput="updateLabel('an',this.value)" maxlength="30" placeholder="Annual Discount" autocomplete="off" spellcheck="false">
-          </div>
-          <div class="lbl-field" id="lbl-field-sc">
-            <span class="lbl-abbr">SC</span>
-            <input type="text" class="lbl-input" id="lbl-input-sc" value="Scheme" oninput="updateLabel('sc',this.value)" maxlength="30" placeholder="Scheme" autocomplete="off" spellcheck="false">
-          </div>
+          <button class="pill" onclick="resetLabels()" style="font-size:11px;padding:5px 12px;margin-top:8px">Reset to defaults</button>
         </div>
-        <button class="pill" onclick="resetLabels()" style="font-size:11px;padding:5px 12px">Reset to defaults</button>
       </div>
 
       <div class="modal-section">
@@ -1427,11 +1440,11 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
     </div>
   </div>
 </div>
-<div class="modal-overlay" id="overlay-whatif" onclick="overlayClick(event,'whatif')">
-  <div class="modal wi-modal" role="dialog" aria-modal="true">
+<div class="modal-overlay" id="overlay-whatif" onclick="overlayClick(event,'whatif')" role="presentation">
+  <div class="modal wi-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-whatif">
     <div class="modal-header">
-      <span class="modal-title">What-if scenarios</span>
-      <button class="modal-close" onclick="closeModal('whatif')" aria-label="Close">×</button>
+      <span class="modal-title" id="modal-title-whatif">What-if scenarios</span>
+      <button class="modal-close" onclick="closeModal('whatif')" aria-label="Close what-if scenarios">×</button>
     </div>
     <div class="modal-body">
       <div class="wi-cp-info" id="wi-cp-info">Enter CP and incentives on the main screen first.</div>
@@ -1442,11 +1455,11 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 </div>
 
 <!-- ═══ COMPARISON MODAL ═══ -->
-<div class="modal-overlay" id="overlay-compare" onclick="overlayClick(event,'compare')">
-  <div class="modal cmp-modal" role="dialog" aria-modal="true">
+<div class="modal-overlay" id="overlay-compare" onclick="overlayClick(event,'compare')" role="presentation">
+  <div class="modal cmp-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-compare">
     <div class="modal-header">
-      <span class="modal-title">Comparison</span>
-      <button class="modal-close" onclick="closeModal('compare')" aria-label="Close">×</button>
+      <span class="modal-title" id="modal-title-compare">Comparison</span>
+      <button class="modal-close" onclick="closeModal('compare')" aria-label="Close comparison">×</button>
     </div>
     <div class="modal-body">
       <div class="cmp-meta" id="cmp-meta"></div>
@@ -1456,11 +1469,11 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 </div>
 
 <!-- ═══ KEYBOARD SHORTCUTS MODAL ═══ -->
-<div class="modal-overlay" id="overlay-shortcuts" onclick="overlayClick(event,'shortcuts')">
-  <div class="modal" role="dialog" aria-modal="true" style="max-width:560px">
+<div class="modal-overlay" id="overlay-shortcuts" onclick="overlayClick(event,'shortcuts')" role="presentation">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-shortcuts" style="max-width:560px">
     <div class="modal-header">
-      <span class="modal-title">Keyboard Shortcuts</span>
-      <button class="modal-close" onclick="closeModal('shortcuts')" aria-label="Close">×</button>
+      <span class="modal-title" id="modal-title-shortcuts">Keyboard Shortcuts</span>
+      <button class="modal-close" onclick="closeModal('shortcuts')" aria-label="Close keyboard shortcuts">×</button>
     </div>
     <div class="modal-body">
       <div class="kb-grid">
@@ -1656,9 +1669,11 @@ function mgCls(mg,floor){
 /* ── Panel toggles ── */
 function togglePanel(id){
   var body=el('body-'+id),chev=el('chev-'+id);
+  var hdr=el('phdr-'+id);
   var open=body.style.display==='block';
   body.style.display=open?'none':'block';
   chev.className='panel-chevron'+(open?'':' open');
+  if(hdr)hdr.setAttribute('aria-expanded',String(!open));
 }
 
 /* ── Autosave — single source of truth ── */
@@ -2283,39 +2298,76 @@ function loadHistoryFromStorage(){
 function renderHistory(){
   el('hist-tag').textContent=HISTORY.length+' entr'+(HISTORY.length===1?'y':'ies');
   var c=el('hist-content');
-  if(HISTORY.length===0){c.innerHTML='<div class="hist-empty">No entries yet — save a calculation to start.</div>';return}
+  c.setAttribute('role','list');
+  if(HISTORY.length===0){c.innerHTML='<div class="hist-empty" role="status">No entries yet — save a calculation to start.</div>';return}
   var floor=getFloor();
   var html='';
   HISTORY.forEach(function(h,idx){
     var timeDisp=h.ts?relTime(h.ts):h.time;
     var timeFull=h.ts?fmtTime(h.ts):h.time;
-    var gpCls=belowFloor(h.gp,floor.gp)?'td-warn':(h.gp>=0?'td-pos':'td-neg');
-    var mgCls=belowFloor(h.mg,floor.mg)?'td-warn':(h.mg>=0?'td-pos':'td-neg');
-    html+='<div class="hist-entry" data-idx="'+idx+'">'
-      +'<div class="hist-del">Delete</div>'
+    var gpCls=belowFloor(h.gp,floor.gp)?'warn':(h.gp>=0?'pos':'neg');
+    var mgCls=belowFloor(h.mg,floor.mg)?'warn':(h.mg>=0?'pos':'neg');
+    var prCls=h.pr>=0?'pos':'neg';
+    html+='<div class="hist-entry" data-idx="'+idx+'" role="listitem">'
+      +'<div class="hist-del" aria-hidden="true">Delete</div>'
       +'<div class="hist-inner">'
-        +'<div class="hist-row-top">'
+        +'<div class="hist-meta">'
           +'<span class="hist-time" title="'+timeFull+'">'+timeDisp+'</span>'
           +'<span class="hist-gst">GST '+h.gst+'%</span>'
+          +'<button class="cmp-hist-btn" onclick="openCompare('+idx+')" aria-label="Compare entry from '+timeDisp+'">Compare</button>'
+          +'<button class="hist-del-btn" onclick="deleteHistEntry('+idx+')" aria-label="Delete entry from '+timeDisp+'" title="Delete">'
+            +'<svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+          +'</button>'
         +'</div>'
-        +'<div class="hist-row-vals">'
+        +'<div class="hist-vals">'
           +'<span class="hist-kv"><span class="hist-k">MRP</span><span class="hist-v">'+INR(h.mrp)+'</span></span>'
           +'<span class="hist-kv"><span class="hist-k">CP excl</span><span class="hist-v">'+INR(h.cpE)+'</span></span>'
           +'<span class="hist-kv"><span class="hist-k">SP excl</span><span class="hist-v">'+INR(h.spE)+'</span></span>'
-          +(h.incInr>0?'<span class="hist-kv"><span class="hist-k">Inc ₹</span><span class="hist-v td-amber">'+INR(h.incInr)+'</span></span>':'')
-        +'</div>'
-        +'<div class="hist-row-profit">'
-          +'<span class="hist-kv"><span class="hist-k">Profit</span><span class="hist-v '+(h.pr>=0?'td-pos':'td-neg')+'">'+INR(h.pr)+'</span></span>'
+          +'<span class="hist-kv"><span class="hist-k">Profit</span><span class="hist-v '+prCls+'">'+INR(h.pr)+'</span></span>'
           +'<span class="hist-kv"><span class="hist-k">GP %</span><span class="hist-v '+gpCls+'">'+PCT(h.gp)+'</span></span>'
           +'<span class="hist-kv"><span class="hist-k">Margin %</span><span class="hist-v '+mgCls+'">'+PCT(h.mg)+'</span></span>'
         +'</div>'
-        +'<div class="hist-row-actions">'
-          +'<button class="cmp-hist-btn" onclick="openCompare('+idx+')">Compare</button>'
-        +'</div>'
+        +(h.incInr>0?'<div class="hist-inc"><span class="hist-inc-k">Inc ₹</span><span>'+INR(h.incInr)+'</span></div>':'')
       +'</div>'
     +'</div>';
   });
   c.innerHTML=html;
+  /* Attach per-element swipe-to-delete listeners */
+  var THRESH=70;
+  c.querySelectorAll('.hist-inner').forEach(function(inner){
+    var sx=0,sy=0,dragging=false,locked=false;
+    inner.addEventListener('touchstart',function(e){
+      var t=e.touches[0];
+      sx=t.clientX;sy=t.clientY;dragging=false;locked=false;
+    },{passive:true});
+    inner.addEventListener('touchmove',function(e){
+      var t=e.touches[0];
+      var dx=t.clientX-sx,dy=t.clientY-sy;
+      if(!dragging&&!locked){
+        if(Math.abs(dy)>Math.abs(dx)){locked=true;return;}
+        if(Math.abs(dx)>8)dragging=true;
+      }
+      if(!dragging)return;
+      if(dx>4){inner.style.transform='';return;}
+      inner.classList.add('swiping');
+      inner.style.transform='translateX('+Math.max(dx,-THRESH*1.6)+'px)';
+    },{passive:true});
+    inner.addEventListener('touchend',function(e){
+      if(!dragging){inner.style.transform='';dragging=false;return;}
+      var dx=e.changedTouches[0].clientX-sx;
+      inner.classList.remove('swiping');
+      if(dx<-THRESH){
+        inner.style.transform='translateX(-110%)';
+        inner.style.transition='transform .22s ease';
+        var entry=inner.parentElement;
+        var idx=parseInt(entry.dataset.idx,10);
+        setTimeout(function(){deleteHistEntry(idx);},230);
+      }else{
+        inner.style.transform='';
+      }
+      dragging=false;
+    },{passive:true});
+  });
 }
 
 /* ── History export ── */
@@ -2628,7 +2680,8 @@ function toggleAcc(id){
   var open=body.classList.contains('open');
   body.classList.toggle('open',!open);
   if(chev)chev.classList.toggle('open',!open);
-  var lbl=btn.querySelector('.acc-lbl');
+  if(btn)btn.setAttribute('aria-expanded',String(!open));
+  var lbl=btn?btn.querySelector('.acc-lbl'):null;
   if(lbl)lbl.textContent=open?'Show details':'Hide details';
 }
 
@@ -3450,56 +3503,12 @@ function fcToDefault(){
   document.addEventListener('touchend',onEnd,{passive:true});
 })();
 
-/* ── Swipe-to-delete history ── */
+/* ── Swipe-to-delete history (per-element listeners added in renderHistory) ── */
 function deleteHistEntry(idx){
   HISTORY.splice(idx,1);
   saveHistoryToStorage();
   renderHistory();
 }
-(function(){
-  var startX=0,startY=0,inner=null,locked=false,dragging=false;
-  var THRESH=75;
-  var hc=document.getElementById('hist-content');
-  if(!hc)return;
-
-  hc.addEventListener('touchstart',function(e){
-    var entry=e.target.closest('.hist-entry');
-    if(!entry)return;
-    var t=e.touches[0];
-    startX=t.clientX;startY=t.clientY;
-    inner=entry.querySelector('.hist-inner');
-    locked=false;dragging=false;
-  },{passive:true});
-
-  hc.addEventListener('touchmove',function(e){
-    if(!inner)return;
-    var t=e.touches[0];
-    var dx=t.clientX-startX,dy=t.clientY-startY;
-    if(!dragging&&!locked){
-      if(Math.abs(dy)>Math.abs(dx)){locked=true;return;}
-      if(Math.abs(dx)>6)dragging=true;
-    }
-    if(!dragging)return;
-    if(dx>0){inner.style.transform='';return;}
-    inner.classList.add('swiping');
-    inner.style.transform='translateX('+Math.max(dx,-THRESH*1.6)+'px)';
-  },{passive:true});
-
-  hc.addEventListener('touchend',function(e){
-    if(!inner||!dragging){inner=null;return;}
-    var dx=e.changedTouches[0].clientX-startX;
-    inner.classList.remove('swiping');
-    if(dx<-THRESH){
-      inner.style.transform='translateX(-110%)';
-      var entry=inner.parentElement;
-      var idx=parseInt(entry.dataset.idx,10);
-      setTimeout(function(){deleteHistEntry(idx);},200);
-    }else{
-      inner.style.transform='';
-    }
-    inner=null;dragging=false;
-  },{passive:true});
-})();
 
 /* ── Pull to reset ── */
 (function(){
