@@ -1,6 +1,6 @@
-# Sterling Spares Pricing Calculator
+# Pricing Calculator
 
-![GitHub stars](https://img.shields.io/github/stars/sterlingspares/calc?style=flat-square&logo=github) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Last commit](https://img.shields.io/github/last-commit/sterlingspares/calc?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
