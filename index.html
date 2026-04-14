@@ -210,6 +210,14 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .inc-total-lbl{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);font-weight:500}
 .inc-total-val{font-family:var(--font-mono);font-size:15px;font-weight:500;color:var(--amber)}
 .inc-note{font-size:10.5px;color:var(--text3);font-style:italic;line-height:1.4;margin-left:auto;text-align:right}
+/* Edit mode */
+.panel-edit-btn{font-size:11px;padding:3px 10px;border-radius:12px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;margin-right:8px;font-family:var(--font-body);flex-shrink:0;line-height:1.4}
+.panel-edit-btn:hover{border-color:var(--accent);color:var(--accent)}
+.inc-del-btn{display:none;align-items:center;justify-content:center;width:22px;height:22px;min-width:22px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:18px;line-height:1;cursor:pointer;margin-right:4px;padding:0;flex-shrink:0;font-weight:300}
+.inc-grid.edit-mode .inc-del-btn{display:flex}
+.inc-label-edit{font-size:12px;font-weight:500;font-family:var(--font-body);border:none;border-bottom:1px solid var(--accent);background:transparent;color:var(--text2);padding:0 0 1px;width:0;min-width:0;flex:1;outline:none}
+.inc-add-btn{width:100%;margin-top:6px;padding:8px;border:1.5px dashed var(--border2);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:var(--font-body);display:none}
+.inc-add-btn:hover{border-color:var(--accent);color:var(--accent)}
 
 /* ── SUMMARY ── */
 .summary-wrap{margin-bottom:1.25rem}
@@ -892,64 +900,12 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         <span class="panel-title">Incentives on CP</span>
         <span class="panel-tag" id="inc-summary-tag">All off — 0.00%</span>
       </div>
+      <button class="panel-edit-btn" id="cp-inc-edit-btn" onclick="event.stopPropagation();toggleIncEditMode('cp')">Edit</button>
       <svg class="panel-chevron" id="chev-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
     <div class="panel-body" id="body-inc">
-      <div class="inc-grid">
-        <div class="inc-row" id="ir-cd">
-          <div class="inc-row-main">
-            <label class="toggle"><input type="checkbox" id="it-cd" onchange="syncToggle('cd');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name" id="lbl-cp-cd">Cash Discount (CD)</span>
-            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="iv-cd" value="2" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
-          </div>
-          <div class="inc-row-sub">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Calculate CD on:</div>
-            <div class="sub-tabs" style="width:100%">
-              <button class="stab on" id="cdm-before" onclick="setCDMode('before')" style="padding:6px 8px;line-height:1.3"><span id="lbl-cdm-before">CP excl 18% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button>
-              <button class="stab"    id="cdm-after"  onclick="setCDMode('after')"  style="padding:6px 8px;line-height:1.3"><span id="lbl-cdm-after">CP incl 18% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button>
-            </div>
-          </div>
-        </div>
-        <div class="inc-row" id="ir-eb">
-          <div class="inc-row-main">
-            <label class="toggle"><input type="checkbox" id="it-eb" onchange="syncToggle('eb');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name" id="lbl-cp-eb">Early Bird Discount</span>
-            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="iv-eb" value="1" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
-          </div>
-        </div>
-        <div class="inc-row" id="ir-qt">
-          <div class="inc-row-main">
-            <label class="toggle"><input type="checkbox" id="it-qt" onchange="syncToggle('qt');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name" id="lbl-cp-qt">Quarterly Discount</span>
-            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="iv-qt" value="2" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
-          </div>
-        </div>
-        <div class="inc-row" id="ir-an">
-          <div class="inc-row-main">
-            <label class="toggle"><input type="checkbox" id="it-an" onchange="syncToggle('an');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name" id="lbl-cp-an">Annual Discount</span>
-            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="iv-an" value="1" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
-          </div>
-        </div>
-        <!-- SCHEME -->
-        <div class="inc-row" id="ir-sc">
-          <div class="inc-row-main">
-            <label class="toggle"><input type="checkbox" id="it-sc" onchange="syncToggle('sc');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name" id="lbl-cp-sc">Scheme</span>
-            <div class="inc-pct-wrap" id="sc-pct-wrap">
-              <input type="number" inputmode="decimal" id="iv-sc" value="" placeholder="0" min="0" step="0.01" oninput="calc()" autocomplete="off">
-              <span class="inc-pct-sym" id="sc-unit">%</span>
-            </div>
-          </div>
-          <div class="inc-row-sub" id="sc-sub">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div>
-            <div class="sub-tabs" style="width:100%">
-              <button class="stab on" id="scm-pct" onclick="setSchemeMode('pct')" style="padding:6px 8px;line-height:1.3"><span id="lbl-scm-pct">% of CP excl 18% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button>
-              <button class="stab"    id="scm-abs" onclick="setSchemeMode('abs')" style="padding:6px 8px;line-height:1.3">₹ Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div class="inc-grid" id="cp-inc-grid"></div>
+      <button class="inc-add-btn" id="cp-inc-add-btn" onclick="addInc('cp')">+ Add incentive</button>
       <div class="inc-footer">
         <div class="inc-total-item"><span class="inc-total-lbl">Total incentive ₹</span><span class="inc-total-val" id="inc-total-inr">—</span></div>
         <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on CP</span><span class="inc-total-val" id="inc-total-pct">0.00%</span></div>
@@ -968,65 +924,13 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         <span class="panel-title">Incentives on SP</span>
         <span class="panel-tag" id="sp-inc-summary-tag">All off — 0.00%</span>
       </div>
+      <button class="panel-edit-btn" id="sp-inc-edit-btn" onclick="event.stopPropagation();toggleIncEditMode('sp')">Edit</button>
       <svg class="panel-chevron" id="chev-sp-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
     <div class="panel-body" id="body-sp-inc">
       <p style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5">Optional discounts to customer that reduce effective selling price. Profit = Eff. SP − Eff. CP.</p>
-      <div class="inc-grid">
-        <div class="inc-row" id="sir-cd">
-          <div class="inc-row-main">
-            <label class="toggle"><input type="checkbox" id="sit-cd" onchange="syncSpToggle('cd');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name" id="lbl-sp-cd">Cash Discount (CD)</span>
-            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="siv-cd" value="2" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
-          </div>
-          <div class="inc-row-sub">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Calculate CD on:</div>
-            <div class="sub-tabs" style="width:100%">
-              <button class="stab on" id="scdm-before" onclick="setSCDMode('before')" style="padding:6px 8px;line-height:1.3"><span id="lbl-scdm-before">SP excl 18% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button>
-              <button class="stab"    id="scdm-after"  onclick="setSCDMode('after')"  style="padding:6px 8px;line-height:1.3"><span id="lbl-scdm-after">SP incl 18% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button>
-            </div>
-          </div>
-        </div>
-        <div class="inc-row" id="sir-eb">
-          <div class="inc-row-main">
-            <label class="toggle"><input type="checkbox" id="sit-eb" onchange="syncSpToggle('eb');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name" id="lbl-sp-eb">Early Bird Discount</span>
-            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="siv-eb" value="1" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
-          </div>
-        </div>
-        <div class="inc-row" id="sir-qt">
-          <div class="inc-row-main">
-            <label class="toggle"><input type="checkbox" id="sit-qt" onchange="syncSpToggle('qt');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name" id="lbl-sp-qt">Quarterly Discount</span>
-            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="siv-qt" value="2" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
-          </div>
-        </div>
-        <div class="inc-row" id="sir-an">
-          <div class="inc-row-main">
-            <label class="toggle"><input type="checkbox" id="sit-an" onchange="syncSpToggle('an');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name" id="lbl-sp-an">Annual Discount</span>
-            <div class="inc-pct-wrap"><input type="number" inputmode="decimal" id="siv-an" value="1" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym">%</span></div>
-          </div>
-        </div>
-        <!-- SP SCHEME -->
-        <div class="inc-row" id="sir-sc">
-          <div class="inc-row-main">
-            <label class="toggle"><input type="checkbox" id="sit-sc" onchange="syncSpToggle('sc');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
-            <span class="inc-name" id="lbl-sp-sc">Scheme</span>
-            <div class="inc-pct-wrap">
-              <input type="number" inputmode="decimal" id="siv-sc" value="" placeholder="0" min="0" step="0.01" oninput="calc()" autocomplete="off">
-              <span class="inc-pct-sym" id="ssc-unit">%</span>
-            </div>
-          </div>
-          <div class="inc-row-sub">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div>
-            <div class="sub-tabs" style="width:100%">
-              <button class="stab on" id="sscm-pct" onclick="setSpSchemeMode('pct')" style="padding:6px 8px;line-height:1.3"><span id="lbl-sscm-pct">% of SP excl 18% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button>
-              <button class="stab"    id="sscm-abs" onclick="setSpSchemeMode('abs')" style="padding:6px 8px;line-height:1.3">₹ Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div class="inc-grid" id="sp-inc-grid"></div>
+      <button class="inc-add-btn" id="sp-inc-add-btn" onclick="addInc('sp')">+ Add incentive</button>
       <div class="inc-footer">
         <div class="inc-total-item"><span class="inc-total-lbl">Total SP incentive ₹</span><span class="inc-total-val" id="sp-inc-total-inr">—</span></div>
         <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on SP</span><span class="inc-total-val" id="sp-inc-total-pct">0.00%</span></div>
@@ -1388,39 +1292,6 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
       </div>
 
       <div class="modal-section">
-        <button class="acc-btn" id="acc-btn-labels" onclick="toggleAcc('labels')" aria-expanded="false" aria-controls="acc-body-labels" style="width:100%;background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:space-between">
-          <span class="modal-section-title" style="margin:0">Incentive Labels</span>
-          <svg class="acc-chevron" id="acc-chev-labels" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="acc-body acc-body-settings" id="acc-body-labels">
-          <small style="display:block;color:var(--text3);margin-top:8px;margin-bottom:10px;font-size:11px">Rename incentive types to match your terminology.</small>
-          <div class="lbl-fields">
-            <div class="lbl-field" id="lbl-field-cd">
-              <span class="lbl-abbr">CD</span>
-              <input type="text" class="lbl-input" id="lbl-input-cd" value="Cash Discount (CD)" oninput="updateLabel('cd',this.value)" maxlength="30" placeholder="Cash Discount (CD)" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="lbl-field" id="lbl-field-eb">
-              <span class="lbl-abbr">EB</span>
-              <input type="text" class="lbl-input" id="lbl-input-eb" value="Early Bird Discount" oninput="updateLabel('eb',this.value)" maxlength="30" placeholder="Early Bird Discount" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="lbl-field" id="lbl-field-qt">
-              <span class="lbl-abbr">QT</span>
-              <input type="text" class="lbl-input" id="lbl-input-qt" value="Quarterly Discount" oninput="updateLabel('qt',this.value)" maxlength="30" placeholder="Quarterly Discount" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="lbl-field" id="lbl-field-an">
-              <span class="lbl-abbr">AN</span>
-              <input type="text" class="lbl-input" id="lbl-input-an" value="Annual Discount" oninput="updateLabel('an',this.value)" maxlength="30" placeholder="Annual Discount" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="lbl-field" id="lbl-field-sc">
-              <span class="lbl-abbr">SC</span>
-              <input type="text" class="lbl-input" id="lbl-input-sc" value="Scheme" oninput="updateLabel('sc',this.value)" maxlength="30" placeholder="Scheme" autocomplete="off" spellcheck="false">
-            </div>
-          </div>
-          <button class="pill" onclick="resetLabels()" style="font-size:11px;padding:5px 12px;margin-top:8px">Reset to defaults</button>
-        </div>
-      </div>
-
-      <div class="modal-section">
         <div class="modal-section-title">Help</div>
         <div class="settings-row">
           <div class="settings-lbl">
@@ -1747,51 +1618,173 @@ function debouncedSaveCalcState(){
   _saveStateTimer=setTimeout(saveCalcState,800);
 }
 
-/* ── Custom incentive labels ── */
-function applyLabels(){
-  INC_KEYS.forEach(function(k){
-    var cp=el('lbl-cp-'+k),sp=el('lbl-sp-'+k);
-    var lbl=INC_LABELS[k];
-    if(cp)cp.textContent=lbl;
-    if(sp)sp.textContent=lbl;
-  });
+/* ── Incentive edit mode ── */
+var CP_EDIT_MODE=false,SP_EDIT_MODE=false;
+
+function _incRowHTML(k,panel,editMode){
+  var isCP=panel==='cp';
+  var rowId=(isCP?'ir-':'sir-')+k;
+  var cbId=(isCP?'it-':'sit-')+k;
+  var inpId=(isCP?'iv-':'siv-')+k;
+  var lblId='lbl-'+(isCP?'cp':'sp')+'-'+k;
+  var lbl=(INC_LABELS[k]||k).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  var syncFn=isCP?'syncToggle':'syncSpToggle';
+  var defVal=(k==='sc')?'':(k==='cd'||k==='qt')?'2':'1';
+  var placeholder=(k==='sc')?'0':'';
+  var maxAttr=(k==='sc')?'':' max="100"';
+
+  var delBtn=editMode?'<button class="inc-del-btn" onclick="deleteInc(\''+panel+'\',\''+k+'\')" title="Delete" aria-label="Delete">&#x2212;</button>':'';
+  var labelHtml=editMode
+    ?'<input class="inc-label-edit" id="'+lblId+'" value="'+lbl+'" oninput="INC_LABELS[\''+k+'\']=this.value.trim()||INC_LABELS_DEFAULT[\''+k+'\'];saveLabels()" maxlength="30" autocomplete="off" spellcheck="false">'
+    :'<span class="inc-name" id="'+lblId+'">'+lbl+'</span>';
+
+  var unitId=(k==='sc')?' id="'+(isCP?'sc':'ssc')+'-unit"':'';
+  var pctWrapId=(k==='sc')?' id="sc-pct-wrap"':'';
+
+  var mainRow='<div class="inc-row-main">'+delBtn+'<label class="toggle"><input type="checkbox" id="'+cbId+'" onchange="'+syncFn+'(\''+k+'\');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>'+labelHtml+'<div class="inc-pct-wrap"'+pctWrapId+'><input type="number" inputmode="decimal" id="'+inpId+'" value="'+defVal+'" placeholder="'+placeholder+'" min="0"'+maxAttr+' step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym"'+unitId+'>%</span></div></div>';
+
+  var subRow='';
+  var gPct=Math.round(G*100);
+  if(k==='cd'){
+    var b1=isCP?'cdm-before':'scdm-before',b2=isCP?'cdm-after':'scdm-after';
+    var fn1=isCP?"setCDMode('before')":'setSCDMode(\'before\')',fn2=isCP?"setCDMode('after')":'setSCDMode(\'after\')';
+    var lb1='lbl-'+(isCP?'':'s')+'cdm-before',lb2='lbl-'+(isCP?'':'s')+'cdm-after';
+    var p=isCP?'CP':'SP';
+    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Calculate CD on:</div><div class="sub-tabs" style="width:100%"><button class="stab on" id="'+b1+'" onclick="'+fn1+'" style="padding:6px 8px;line-height:1.3"><span id="'+lb1+'">'+p+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button><button class="stab" id="'+b2+'" onclick="'+fn2+'" style="padding:6px 8px;line-height:1.3"><span id="'+lb2+'">'+p+' incl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button></div></div>';
+  } else if(k==='sc'){
+    var sp1=isCP?'scm-pct':'sscm-pct',sp2=isCP?'scm-abs':'sscm-abs';
+    var fn3=isCP?"setSchemeMode('pct')":'setSpSchemeMode(\'pct\')',fn4=isCP?"setSchemeMode('abs')":'setSpSchemeMode(\'abs\')';
+    var lsp='lbl-'+(isCP?'':'s')+'scm-pct';
+    var ssub=isCP?' id="sc-sub"':'';
+    var pp=isCP?'CP':'SP';
+    subRow='<div class="inc-row-sub"'+ssub+'><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div><div class="sub-tabs" style="width:100%"><button class="stab on" id="'+sp1+'" onclick="'+fn3+'" style="padding:6px 8px;line-height:1.3"><span id="'+lsp+'">% of '+pp+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab" id="'+sp2+'" onclick="'+fn4+'" style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
+  }
+  return '<div class="inc-row" id="'+rowId+'">'+mainRow+subRow+'</div>';
 }
-function updateLabel(k,v){
-  INC_LABELS[k]=v.trim()||INC_LABELS_DEFAULT[k];
-  applyLabels();
-  saveLabels();
-  haptic('light');
-  var field=el('lbl-field-'+k);
-  if(field){
-    clearTimeout(field._lblTimer);
-    field.classList.add('lbl-saved');
-    field._lblTimer=setTimeout(function(){field.classList.remove('lbl-saved');},900);
+
+function _snapshotInc(panel){
+  var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS;
+  var snap={};
+  keys.forEach(function(k){
+    var cb=document.getElementById(panel==='cp'?'it-'+k:'sit-'+k);
+    var inp=document.getElementById(panel==='cp'?'iv-'+k:'siv-'+k);
+    snap[k]={checked:cb?cb.checked:false,value:inp?inp.value:''};
+  });
+  return snap;
+}
+
+function _restoreInc(panel,snap){
+  var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS;
+  var isCP=panel==='cp';
+  keys.forEach(function(k){
+    if(!snap[k])return;
+    var cb=document.getElementById(isCP?'it-'+k:'sit-'+k);
+    var inp=document.getElementById(isCP?'iv-'+k:'siv-'+k);
+    var row=document.getElementById(isCP?'ir-'+k:'sir-'+k);
+    if(cb)cb.checked=snap[k].checked;
+    if(inp&&snap[k].value!=='')inp.value=snap[k].value;
+    if(row)row.className='inc-row'+(snap[k].checked?(isCP?' active':' sp-active'):'');
+  });
+  // Re-apply sub-row active states
+  if(isCP){
+    var cb=document.getElementById('cdm-before');if(cb)cb.className=(CDM==='before')?'stab on':'stab';
+    var ca=document.getElementById('cdm-after');if(ca)ca.className=(CDM==='after')?'stab on':'stab';
+    var sp=document.getElementById('scm-pct');if(sp)sp.className=(SCM==='pct')?'stab on':'stab';
+    var sa=document.getElementById('scm-abs');if(sa)sa.className=(SCM==='abs')?'stab on':'stab';
+    var su=document.getElementById('sc-unit');if(su)su.textContent=(SCM==='abs')?'₹':'%';
+  } else {
+    var scb=document.getElementById('scdm-before');if(scb)scb.className=(SCDM==='before')?'stab on':'stab';
+    var sca=document.getElementById('scdm-after');if(sca)sca.className=(SCDM==='after')?'stab on':'stab';
+    var ssp=document.getElementById('sscm-pct');if(ssp)ssp.className=(SSCM==='pct')?'stab on':'stab';
+    var ssa=document.getElementById('sscm-abs');if(ssa)ssa.className=(SSCM==='abs')?'stab on':'stab';
+    var ssu=document.getElementById('ssc-unit');if(ssu)ssu.textContent=(SSCM==='abs')?'₹':'%';
   }
 }
+
+function renderCPIncRows(){
+  var grid=document.getElementById('cp-inc-grid');
+  if(!grid)return;
+  var html='';
+  INC_KEYS.forEach(function(k){html+=_incRowHTML(k,'cp',CP_EDIT_MODE);});
+  grid.innerHTML=html;
+  if(CP_EDIT_MODE)grid.classList.add('edit-mode');else grid.classList.remove('edit-mode');
+  elClearCache();
+}
+
+function renderSPIncRows(){
+  var grid=document.getElementById('sp-inc-grid');
+  if(!grid)return;
+  var html='';
+  SP_INC_KEYS.forEach(function(k){html+=_incRowHTML(k,'sp',SP_EDIT_MODE);});
+  grid.innerHTML=html;
+  if(SP_EDIT_MODE)grid.classList.add('edit-mode');else grid.classList.remove('edit-mode');
+  elClearCache();
+}
+
+function toggleIncEditMode(panel){
+  var snap=_snapshotInc(panel);
+  if(panel==='cp'){
+    CP_EDIT_MODE=!CP_EDIT_MODE;
+    document.getElementById('cp-inc-edit-btn').textContent=CP_EDIT_MODE?'Done':'Edit';
+    document.getElementById('cp-inc-add-btn').style.display=CP_EDIT_MODE?'block':'none';
+    renderCPIncRows();
+  }else{
+    SP_EDIT_MODE=!SP_EDIT_MODE;
+    document.getElementById('sp-inc-edit-btn').textContent=SP_EDIT_MODE?'Done':'Edit';
+    document.getElementById('sp-inc-add-btn').style.display=SP_EDIT_MODE?'block':'none';
+    renderSPIncRows();
+  }
+  _restoreInc(panel,snap);
+  elClearCache();
+}
+
+function addInc(panel){
+  var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS;
+  var i=1;
+  var allKeys=INC_KEYS.concat(SP_INC_KEYS);
+  while(allKeys.indexOf('c'+i)!==-1)i++;
+  var k='c'+i;
+  INC_LABELS[k]='Incentive '+i;
+  INC_LABELS_DEFAULT[k]='Incentive '+i;
+  keys.push(k);
+  saveLabels();
+  var snap=_snapshotInc(panel);
+  if(panel==='cp')renderCPIncRows();else renderSPIncRows();
+  _restoreInc(panel,snap);
+  elClearCache();
+  haptic('light');
+  var lblEl=document.getElementById('lbl-'+(panel==='cp'?'cp':'sp')+'-'+k);
+  if(lblEl){lblEl.focus();lblEl.select();}
+}
+
+function deleteInc(panel,key){
+  var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS;
+  var idx=keys.indexOf(key);
+  if(idx===-1)return;
+  var snap=_snapshotInc(panel);
+  keys.splice(idx,1);
+  delete snap[key];
+  saveLabels();
+  if(panel==='cp')renderCPIncRows();else renderSPIncRows();
+  _restoreInc(panel,snap);
+  elClearCache();
+  calc();
+  haptic('light');
+}
+
 function saveLabels(){
-  try{localStorage.setItem('pc-labels',JSON.stringify(INC_LABELS));}catch(e){}
+  try{localStorage.setItem('pc-labels',JSON.stringify({labels:INC_LABELS,cpKeys:INC_KEYS,spKeys:SP_INC_KEYS}));}catch(e){}
 }
 function loadLabels(){
   try{
     var raw=localStorage.getItem('pc-labels');
     if(!raw)return;
     var parsed=JSON.parse(raw);
-    INC_KEYS.forEach(function(k){if(parsed[k])INC_LABELS[k]=parsed[k];});
-    applyLabels();
-    INC_KEYS.forEach(function(k){
-      var inp=el('lbl-input-'+k);
-      if(inp)inp.value=INC_LABELS[k];
-    });
+    var labels=parsed.labels||parsed;
+    Object.keys(labels).forEach(function(k){INC_LABELS[k]=labels[k];if(!INC_LABELS_DEFAULT[k])INC_LABELS_DEFAULT[k]=labels[k];});
+    if(parsed.cpKeys&&Array.isArray(parsed.cpKeys))INC_KEYS=parsed.cpKeys;
+    if(parsed.spKeys&&Array.isArray(parsed.spKeys))SP_INC_KEYS=parsed.spKeys;
   }catch(e){}
-}
-function resetLabels(){
-  INC_KEYS.forEach(function(k){
-    INC_LABELS[k]=INC_LABELS_DEFAULT[k];
-    var inp=el('lbl-input-'+k);
-    if(inp)inp.value=INC_LABELS_DEFAULT[k];
-  });
-  applyLabels();
-  try{localStorage.removeItem('pc-labels');}catch(e){}
 }
 
 /* ── Incentive helpers ── */
@@ -1821,7 +1814,7 @@ function updateIncSummaryTag(){
     if(k==='sc'&&SCM==='abs'){hasAbsSc=true;absScVal=v;}
     else nom+=v;
   });
-  var note=(el('it-cd').checked&&CDM==='after')?' (CD on +GST)':'';
+  var _itcd=el('it-cd');var note=(_itcd&&_itcd.checked&&CDM==='after')?' (CD on +GST)':'';
   var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' scheme':'';
   el('inc-summary-tag').textContent=(active===0?'All off':active+' active')+' — '+nom.toFixed(2)+'%'+scNote+note;
 }
@@ -1866,7 +1859,7 @@ function updateSpIncSummaryTag(){
     if(k==='sc'&&SSCM==='abs'){hasAbsSc=true;absScVal=v;}
     else nom+=v;
   });
-  var note=(el('sit-cd').checked&&SCDM==='after')?' (CD on +GST)':'';
+  var _sitcd=el('sit-cd');var note=(_sitcd&&_sitcd.checked&&SCDM==='after')?' (CD on +GST)':'';
   var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' scheme':'';
   el('sp-inc-summary-tag').textContent=(active===0?'All off':active+' active')+' — '+nom.toFixed(2)+'%'+scNote+note;
 }
@@ -3986,6 +3979,8 @@ function obRender(){
 /* ── Init ── */
 initTheme();
 loadLabels();
+renderCPIncRows();
+renderSPIncRows();
 loadHistoryFromStorage();
 document.querySelectorAll('.kbd-mod').forEach(function(el){el.textContent=MOD_KEY;});
 updateLayout();
