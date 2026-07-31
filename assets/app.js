@@ -3311,6 +3311,13 @@ function fillIncPanel(cp){
  */
 function sumSet(id,val,cls){var e=el(id);if(!e)return;e.textContent=val;e.className='sum-val '+cls}
 /**
+ * Same, for a value inside a price card. sumSet rewrites the class to
+ * sum-val, which is styled for the dark summary bar — using it on a card row
+ * set the text and then made it invisible against the white background.
+ * @param {string} id @param {string} val @param {string} cls
+ */
+function rowSet(id,val,cls){var e=el(id);if(!e)return;e.textContent=val;e.className='row-val '+(cls||'')}
+/**
  * Repaint the whole summary bar, including the order-level block which only
  * appears once quantity is above 1.
  * @param {{e:number,i:number}|null} cp
@@ -3322,7 +3329,7 @@ function fillSummary(cp,sp){
   // what the cards do not.
   ['s-ecp','s-esp','s-inc','s-spinc','s-pr','s-gp','s-mg'].forEach(function(id){sumSet(id,'—','dim')});
   if(!cp||!sp){
-    ['s-be-sep','s-item-be','s-item-bef','s-order-sep','s-item-qty','s-item-order','s-item-tpr']
+    ['pf-be-block','pf-item-be','pf-item-bef','s-order-sep','s-item-qty','s-item-order','s-item-tpr']
       .forEach(function(id){var e=el(id);if(e)e.style.display='none'});
     updateMiniResult(null,null,null);updateA11yStatus(null,null,null);
     renderSolver();
@@ -3358,17 +3365,19 @@ function fillSummary(cp,sp){
     sumSet('s-tpr',SINR(pr*q),pr>=0?'pos':'neg');
   }
   // Break-even: how far SP can fall before profit or the GP floor is breached
+  // These live in the Profit card now: it had ~90px going spare beneath its four
+  // rows, and break-even belongs next to the profit it is measured against.
   var be=breakEven(cp,sp);
-  var beEls=['s-be-sep','s-item-be','s-item-bef'];
+  var beEls=['pf-be-block','pf-item-be','pf-item-bef'];
   if(be){
-    sumSet('s-be',SINR(be.zeroI),sp&&sp.i<=be.zeroI?'neg':'');
+    rowSet('s-be',SINR(be.zeroI),sp&&sp.i<=be.zeroI?'neg':'');
     if(be.floorI!==null){
-      sumSet('s-bef',SINR(be.floorI),sp&&sp.i<be.floorI?'warn':'');
-      el('s-item-bef').style.display='';
+      rowSet('s-bef',SINR(be.floorI),sp&&sp.i<be.floorI?'warn':'');
+      el('pf-item-bef').style.display='';
     } else {
-      el('s-item-bef').style.display='none';
+      el('pf-item-bef').style.display='none';
     }
-    el('s-be-sep').style.display='';el('s-item-be').style.display='';
+    el('pf-be-block').style.display='';el('pf-item-be').style.display='';
   } else {
     beEls.forEach(function(id){var e=el(id);if(e)e.style.display='none'});
   }

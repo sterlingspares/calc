@@ -8,7 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { ROOT, loadApp, numOf, readMarkup, readAsset, Reporter } = require('./harness');
+const { ROOT, loadApp, numOf, readMarkup, readAsset, mobileRule, Reporter } = require('./harness');
 
 const R = new Reporter('Feature suite');
 const ok = R.ok.bind(R);
@@ -1253,8 +1253,16 @@ ok('quoted incl GST', Math.abs(be.zeroI - 708) < 0.01, 'got ' + be.zeroI);
 // GP 5% => effSP = 600/0.95 = 631.58
 ok('floor SP excl solves the GP equation',
    Math.abs(be.floorE - 600 / 0.95) < 0.01, 'got ' + be.floorE);
-ok('shown in the summary', d.getElementById('s-item-be').style.display !== 'none');
-ok('summary value matches', Math.abs(num('s-be') - 708) < 0.5, 'got ' + num('s-be'));
+ok('shown in the profit card', d.getElementById('pf-item-be').style.display !== 'none');
+ok('the value renders in the card', Math.abs(num('s-be') - 708) < 0.5, 'got ' + num('s-be'));
+// sumSet rewrites the class to sum-val, which is styled for the dark summary
+// bar — on a white card it set the text and then made it invisible.
+ok('and is styled as a card row, not a summary cell',
+   d.getElementById('s-be').className.indexOf('row-val') === 0,
+   d.getElementById('s-be').className);
+ok('the floor value too',
+   d.getElementById('s-bef').className.indexOf('row-val') === 0,
+   d.getElementById('s-bef').className);
 
 // SP incentives reduce what is received, so the quotable threshold rises
 d.getElementById('sit-eb').checked = true;
@@ -1269,7 +1277,7 @@ d.getElementById('sit-eb').checked = false; w.syncSpToggle('eb');
 
 ok('hidden when there is nothing to compute', (() => {
   d.getElementById('mrp').value = ''; w.calc();
-  return d.getElementById('s-item-be').style.display === 'none';
+  return d.getElementById('pf-item-be').style.display === 'none';
 })());
 
 R.section('\n=== 71. Target-margin solver ===');
@@ -1641,7 +1649,7 @@ ok('missing inputs keep their own message',
 // its last text, so what matters is that it is hidden — a visible figure from a
 // previous calculation would be read as belonging to this one.
 const beShown = () => {
-  const row = d.getElementById('s-item-be');
+  const row = d.getElementById('pf-item-be');
   return row && row.style.display !== 'none';
 };
 freshCalc(1000, 40, 25);
@@ -1651,8 +1659,8 @@ d.getElementById('mrp').value = ''; w.calc();
 ok('break-even is null with no MRP', w.breakEven(w.LAST_CP, w.LAST_SP) === null);
 ok('and the row is hidden rather than left stale', beShown() === false);
 ok('the floor row is hidden too',
-   d.getElementById('s-item-bef').style.display === 'none');
-ok('as is the separator', d.getElementById('s-be-sep').style.display === 'none');
+   d.getElementById('pf-item-bef').style.display === 'none');
+ok('as is the whole block', d.getElementById('pf-be-block').style.display === 'none');
 
 // Incentives exceeding CP drive effective CP negative — same requirement.
 freshCalc(1000, 40, 25);
@@ -2663,19 +2671,55 @@ ok('the details toggle is available on desktop too',
 
 // The summary carries only what the cards do not.
 const sumLabels = [...d.querySelectorAll('.summary .sum-lbl')].map(e => e.textContent.trim());
-ok('the summary is down to a dozen cells',
-   d.querySelectorAll('.summary .sum-item').length === 12,
+ok('the summary is down to ten cells',
+   d.querySelectorAll('.summary .sum-item').length === 10,
    'got ' + d.querySelectorAll('.summary .sum-item').length);
 ['MRP', 'CP excl', 'SP excl', 'CP Discount', 'SP Discount'].forEach(dup => {
   ok('the summary no longer repeats ' + dup,
      !sumLabels.some(l => l.indexOf(dup) === 0), sumLabels.join(' · '));
 });
 ok('but still carries what only it shows',
-   ['Effective CP', 'Effective SP', 'Profit', 'GP %', 'Margin %', 'Break-even']
+   ['Effective CP', 'Effective SP', 'Profit', 'GP %', 'Margin %']
      .every(k => sumLabels.some(l => l.indexOf(k) === 0)),
    sumLabels.join(' · '));
+// Break-even sits beside the profit it is measured against, in the space the
+// Profit card had going spare once the price cards were folded down.
+ok('break-even moved into the profit card',
+   d.getElementById('pf-be-block') !== null &&
+   d.getElementById('pf-be-block').closest('.card') ===
+     [...d.querySelectorAll('.card')][2],
+   'not in the profit card');
+ok('and left the summary', !sumLabels.some(l => l.indexOf('Break-even') === 0),
+   sumLabels.join(' · '));
 
-R.section('\n=== 30b. Dialogs are siblings, not nested ===');
+// The two incentive panels sit side by side rather than stacked.
+ok('the incentive panels are paired',
+   d.querySelector('.inc-pair') !== null &&
+   d.querySelectorAll('.inc-pair > .panel').length === 2,
+   'got ' + d.querySelectorAll('.inc-pair > .panel').length);
+ok('and stack again on a phone',
+   /grid-template-columns:1fr(?!\s*1fr)/.test(mobileRule(readAsset('assets/styles.css'), '.inc-pair')),
+   mobileRule(readAsset('assets/styles.css'), '.inc-pair'));
+
+R.section('\n=== 30b. The markup is balanced ===');
+// Editing index.html with string operations has produced stray closing tags
+// three times now. Browsers ignore an extra </div>, so nothing breaks loudly —
+// it just silently reparents whatever comes next. Counting is cheap.
+{
+  const marks = readMarkup();
+  const opens = (marks.match(/<div\b/g) || []).length;
+  const closes = (marks.match(/<\/div>/g) || []).length;
+  ok('every <div> is closed exactly once', opens === closes,
+     opens + ' open vs ' + closes + ' close');
+  // Same for the elements most often hand-edited.
+  ['span', 'button', 'p'].forEach(tag => {
+    const o = (marks.match(new RegExp('<' + tag + '\\b', 'g')) || []).length;
+    const c = (marks.match(new RegExp('</' + tag + '>', 'g')) || []).length;
+    ok('<' + tag + '> tags balance', o === c, o + ' open vs ' + c + ' close');
+  });
+}
+
+R.section('\n=== 30c. Dialogs are siblings, not nested ===');
 // Restructuring the settings markup once dropped a closing tag, and every
 // dialog after it became a child of the settings overlay — so opening the
 // preset manager rendered it inside a display:none parent. Nothing threw; it

@@ -348,62 +348,67 @@
         <div class="row"><span class="row-lbl">Margin % <span style="font-weight:300;font-size:10px">(profit ÷ eff. CP)</span></span><span class="row-val" id="pmrg">—</span></div>
         <div class="row"><span class="row-lbl">Absolute spread</span><span class="row-val dim" id="pspd">—</span></div>
       </div>
+      <div class="rows rows-be" id="pf-be-block" style="display:none">
+        <div class="row" id="pf-item-be" style="display:none"><span class="row-lbl" title="SP incl GST at which profit reaches zero">Break-even SP</span><span class="row-val" id="s-be">—</span></div>
+        <div class="row" id="pf-item-bef" style="display:none"><span class="row-lbl" title="SP incl GST at which GP% reaches your floor">SP at GP floor</span><span class="row-val" id="s-bef">—</span></div>
+      </div>
       <p class="footnote">Profit = Eff. SP excl GST − Eff. CP excl GST (after all incentives).</p>
     </div>
   </div>
 
-  <!-- INCENTIVES PANEL -->
-  <div class="panel panel-amber" id="sec-inc">
-    <div class="panel-header">
-      <!-- Stretched button: the whole header stays clickable and is now a real
-           keyboard control, without nesting the Edit button inside it. -->
-      <button class="panel-hdr-btn" id="phdr-inc" aria-expanded="false" aria-controls="body-inc" aria-labelledby="ttl-inc" data-click="a55"></button>
-      <div class="panel-header-left">
-        <h2 class="panel-title" id="ttl-inc">Incentives on CP</h2>
-        <span class="panel-tag" id="inc-summary-tag">All off — 0.00%</span>
+  <!-- INCENTIVE PANELS — side by side on desktop, stacked on a phone -->
+  <div class="inc-pair">
+    <!-- INCENTIVES PANEL -->
+    <!-- INCENTIVES PANEL -->
+    <div class="panel panel-amber" id="sec-inc">
+      <div class="panel-header">
+        <!-- Stretched button: the whole header stays clickable and is now a real
+             keyboard control, without nesting the Edit button inside it. -->
+        <button class="panel-hdr-btn" id="phdr-inc" aria-expanded="false" aria-controls="body-inc" aria-labelledby="ttl-inc" data-click="a55"></button>
+        <div class="panel-header-left">
+          <h2 class="panel-title" id="ttl-inc">Incentives on CP</h2>
+          <span class="panel-tag" id="inc-summary-tag">All off — 0.00%</span>
+        </div>
+        <div class="panel-hdr-actions">
+          <button class="panel-edit-btn" id="cp-inc-edit-btn" data-click="a56">Edit</button>
+          <svg class="panel-chevron" id="chev-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
       </div>
-      <div class="panel-hdr-actions">
-        <button class="panel-edit-btn" id="cp-inc-edit-btn" data-click="a56">Edit</button>
-        <svg class="panel-chevron" id="chev-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="panel-body" id="body-inc">
+        <div class="inc-grid" id="cp-inc-grid"></div>
+        <button class="inc-add-btn" id="cp-inc-add-btn" data-click="a57">+ Add incentive</button>
+        <div class="inc-footer">
+          <div class="inc-total-item"><span class="inc-total-lbl">Total incentive <span id="sym-inc-tot">₹</span></span><span class="inc-total-val" id="inc-total-inr">—</span></div>
+          <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on CP</span><span class="inc-total-val" id="inc-total-pct">0.00%</span></div>
+          <div class="inc-total-item"><span class="inc-total-lbl" id="lbl-inc-eff-cp">Effective CP excl 18% GST</span><span class="inc-total-val" id="inc-eff-cp">—</span></div>
+          <p class="inc-note">CD can be on CP excl or incl GST.<br>Scheme can be % or a fixed amount. All others on CP excl GST.</p>
+        </div>
       </div>
     </div>
-    <div class="panel-body" id="body-inc">
-      <div class="inc-grid" id="cp-inc-grid"></div>
-      <button class="inc-add-btn" id="cp-inc-add-btn" data-click="a57">+ Add incentive</button>
-      <div class="inc-footer">
-        <div class="inc-total-item"><span class="inc-total-lbl">Total incentive <span id="sym-inc-tot">₹</span></span><span class="inc-total-val" id="inc-total-inr">—</span></div>
-        <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on CP</span><span class="inc-total-val" id="inc-total-pct">0.00%</span></div>
-        <div class="inc-total-item"><span class="inc-total-lbl" id="lbl-inc-eff-cp">Effective CP excl 18% GST</span><span class="inc-total-val" id="inc-eff-cp">—</span></div>
-        <p class="inc-note">CD can be on CP excl or incl GST.<br>Scheme can be % or a fixed amount. All others on CP excl GST.</p>
-      </div>
-      </div>
-    </div>
-  </div>
 
-  </div>
-
-  <!-- SP INCENTIVES PANEL -->
-  <div class="panel panel-green" id="sec-sp-inc">
-    <div class="panel-header">
-      <button class="panel-hdr-btn" id="phdr-sp-inc" aria-expanded="false" aria-controls="body-sp-inc" aria-labelledby="ttl-sp-inc" data-click="a58"></button>
-      <div class="panel-header-left">
-        <h2 class="panel-title" id="ttl-sp-inc">Incentives on SP</h2>
-        <span class="panel-tag" id="sp-inc-summary-tag">All off — 0.00%</span>
+    <!-- SP INCENTIVES PANEL -->
+    <div class="panel panel-green" id="sec-sp-inc">
+      <div class="panel-header">
+        <button class="panel-hdr-btn" id="phdr-sp-inc" aria-expanded="false" aria-controls="body-sp-inc" aria-labelledby="ttl-sp-inc" data-click="a58"></button>
+        <div class="panel-header-left">
+          <h2 class="panel-title" id="ttl-sp-inc">Incentives on SP</h2>
+          <span class="panel-tag" id="sp-inc-summary-tag">All off — 0.00%</span>
+        </div>
+        <div class="panel-hdr-actions">
+          <button class="panel-edit-btn" id="sp-inc-edit-btn" data-click="a59">Edit</button>
+          <svg class="panel-chevron" id="chev-sp-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
       </div>
-      <div class="panel-hdr-actions">
-        <button class="panel-edit-btn" id="sp-inc-edit-btn" data-click="a59">Edit</button>
-        <svg class="panel-chevron" id="chev-sp-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="panel-body" id="body-sp-inc">
-      <p style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5">Optional discounts to customer that reduce effective selling price. Profit = Eff. SP − Eff. CP.</p>
-      <div class="inc-grid" id="sp-inc-grid"></div>
-      <button class="inc-add-btn" id="sp-inc-add-btn" data-click="a60">+ Add incentive</button>
-      <div class="inc-footer">
-        <div class="inc-total-item"><span class="inc-total-lbl">Total SP incentive <span id="sym-sp-inc-tot">₹</span></span><span class="inc-total-val" id="sp-inc-total-inr">—</span></div>
-        <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on SP</span><span class="inc-total-val" id="sp-inc-total-pct">0.00%</span></div>
-        <div class="inc-total-item"><span class="inc-total-lbl" id="lbl-sp-inc-eff-sp">Effective SP excl 18% GST</span><span class="inc-total-val" id="sp-inc-eff-sp">—</span></div>
-        <p class="inc-note">CD can be on SP excl or incl GST.<br>Scheme can be % or a fixed amount. All others on SP excl GST.</p>
+      <div class="panel-body" id="body-sp-inc">
+        <p style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5">Optional discounts to customer that reduce effective selling price. Profit = Eff. SP − Eff. CP.</p>
+        <div class="inc-grid" id="sp-inc-grid"></div>
+        <button class="inc-add-btn" id="sp-inc-add-btn" data-click="a60">+ Add incentive</button>
+        <div class="inc-footer">
+          <div class="inc-total-item"><span class="inc-total-lbl">Total SP incentive <span id="sym-sp-inc-tot">₹</span></span><span class="inc-total-val" id="sp-inc-total-inr">—</span></div>
+          <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on SP</span><span class="inc-total-val" id="sp-inc-total-pct">0.00%</span></div>
+          <div class="inc-total-item"><span class="inc-total-lbl" id="lbl-sp-inc-eff-sp">Effective SP excl 18% GST</span><span class="inc-total-val" id="sp-inc-eff-sp">—</span></div>
+          <p class="inc-note">CD can be on SP excl or incl GST.<br>Scheme can be % or a fixed amount. All others on SP excl GST.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -426,9 +431,6 @@
         <div class="sum-item"><div class="sum-lbl">Profit <span id="sym-s-pr">₹</span></div><div class="sum-val dim" id="s-pr">—</div></div>
         <div class="sum-item"><div class="sum-lbl">GP %</div><div class="sum-val dim" id="s-gp">—</div></div>
         <div class="sum-item"><div class="sum-lbl">Margin %</div><div class="sum-val dim" id="s-mg">—</div></div>
-        <div class="sum-order-sep" id="s-be-sep" style="display:none"></div>
-        <div class="sum-item sum-order" id="s-item-be" style="display:none"><div class="sum-lbl" title="SP incl GST at which profit reaches zero">Break-even SP</div><div class="sum-val dim" id="s-be">—</div></div>
-        <div class="sum-item sum-order" id="s-item-bef" style="display:none"><div class="sum-lbl" title="SP incl GST at which GP% reaches your floor">SP at GP floor</div><div class="sum-val dim" id="s-bef">—</div></div>
         <div class="sum-order-sep" id="s-order-sep" style="display:none"></div>
         <div class="sum-item sum-order" id="s-item-qty" style="display:none"><div class="sum-lbl">Quantity</div><div class="sum-val dim" id="s-qty">—</div></div>
         <div class="sum-item sum-order" id="s-item-order" style="display:none"><div class="sum-lbl">Order Value (incl GST)</div><div class="sum-val dim" id="s-order">—</div></div>

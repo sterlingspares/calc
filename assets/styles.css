@@ -608,6 +608,7 @@ html[data-theme="dark"] .fc-dot.cur{background:var(--text)}
 .acc-lbl{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:.04em}
 .acc-chevron{transition:transform .2s;color:var(--text3);flex-shrink:0}
 .acc-chevron.open{transform:rotate(180deg)}
+.rows-be{margin-top:10px;padding-top:8px;border-top:1px solid var(--border)}
 .rows-primary{margin-top:10px}
 .rows-primary .row-val{font-size:14px;font-weight:600;color:var(--text)}
 .acc-body{overflow:hidden;max-height:0;transition:max-height .25s ease}
@@ -926,11 +927,15 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
 .qtc-total .qt-pos{color:#a7f3d0}
 .qtc-total .qt-neg{color:#ffb4ab}
 
+.inc-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;margin-bottom:1.25rem}
+.inc-pair > .panel{margin-bottom:0}
+
 /* ── MOBILE-ONLY OVERRIDES (must come after base rules) ── */
 @media(max-width:800px){
   /* These were originally added to the first @media block in the file, which
      sits before the base rules they override — so .pm-btn kept its 30px height
      and .fx-note kept nowrap. Same specificity, later wins. */
+  .inc-pair{grid-template-columns:1fr;gap:10px}
   .fx-note{white-space:normal;width:100%}
   .fx-manual-wrap input{min-height:44px}
   .pm-row{flex-direction:column;align-items:stretch;gap:8px}
