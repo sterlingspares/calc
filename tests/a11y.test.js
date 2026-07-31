@@ -305,6 +305,32 @@ function cssVar(block, name) {
   ok('FAB menu has no violations', fab.violations.length === 0, describe(fab.violations));
   aw.closeFab();
 
+  R.section('\n=== 12. Foreground colours survive both themes ===');
+  // --accent is a FILL: white text sits on it. Used as a foreground it becomes
+  // near-black on near-black in the dark theme — which is how the FAB menu
+  // icons ended up at 1.09:1, effectively invisible.
+  const ink = { light: cssVar(lightBlock, 'accent-ink'), dark: cssVar(darkBlock, 'accent-ink') };
+  ok('--accent-ink is defined for light', !!ink.light, 'missing');
+  ok('--accent-ink is defined for dark', !!ink.dark, 'missing');
+  ok('the dark value differs from --accent',
+     ink.dark && ink.dark !== cssVar(darkBlock, 'accent'), ink.dark);
+
+  [['light', lightBlock, ink.light], ['dark', darkBlock, ink.dark]].forEach(([name, blk, fg]) => {
+    if (!fg) return;
+    ['surface', 'surface2', 'bg'].forEach(bgName => {
+      const bg = cssVar(blk, bgName);
+      if (!bg) return;
+      const r = contrast(fg, bg);
+      // Icons are non-text UI components: WCAG 1.4.11 asks for 3:1.
+      ok(`${name}: --accent-ink on --${bgName} meets 3:1`, r >= 3, `${r.toFixed(2)}:1`);
+    });
+  });
+
+  ok('the FAB icons use it', /\.fab-item svg\{[^}]*var\(--accent-ink\)/.test(src));
+  ok('no rule paints a foreground with --accent',
+     !/(?<!border-)color:var\(--accent\)[;}]/.test(src),
+     'a foreground still uses the fill colour');
+
   R.finish();
 })().catch(e => {
   console.error(e);

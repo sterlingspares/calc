@@ -18,7 +18,9 @@
     "test:fab": "node tests/fab.test.js",
     "test:a11y": "node tests/a11y.test.js",
     "test:browser": "node tests/browser.test.js",
-    "test:modes": "node tests/modes.test.js"
+    "test:modes": "node tests/modes.test.js",
+    "coverage": "node tests/coverage.js",
+    "lighthouse": "node tests/lighthouse.js"
   },
   "devDependencies": {
     "acorn": "^8.18.0",

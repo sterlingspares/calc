@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-881%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-894%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-79%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -349,9 +349,30 @@ Checked with axe-core (WCAG 2.0/2.1 A + AA + best practice) across the default v
 
 ---
 
+## 📈 Measured Quality
+
+Every number here is reproducible from the repo — none is hand-written.
+
+| Metric | Value | Reproduce with |
+|---|---|---|
+| Tests | 894 passing, 7 suites | `npm test` |
+| Statement coverage | **79.1%** (app.js 82.9%, app-extra.js 66.1%) | `npm run coverage` |
+| Lighthouse Performance | **98** | `npm i -D lighthouse && npm run lighthouse` |
+| Lighthouse Accessibility | **100** | ” |
+| Lighthouse Best Practices | **100** | ” |
+| Lighthouse SEO | 60 | ” |
+
+Lighthouse runs against a local server that gzips and sets the same cache headers as `_headers`, on emulated mobile with throttling — so the scores reflect a realistic deployment rather than an unconfigured static host. Measured: FCP 1.5s, LCP 2.3s, TBT 20ms, CLS 0.
+
+**On the SEO score:** it is capped entirely by `<meta name="robots" content="noindex, nofollow">`. `is-crawlable` is the only failing audit, and it fails by design — this is an internal tool that should not be indexed. Removing the meta tag would score 100 and is not wanted.
+
+Coverage is measured by mapping V8 coverage back to each bundle. The app runs inside jsdom as an inline script, so c8 and nyc attribute everything to the document URL; `tests/coverage.js` recovers the offsets and folds in the browser suite's own Chromium coverage. No badge is generated automatically — re-run the commands after significant changes.
+
+---
+
 ## 🧪 Tests
 
-881 assertions across seven suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
+894 assertions across seven suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
 
 ```bash
 npm install   # jsdom, dev-only
@@ -365,8 +386,8 @@ npm test
 | `mobile` | 68 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
 | `modes` | 85 | solve modes, price input modes, what-if, comparison, Quick mode, wizard, share-link URL round trip, theming, auto-save |
-| `a11y` | 90 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
-| `browser` | 59 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport |
+| `a11y` | 101 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
+| `browser` | 61 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport |
 
 Individual suites: `npm run test:features`, `test:errors`, `test:mobile`, `test:fab`, `test:modes`, `test:a11y`, `test:browser`. Full assertion output: `npm run test:verbose`.
 

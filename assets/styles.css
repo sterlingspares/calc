@@ -15,6 +15,10 @@
      including the dark summary bar, where a darker grey would disappear —
      so one value serves light and dark and no theme override is needed. */
   --focus-ring:#8a857c;--accent-fg:#fff;
+  /* Foreground counterpart to --accent. --accent is a fill (white text sits on
+     it); used as a text or icon colour it turns near-black on near-black in the
+     dark theme. Anything drawn ON a surface uses this instead. */
+  --accent-ink:#1a1916;
   --green:#1a6b45;--green-bg:#e8f5ef;--green-border:#a8d9bc;
   --red:#8b2020;--red-bg:#faeaea;
   --blue:#1a4a8b;--blue-bg:#e8eef8;--blue-border:#b8cbec;
@@ -40,7 +44,7 @@ html[data-theme="dark"]{
   --shadow:0 1px 3px rgba(0,0,0,0.3),0 4px 16px rgba(0,0,0,0.2);
   --shadow-card:0 2px 8px rgba(0,0,0,0.3),0 8px 32px rgba(0,0,0,0.2);
   --shadow-modal:0 8px 40px rgba(0,0,0,0.6),0 2px 8px rgba(0,0,0,0.4);
-}
+;--accent-ink:#f0ede8}
 html[data-theme="dark"] .header{background:#111110}
 html[data-theme="dark"] .summary{background:#252421;border:1px solid var(--border)}
 /* 0.35 alpha over the dark card was 2.88:1. 0.62 gives 6.01:1 and keeps
@@ -197,13 +201,13 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .inc-total-val{font-family:var(--font-mono);font-size:15px;font-weight:500;color:var(--amber)}
 .inc-note{font-size:10.5px;color:var(--text3);font-style:italic;line-height:1.4;margin-left:auto;text-align:right}
 /* Edit mode */
-.panel-edit-btn{font-size:11px;padding:3px 10px;border-radius:12px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;margin-right:8px;font-family:var(--font-body);flex-shrink:0;line-height:1.4}
-.panel-edit-btn:hover{border-color:var(--accent);color:var(--accent)}
+.panel-edit-btn{font-size:11px;padding:6px 12px;min-height:24px;border-radius:12px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;margin-right:8px;font-family:var(--font-body);flex-shrink:0;line-height:1.4}
+.panel-edit-btn:hover{border-color:var(--accent-ink);color:var(--accent-ink)}
 .inc-del-btn{display:none;align-items:center;justify-content:center;width:22px;height:22px;min-width:22px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:18px;line-height:1;cursor:pointer;margin-right:4px;padding:0;flex-shrink:0;font-weight:300}
 .inc-grid.edit-mode .inc-del-btn{display:flex}
 .inc-label-edit{font-size:12px;font-weight:500;font-family:var(--font-body);border:none;border-bottom:1px solid var(--accent);background:transparent;color:var(--text2);padding:0 0 1px;width:0;min-width:0;flex:1;outline:none}
 .inc-add-btn{width:100%;margin-top:6px;padding:8px;border:1.5px dashed var(--border2);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:var(--font-body);display:none}
-.inc-add-btn:hover{border-color:var(--accent);color:var(--accent)}
+.inc-add-btn:hover{border-color:var(--accent-ink);color:var(--accent-ink)}
 .gst-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:20px;padding:1px 6px 1px 2px;background:var(--surface);transition:border-color .15s}
 .gst-custom-wrap:focus-within{border-color:var(--accent)}
 .gst-custom-wrap input{border:none;background:transparent;width:38px;font-size:12px;font-family:var(--font-body);text-align:center;outline:none;color:var(--text);padding:2px;-moz-appearance:textfield}
@@ -232,7 +236,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .preset-select:hover{border-color:var(--border2);color:var(--text)}
 .preset-select:focus{border-color:var(--accent);outline:none}
 .preset-btn{padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:transparent;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);white-space:nowrap}
-.preset-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.preset-btn:hover:not(:disabled){border-color:var(--accent-ink);color:var(--accent-ink)}
 .preset-btn:disabled{opacity:.4;cursor:default}
 .preset-btn.danger:hover:not(:disabled){border-color:var(--red);color:var(--red)}
 
@@ -418,8 +422,11 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
 .ob-overlay.show{opacity:1;pointer-events:all}
 .ob-card{background:var(--surface);border-radius:20px;width:100%;max-width:420px;padding:32px 28px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.3);display:flex;flex-direction:column;gap:16px;position:relative}
 .ob-step-dots{display:flex;gap:6px;justify-content:center}
-.ob-dot{appearance:none;-webkit-appearance:none;padding:0;width:6px;height:6px;border-radius:50%;background:var(--border2);transition:all .25s}
-.ob-dot.cur{background:var(--accent);width:18px;border-radius:3px}
+/* The visible dot stays 6px; the button around it is 24px so it meets the
+   minimum target size (WCAG 2.5.8) without changing the design. */
+.ob-dot{appearance:none;-webkit-appearance:none;padding:0;width:24px;height:24px;border:none;background:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.ob-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--border2);transition:all .25s}
+.ob-dot.cur::before{background:var(--accent);width:18px;border-radius:3px}
 .ob-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;margin:0 auto}
 .ob-title{font-family:var(--font-heading);font-size:20px;font-weight:700;text-align:center;line-height:1.2;color:var(--text)}
 .ob-body{font-size:13.5px;color:var(--text2);line-height:1.65;text-align:center}
@@ -579,7 +586,7 @@ html[data-theme="dark"] .fc-dot.cur{background:var(--text)}
 @media(max-width:800px){.bottom-nav{display:flex}}
 .bnav-items{display:flex;width:100%;justify-content:space-around;padding-left:env(safe-area-inset-left,8px);padding-right:env(safe-area-inset-right,8px)}
 .bnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 8px;border:none;background:none;cursor:pointer;font-family:var(--font-body);color:var(--text3);font-size:9.5px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;min-width:0;flex:1;transition:color .15s}
-.bnav-item:hover,.bnav-item.active{color:var(--accent)}
+.bnav-item:hover,.bnav-item.active{color:var(--accent-ink)}
 html[data-theme="dark"] .bnav-item:hover,html[data-theme="dark"] .bnav-item.active{color:var(--text)}
 .bnav-icon{width:20px;height:20px;flex-shrink:0}
 
@@ -685,7 +692,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .qty-wrap{display:flex;align-items:center;gap:6px}
 .qty-box{display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface)}
 .qty-box button{width:26px;height:28px;border:none;background:transparent;color:var(--text2);font-size:15px;cursor:pointer;line-height:1;font-family:var(--font-body)}
-.qty-box button:hover{background:var(--surface2);color:var(--accent)}
+.qty-box button:hover{background:var(--surface2);color:var(--accent-ink)}
 .qty-box input{width:46px;border:none;outline:none;background:transparent;text-align:center;font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--text);padding:4px 0;-moz-appearance:textfield}
 .qty-box input::-webkit-outer-spin-button,.qty-box input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .sum-item.sum-order .sum-val{color:#fff}
@@ -741,7 +748,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .fab-menu{display:flex;flex-direction:column;align-items:flex-end;gap:9px;pointer-events:none}
 .fab-wrap.open .fab-menu{pointer-events:auto}
 .fab-item{display:flex;align-items:center;gap:10px;background:var(--surface);color:var(--text);border:1px solid var(--border2);border-radius:24px;padding:10px 16px;font-size:12.5px;font-weight:500;font-family:var(--font-body);cursor:pointer;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,0.16);opacity:0;transform:translateY(12px) scale(.92);transition:opacity var(--dur-fast),transform var(--dur) var(--ease-spring)}
-.fab-item svg{flex-shrink:0;color:var(--accent)}
+.fab-item svg{flex-shrink:0;color:var(--accent-ink)}
 .fab-wrap.open .fab-item{opacity:1;transform:none}
 /* Stagger so the stack unfurls rather than appearing all at once */
 .fab-wrap.open .fab-item:nth-child(6){transition-delay:0s}
@@ -780,10 +787,10 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .hist-tag{font-family:var(--font-body);appearance:none;-webkit-appearance:none;display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:1px 7px;border-radius:9px;background:var(--blue-bg);color:var(--blue);border:1px solid transparent;cursor:pointer;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
 .hist-tag:hover{border-color:var(--blue)}
 .hist-tag.empty{background:transparent;color:var(--text3);border:1px dashed var(--border2)}
-.hist-tag.empty:hover{color:var(--accent);border-color:var(--accent)}
+.hist-tag.empty:hover{color:var(--accent-ink);border-color:var(--accent-ink)}
 .hist-tag-input{font-size:10px;font-family:var(--font-body);border:1px solid var(--accent);border-radius:9px;padding:1px 6px;outline:none;background:var(--surface);color:var(--text);width:110px}
 .hist-more{display:block;width:100%;margin-top:8px;padding:10px;border:1px dashed var(--border2);border-radius:var(--radius-sm);background:transparent;color:var(--text2);font-size:12px;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:border-color .15s,color .15s}
-.hist-more:hover{border-color:var(--accent);color:var(--accent)}
+.hist-more:hover{border-color:var(--accent-ink);color:var(--accent-ink)}
 .hist-more span{color:var(--text3);font-weight:400}
 .hist-none{text-align:center;padding:22px;color:var(--text3);font-size:12px;font-style:italic}
 

@@ -1,6 +1,6 @@
 # Tests
 
-881 assertions across seven suites. They load the real `index.html`,
+894 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and `assets/app.js` into
 [jsdom](https://github.com/jsdom/jsdom) and drive the actual application
 functions — no application code is mocked.
@@ -23,6 +23,8 @@ npm test        # run everything
 | `npm run test:modes` | solve modes, what-if, compare, Quick, wizard, sharing, theme |
 | `npm run test:a11y` | accessibility, including axe-core |
 | `npm run test:browser` | real Chromium (skips if none is installed) |
+| `npm run coverage` | statement coverage of both bundles |
+| `npm run lighthouse` | Lighthouse audit (needs `npm i -D lighthouse`) |
 
 Failing suites print their full output; passing ones print a single line.
 The runner exits non-zero if anything fails, so CI catches it.
@@ -35,9 +37,9 @@ The runner exits non-zero if anything fails, so CI catches it.
 | `errors.test.js` | 33 | every failure path logs; a clean run logs nothing; storage-quota and corrupt-payload recovery; global handlers |
 | `mobile.test.js` | 68 | modal layering vs the bottom nav, touch-target sizes, viewport zoom policy, type scale, sticky result bar states, quote table vs card layouts |
 | `fab.test.js` | 50 | FAB visibility rules, open/close and dismissal, ARIA state, deferred dispatch, error containment, z-index ordering |
-| `browser.test.js` | 59 | serves the repo over HTTP and drives real Chromium: asset loading, CSS cascade and media queries, `defer` timing, clicks, dialog focus, mobile viewport and z-index layering |
+| `browser.test.js` | 61 | serves the repo over HTTP and drives real Chromium: asset loading, CSS cascade and media queries, `defer` timing, clicks, dialog focus, mobile viewport and z-index layering |
 | `modes.test.js` | 85 | price maths, the three solve modes, input and profit modes, what-if scenarios, comparison, Quick mode, wizard, share-link URL round trip, summary text, theming, auto-save, floor limits |
-| `a11y.test.js` | 90 | contrast ratios computed from the palette, document structure, accessible names, keyboard operability, dialog focus trap and restore, live regions, reduced motion, plus axe-core over every visible state |
+| `a11y.test.js` | 101 | contrast ratios computed from the palette, document structure, accessible names, keyboard operability, dialog focus trap and restore, live regions, reduced motion, plus axe-core over every visible state |
 
 ## How they work
 
@@ -99,6 +101,24 @@ Each suite runs in its own process. They load a full window and mutate
 `Reporter.finish()` exits explicitly rather than letting the event loop drain: a
 loaded jsdom window holds timers open, so the process would otherwise hang after
 the last assertion.
+
+## Coverage
+
+```bash
+npm run coverage
+```
+
+The app runs inside jsdom as an inline script, so c8 and nyc report nothing
+useful — V8 records the execution but attributes it to the document URL rather
+than to `assets/app.js`. `tests/coverage.js` recovers the offsets (the harness
+inlines deterministically) and folds in the browser suite's own Chromium
+coverage, which Node cannot see because Chromium is a separate process.
+
+Ranges are resolved **within** each source before being combined across sources.
+V8 emits them outermost-first, and a script's outermost range spans the whole
+file with a non-zero count — so OR-ing counts directly marks everything covered
+and reports a meaningless 100%. That mistake was made and caught here; the
+resolved-then-unioned figure is 79.1%.
 
 ## Writing a test
 

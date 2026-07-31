@@ -109,6 +109,22 @@ async function launchChromium(chromium) {
   }
 
   const { server, origin } = await serveRepo();
+
+  // When tests/coverage.js drives this suite it sets COVERAGE_OUT. Chromium runs
+  // out-of-process, so its execution is invisible to Node's V8 coverage; we
+  // collect it here and hand it over through that file.
+  const COVERAGE_OUT = process.env.COVERAGE_OUT;
+  const coveragePages = [];
+  const _newPage = browser.newPage.bind(browser);
+  browser.newPage = async function (opts) {
+    const p = await _newPage(opts);
+    if (COVERAGE_OUT) {
+      try { await p.coverage.startJSCoverage({ resetOnNavigation: false }); coveragePages.push(p); }
+      catch (e) { /* coverage is best-effort */ }
+    }
+    return p;
+  };
+
   const page = await browser.newPage();
 
   // First visit shows the onboarding overlay, which would intercept clicks.
@@ -463,7 +479,33 @@ async function launchChromium(chromium) {
        darkContrast.violations.length === 0,
        darkContrast.violations.map(v => v.nodes.length + ' nodes, worst ' +
          ((v.nodes[0].any[0] || {}).data || {}).contrastRatio).join(' | '));
-    await p4.evaluate(() => window.toggleDarkMode(false));
+    // Icons are not text, so axe will not flag them. Measure the FAB menu
+    // directly in both themes — this is where --accent-as-foreground failed.
+    const iconContrast = async () => p4.evaluate(() => {
+      if (!window.FAB_OPEN) window.toggleFab();
+      const item = document.querySelector('.fab-item');
+      const svg = item && item.querySelector('svg');
+      if (!svg) return null;
+      const px = c => (c.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+      const lum = ([r, g, b]) => {
+        const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+      };
+      const a = lum(px(getComputedStyle(svg).color));
+      const b = lum(px(getComputedStyle(item).backgroundColor));
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    });
+    await p4.setViewportSize({ width: 390, height: 800 });
+    await p4.waitForTimeout(200);
+    const darkIcon = await iconContrast();
+    ok('FAB menu icons are visible in dark theme', darkIcon !== null && darkIcon >= 3,
+       (darkIcon === null ? 'no icon found' : darkIcon.toFixed(2) + ':1'));
+    await p4.evaluate(() => { window.closeFab(); window.toggleDarkMode(false); });
+    await p4.waitForTimeout(250);
+    const lightIcon = await iconContrast();
+    ok('and in light theme', lightIcon !== null && lightIcon >= 3,
+       (lightIcon === null ? 'no icon found' : lightIcon.toFixed(2) + ':1'));
+    await p4.evaluate(() => window.closeFab());
     await p4.close();
   }
 
@@ -503,6 +545,20 @@ async function launchChromium(chromium) {
      await page.evaluate(() =>
        getComputedStyle(document.getElementById('qt-table')).display === 'none'));
   await page.keyboard.press('Escape');
+
+  if (COVERAGE_OUT) {
+    const entries = [];
+    for (const p of coveragePages) {
+      try {
+        for (const e of await p.coverage.stopJSCoverage()) {
+          if (/\/assets\/app(-extra)?\.js$/.test(e.url)) {
+            entries.push({ url: e.url.replace(origin, ''), functions: e.functions });
+          }
+        }
+      } catch (e) { /* page may already be closed */ }
+    }
+    fs.writeFileSync(COVERAGE_OUT, JSON.stringify(entries));
+  }
 
   await browser.close();
   await new Promise(r => server.close(r));
