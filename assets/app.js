@@ -375,6 +375,18 @@ function fmtINDIAN(n){
   return dec==='00'?lastThree:lastThree+'.'+dec;
 }
 /**
+ * Format a number with thousands grouping (1,000,000.00) — the convention
+ * everywhere outside the subcontinent, and what non-rupee amounts use.
+ * Only reached when Intl is unavailable; Intl handles it otherwise.
+ * @param {number} n
+ * @returns {string} grouped number, or '' when n is not finite
+ */
+function fmtWESTERN(n){
+  if(isNaN(n)||n===null)return '';
+  var parts=n.toFixed(2).split('.');
+  return parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,',')+'.'+parts[1];
+}
+/**
  * Read the MRP field as a number, stripping the display commas.
  * @returns {number} MRP incl GST, 0 when blank or unparseable
  */
@@ -473,23 +485,261 @@ function R(id,v){var e=el(id);if(e)e.textContent=v}
  * @param {number} n
  * @returns {string} e.g. '₹1,23,456.78', or '—' when not a finite number
  */
-/* Number.toLocaleString with options builds a fresh Intl.NumberFormat on every
-   call, which profiling showed to be the single hottest function during load
-   (77ms of self time). One cached formatter, reused. */
-var _inrFmt=null;
-function _getInrFmt(){
-  if(_inrFmt)return _inrFmt;
+/* ── Currency ───────────────────────────────────────────────────────────────
+   Everything is entered, stored and calculated in rupees. MRP is an Indian
+   legal construct and the incentive structure is quoted against it, so making
+   the base anything else would mean converting on the way in and back out again
+   for no gain. The display currency converts only what is shown — which is why
+   this lives inside INR() and nowhere else. All 77 call sites follow from it.
+
+   Grouping follows the currency, not the app: rupees group Indian-style
+   (12,34,567.89) and everything else groups in thousands (1,234,567.89), which
+   is what en-US gives for any currency code.
+   ─────────────────────────────────────────────────────────────────────────── */
+var CURRENCIES=[
+  {c:'INR',s:'₹',  n:'Indian Rupee'},
+  {c:'USD',s:'$',  n:'US Dollar'},
+  {c:'EUR',s:'€',  n:'Euro'},
+  {c:'GBP',s:'£',  n:'Pound Sterling'},
+  {c:'AED',s:'AED ',n:'UAE Dirham'},
+  {c:'SAR',s:'SAR ',n:'Saudi Riyal'},
+  {c:'SGD',s:'S$', n:'Singapore Dollar'},
+  {c:'MYR',s:'RM', n:'Malaysian Ringgit'},
+  {c:'AUD',s:'A$', n:'Australian Dollar'},
+  {c:'CAD',s:'C$', n:'Canadian Dollar'},
+  {c:'JPY',s:'¥',  n:'Japanese Yen'},
+  {c:'CNY',s:'CN¥',n:'Chinese Yuan'},
+  {c:'ZAR',s:'R',  n:'South African Rand'},
+  {c:'KES',s:'KSh',n:'Kenyan Shilling'},
+  {c:'NGN',s:'₦',  n:'Nigerian Naira'},
+  {c:'LKR',s:'LKR ',n:'Sri Lankan Rupee'},
+  {c:'BDT',s:'৳',  n:'Bangladeshi Taka'},
+  {c:'NPR',s:'NPR ',n:'Nepalese Rupee'},
+  {c:'BRL',s:'R$', n:'Brazilian Real'},
+  {c:'RUB',s:'₽',  n:'Russian Ruble'}
+];
+var CCY_CODES=CURRENCIES.map(function(x){return x.c});
+var DISPLAY_CCY='INR';
+/* rates are "units of that currency per 1 INR", matching the API's shape.
+   src: 'live' when fetched, 'manual' when the user set one, null when unknown. */
+var FX={rates:{INR:1},fetched:0,src:null,manual:{}};
+var FX_URL='https://open.er-api.com/v6/latest/INR';
+var FX_MAX_AGE=6*60*60*1000;      // treat rates older than this as worth refreshing
+var _fxBusy=false;
+
+/** @returns {Object} the CURRENCIES entry for a code, or the INR entry. */
+function ccyInfo(c){
+  for(var i=0;i<CURRENCIES.length;i++)if(CURRENCIES[i].c===c)return CURRENCIES[i];
+  return CURRENCIES[0];
+}
+/**
+ * Units of the display currency per rupee.
+ * A manual override wins over a fetched rate — it is usually a contracted rate.
+ * @param {string} [c] currency code, defaults to the display currency
+ * @returns {number|null} null when no rate is known
+ */
+function fxRate(c){
+  c=c||DISPLAY_CCY;
+  if(c==='INR')return 1;
+  if(FX.manual&&FX.manual[c]>0)return FX.manual[c];
+  var r=FX.rates?FX.rates[c]:null;
+  return (typeof r==='number'&&isFinite(r)&&r>0)?r:null;
+}
+/**
+ * Convert a rupee amount into the display currency.
+ * @param {number} inr
+ * @returns {number|null} null when the rate is unknown, so callers show a dash
+ *          rather than an unconverted rupee figure wearing a dollar sign
+ */
+function toDisplay(inr){
+  if(inr===null||inr===undefined||isNaN(inr))return null;
+  var r=fxRate();
+  return r===null?null:inr*r;
+}
+/** Rupees per one unit of the display currency — the way a rate is quoted. */
+function inrPerUnit(c){
+  var r=fxRate(c);
+  return (r===null||r===0)?null:1/r;
+}
+
+var _fmtCache={};
+/**
+ * One cached Intl.NumberFormat per currency. Building one per call was the
+ * hottest function during load (77ms of self time) before it was cached.
+ * @param {string} c currency code
+ */
+function _getFmt(c){
+  if(_fmtCache[c])return _fmtCache[c];
+  var loc=(c==='INR')?'en-IN':'en-US';
   try{
-    _inrFmt=new Intl.NumberFormat('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+    _fmtCache[c]=new Intl.NumberFormat(loc,{minimumFractionDigits:2,maximumFractionDigits:2});
   }catch(e){
     logWarn('Intl.NumberFormat unavailable, falling back to manual grouping',e);
-    _inrFmt={format:function(v){return fmtINDIAN(v)}};
+    _fmtCache[c]={format:function(v){return c==='INR'?fmtINDIAN(v):fmtWESTERN(v)}};
   }
-  return _inrFmt;
+  return _fmtCache[c];
 }
+/* ── Exchange rates ─────────────────────────────────────────────────────────
+   open.er-api.com is free, needs no key (which matters: a key in a static app
+   is public), sends access-control-allow-origin:*, and publishes once a day.
+   It is the only external origin the app talks to, and the only entry in
+   connect-src besides 'self'.
+
+   Rates are never fetched on load. That would put a third-party request on the
+   critical path of an offline-first app for a feature most sessions never use.
+   They are fetched when you first switch to a foreign currency, or on demand,
+   and cached in localStorage so a later offline session still has something to
+   work from — clearly labelled with its age rather than passed off as current.
+   ─────────────────────────────────────────────────────────────────────────── */
+/** Persist the rate cache. */
+function saveFx(){
+  try{ localStorage.setItem('pc-fx',JSON.stringify({rates:FX.rates,fetched:FX.fetched,src:FX.src,manual:FX.manual})); }
+  catch(e){ logError('could not save exchange rates (pc-fx)',e); }
+}
+/** Restore the rate cache, dropping anything that is not a positive number. */
+function loadFx(){
+  try{
+    var raw=localStorage.getItem('pc-fx');
+    if(!raw)return;
+    var p=JSON.parse(raw);
+    if(!p||typeof p!=='object')return;
+    var clean={INR:1},manual={};
+    if(p.rates&&typeof p.rates==='object'){
+      CCY_CODES.forEach(function(c){
+        var v=p.rates[c];
+        if(typeof v==='number'&&isFinite(v)&&v>0)clean[c]=v;
+      });
+    }
+    if(p.manual&&typeof p.manual==='object'){
+      CCY_CODES.forEach(function(c){
+        var v=p.manual[c];
+        if(typeof v==='number'&&isFinite(v)&&v>0)manual[c]=v;
+      });
+    }
+    FX.rates=clean;
+    FX.manual=manual;
+    FX.fetched=(typeof p.fetched==='number'&&p.fetched>0)?p.fetched:0;
+    FX.src=(p.src==='live'||p.src==='manual')?p.src:null;
+  }catch(e){ logWarn('could not read cached exchange rates (pc-fx); starting empty',e); }
+}
+/** How old the cached rates are, in ms, or null when there are none. */
+function fxAge(){ return FX.fetched?(nowMs()-FX.fetched):null; }
+/** Wall-clock now, isolated so tests can hold it still. */
+function nowMs(){ return new Date().getTime(); }
+/**
+ * Human-readable age, e.g. '4h ago'.
+ * @param {number} ms
+ */
+function fxAgeText(ms){
+  if(ms===null)return 'never';
+  var mins=Math.floor(ms/60000);
+  if(mins<1)return 'just now';
+  if(mins<60)return mins+'m ago';
+  var hrs=Math.floor(mins/60);
+  if(hrs<24)return hrs+'h ago';
+  return Math.floor(hrs/24)+'d ago';
+}
+/** Fetch rates. The implementation is in the deferred bundle. */
+function fetchRates(quiet){
+  if(typeof _fetchRatesImpl==='function')return _fetchRatesImpl(quiet);
+  withExtras(function(){ _fetchRatesImpl(quiet) });
+  return Promise.resolve(false);
+}
+/** Apply a manual rate. Implementation is in the deferred bundle. */
+function onFxManual(inp){
+  if(typeof _onFxManualImpl==='function')return _onFxManualImpl(inp);
+  withExtras(function(){ _onFxManualImpl(inp) });
+}
+/** Fill the currency dropdown once. */
+function renderCcyList(){
+  var sel=el('ccy-select');
+  if(!sel||sel.options.length)return;
+  sel.innerHTML=CURRENCIES.map(function(x){
+    return '<option value="'+x.c+'">'+escHtml(x.c)+'</option>';
+  }).join('');
+  sel.value=DISPLAY_CCY;
+}
+/** Update the rate line beside the picker and the two lines in Settings. */
+function renderFxNote(){
+  var note=el('fx-note');
+  if(note){
+    if(DISPLAY_CCY==='INR'){ note.textContent=''; }
+    else if(_fxBusy){ note.textContent='updating…'; }
+    else{
+      var per=inrPerUnit();
+      if(per===null){ note.textContent='no rate — set one in Settings'; }
+      else{
+        var manual=FX.manual&&FX.manual[DISPLAY_CCY]>0;
+        note.textContent='1 '+DISPLAY_CCY+' = ₹'+per.toFixed(2)+
+          (manual?' · set by you':' · '+fxAgeText(fxAge()));
+      }
+    }
+    note.className='fx-note'+(DISPLAY_CCY!=='INR'&&inrPerUnit()===null?' bad':'');
+  }
+  var st=el('fx-status');
+  if(st){
+    st.textContent = FX.fetched
+      ? 'Last updated '+fxAgeText(fxAge())+', from open.er-api.com. Amounts are entered in rupees; the display currency converts what is shown.'
+      : 'Not fetched yet. Amounts are entered in rupees; the display currency converts what is shown.';
+  }
+  var row=el('fx-manual-row'),pre=el('fx-manual-pre'),inp=el('fx-manual');
+  if(row)row.style.display=DISPLAY_CCY==='INR'?'none':'';
+  if(pre)pre.textContent='1 '+DISPLAY_CCY+' =';
+  if(inp&&document.activeElement!==inp){
+    var m=FX.manual?FX.manual[DISPLAY_CCY]:0;
+    inp.value=m>0?String(+(1/m).toFixed(4)):'';
+  }
+  var hint=el('fx-manual-hint');
+  if(hint){
+    hint.textContent=(FX.manual&&FX.manual[DISPLAY_CCY]>0)
+      ? 'Your rate is being used instead of the fetched one. Clear the box to go back.'
+      : 'Set the rate yourself — for a contracted rate, or when offline.';
+  }
+}
+/**
+ * Switch the display currency. Fetches rates the first time one is needed.
+ * @param {string} c currency code
+ */
+function setDisplayCcy(c){
+  if(CCY_CODES.indexOf(c)===-1){
+    logWarn('ignoring unknown currency '+JSON.stringify(c));
+    c='INR';
+  }
+  DISPLAY_CCY=c;
+  var sel=el('ccy-select');
+  if(sel&&sel.value!==c)sel.value=c;
+  renderFxNote();
+  calc();
+  debouncedSaveCalcState();
+  // Only reach for the network when a rate is actually missing or stale.
+  if(c!=='INR'&&!(FX.manual&&FX.manual[c]>0)){
+    var age=fxAge();
+    if(fxRate(c)===null||age===null||age>FX_MAX_AGE)fetchRates(true);
+  }
+}
+
+ACT.ccyPick   = function(self){ setDisplayCcy(self.value) };
+ACT.fxRefresh = function(){ fetchRates(false) };
+ACT.fxManual  = function(self){ onFxManual(self) };
+
+/** Kept for callers that want rupees regardless of the display currency. */
+function _getInrFmt(){return _getFmt('INR')}
+/**
+ * Format a rupee amount in the display currency.
+ * @param {number} n amount in INR
+ * @returns {string} e.g. '₹1,23,456.78' or '$1,234.56', '—' when not finite
+ */
 function INR(n){
   if(n===null||n===undefined||isNaN(n))return'—';
-  return'₹'+_getInrFmt().format(parseFloat(n.toFixed(2)));
+  if(DISPLAY_CCY==='INR')return'₹'+_getFmt('INR').format(parseFloat(n.toFixed(2)));
+  var v=toDisplay(n);
+  if(v===null)return'—';
+  return ccyInfo(DISPLAY_CCY).s+_getFmt(DISPLAY_CCY).format(parseFloat(v.toFixed(2)));
+}
+/** Format a rupee amount as rupees, whatever the display currency is set to. */
+function INR_RS(n){
+  if(n===null||n===undefined||isNaN(n))return'—';
+  return'₹'+_getFmt('INR').format(parseFloat(n.toFixed(2)));
 }
 /**
  * Format a number as a percentage to 2 decimals.
@@ -4118,6 +4368,8 @@ function validateShareState(raw){
   var g = parseFloat(raw.g);
   if(!isNaN(g) && g >= 0 && g <= 100) s.g = g;
 
+  if(typeof raw.ccy === 'string' && CCY_CODES.indexOf(raw.ccy) !== -1) s.ccy = raw.ccy;
+
   if(raw.m !== undefined) s.m = numStr(raw.m, 1e12);
   ['cpd','cpv','spd','spv','pri','fgp','fmg'].forEach(function(k){
     var v = numStr(raw[k], 1e12);
@@ -4208,6 +4460,7 @@ function getShareState(){
     sm:SM,spms:SPMS,spd:el('spd').value,spv:el('spv').value,
     pm:PM,pri:el('pri').value,
     cdm:CDM,scm:SCM,scdm:SCDM,sscm:SSCM,incm:INC_MODE,spincm:SP_INC_MODE,
+    ccy:DISPLAY_CCY,
     qty:el('qty')?el('qty').value:'1',rnd:ROUND_MODE,lc:el('landed')?el('landed').value:'',slc:el('sp-landed')?el('sp-landed').value:'',
     fgp:el('floor-gp').value,fmg:el('floor-mg').value,
     inc:inc,spinc:spinc
@@ -4226,6 +4479,7 @@ function applyShareState(raw){
     return;
   }
   try{
+    if(s.ccy)setDisplayCcy(s.ccy);
     if(s.rnd)setRounding(s.rnd);
     if(s.qty!==undefined&&el('qty'))el('qty').value=s.qty;
     if(s.lc!==undefined&&el('landed'))el('landed').value=s.lc;
@@ -4499,6 +4753,7 @@ renderCPIncRows();
 renderSPIncRows();
 loadHistoryFromStorage();
 loadPresets();
+loadFx();renderCcyList();renderFxNote();
 loadQuote();
 document.querySelectorAll('.kbd-mod').forEach(function(el){el.textContent=MOD_KEY;});
 updateLayout();

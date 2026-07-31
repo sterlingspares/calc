@@ -509,6 +509,35 @@ async function launchChromium(chromium) {
     await p4.close();
   }
 
+  /* ── 7f2. connect-src allows exactly one external host ────────────── */
+  R.section('\n=== 7f2. Exchange-rate origin is narrowly allowed ===');
+  {
+    // The rate feed is the only external origin the app talks to. jsdom does
+    // not enforce CSP, so this is the only place the policy is actually tested
+    // rather than pattern-matched in the markup.
+    const p6 = await browser.newPage();
+    await p6.goto(origin + '/');
+    await p6.waitForTimeout(400);
+    const probe = url => p6.evaluate(u => new Promise(res => {
+      let blocked = false;
+      const host = u.split('/')[2];
+      const h = e => { if (e.blockedURI && e.blockedURI.indexOf(host) !== -1) blocked = true; };
+      document.addEventListener('securitypolicyviolation', h);
+      // The request may also fail for network reasons; only the CSP verdict matters.
+      fetch(u).then(() => {}, () => {}).then(() => setTimeout(() => {
+        document.removeEventListener('securitypolicyviolation', h);
+        res(blocked);
+      }, 400));
+    }), url);
+    ok('the rate host is permitted by connect-src',
+       (await probe('https://open.er-api.com/v6/latest/INR')) === false,
+       'blocked by CSP');
+    ok('any other host is refused',
+       (await probe('https://example.com/rates.json')) === true,
+       'not blocked — connect-src is too broad');
+    await p6.close();
+  }
+
   /* ── 7g. Non-text contrast, WCAG 1.4.11 ───────────────────────────── */
   R.section('\n=== 7g. Control boundaries (WCAG 1.4.11) ===');
   {

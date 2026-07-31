@@ -1199,3 +1199,88 @@ function qtCopy(){
     navigator.clipboard.writeText(txt).then(done,function(){fallbackCopyQuote(txt,done)});
   } else fallbackCopyQuote(txt,done);
 }
+
+/* ── Exchange rates (deferred) ──────────────────────────────────────────────
+   Neither of these runs on first paint: fetchRates is a network call behind a
+   user action, and onFxManual is a Settings field. The formatting and
+   conversion they feed — INR(), fxRate(), toDisplay() — stay in the core,
+   because every rendered amount goes through them.
+   ─────────────────────────────────────────────────────────────────────────── */
+/**
+ * Fetch today's rates.
+ *
+ * @param {boolean} [quiet] suppress the success toast, for automatic refreshes
+ * @returns {Promise} resolves whether or not the fetch succeeded — a missing
+ *          rate is a degraded state, not an error the caller must handle
+ */
+function _fetchRatesImpl(quiet){
+  if(_fxBusy)return Promise.resolve(false);
+  if(typeof fetch!=='function'){
+    logWarn('fetch is unavailable; exchange rates cannot be updated');
+    if(!quiet)toast('Live rates need a newer browser');
+    return Promise.resolve(false);
+  }
+  _fxBusy=true;
+  renderFxNote();
+  // Without a deadline a hung connection leaves the button spinning forever.
+  var ctl=(typeof AbortController==='function')?new AbortController():null;
+  var timer=setTimeout(function(){ if(ctl)ctl.abort(); },10000);
+  return fetch(FX_URL,ctl?{signal:ctl.signal}:undefined)
+    .then(function(r){
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return r.json();
+    })
+    .then(function(d){
+      if(!d||d.result!=='success'||!d.rates||d.base_code!=='INR')
+        throw new Error('unexpected payload');
+      var clean={INR:1},found=0;
+      CCY_CODES.forEach(function(c){
+        var v=d.rates[c];
+        if(typeof v==='number'&&isFinite(v)&&v>0){clean[c]=v;found++}
+      });
+      if(found<2)throw new Error('no usable rates in payload');
+      FX.rates=clean;
+      FX.fetched=nowMs();
+      FX.src='live';
+      saveFx();
+      calc();
+      renderFxNote();
+      if(!quiet)toast('Rates updated',true);
+      return true;
+    })
+    .catch(function(e){
+      logError('could not fetch exchange rates from '+FX_URL,e);
+      if(!quiet){
+        toast(fxRate()===null?'Could not fetch rates — set one manually in Settings'
+                             :'Could not fetch rates — using the saved ones');
+      }
+      renderFxNote();
+      return false;
+    })
+    .then(function(r){ clearTimeout(timer); _fxBusy=false; renderFxNote(); return r; });
+}
+
+/**
+ * Manual rate override, entered as rupees per unit — the way a rate is quoted.
+ * @param {HTMLInputElement} inp
+ */
+function _onFxManualImpl(inp){
+  if(DISPLAY_CCY==='INR')return;
+  var raw=String(inp.value).trim();
+  if(raw===''){
+    if(FX.manual)delete FX.manual[DISPLAY_CCY];
+    saveFx();renderFxNote();calc();
+    return;
+  }
+  var per=parseFloat(raw);
+  if(isNaN(per)||per<=0){
+    logWarn('ignoring invalid manual rate: '+JSON.stringify(inp.value)+' (expected a positive number)');
+    toast('Rate must be greater than 0');
+    renderFxNote();
+    return;
+  }
+  FX.manual=FX.manual||{};
+  FX.manual[DISPLAY_CCY]=1/per;      // stored as units per rupee, like the API
+  saveFx();renderFxNote();calc();
+  toast('Using ₹'+per+' per '+DISPLAY_CCY,true);
+}
