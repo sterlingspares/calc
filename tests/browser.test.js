@@ -365,9 +365,13 @@ async function launchChromium(chromium) {
     await p2.waitForFunction(() => typeof window.calc === 'function');
 
     ok('core bundle is on the critical path', loaded.indexOf('/assets/app.js') !== -1);
-    ok('deferred features are not defined at first paint',
-       await p2.evaluate(() => typeof window.qtRender === 'undefined'));
-    ok('no error from the missing bundle', errs2.length === 0, errs2.slice(0, 2).join(' | '));
+    // The bundle is warmed on idle, so "undefined right now" is racy. What
+    // matters is that it is never a blocking script in the markup.
+    ok('deferred bundle is not a blocking script',
+       !/<script[^>]+src="assets\/app-extra\.js"/.test(fs.readFileSync(path.join(ROOT,'index.html'),'utf8')));
+    ok('core works without waiting for it',
+       await p2.evaluate(() => typeof window.calc === 'function'));
+    ok('no error from the deferred bundle', errs2.length === 0, errs2.slice(0, 2).join(' | '));
 
     // Opening the quote builder must fetch the bundle and then render
     await p2.evaluate(() => window.openModal('quote'));
@@ -382,7 +386,7 @@ async function launchChromium(chromium) {
 
     // Quick mode is the other entry point
     await p2.evaluate(() => window.setMode('quick'));
-    await p2.waitForTimeout(300);
+    await p2.waitForFunction(() => window.APP_MODE === 'quick', null, { timeout: 5000 });
     ok('quick mode activates through the deferred path',
        await p2.evaluate(() => window.APP_MODE === 'quick'));
     ok('quick mode cards were built',

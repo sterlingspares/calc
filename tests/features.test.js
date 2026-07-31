@@ -1128,5 +1128,60 @@ ok('formats Indian grouping', w.INR(1234567.891) === '₹12,34,567.89', w.INR(12
 ok('handles zero and negatives', w.INR(0) === '₹0.00' && w.INR(-500.5) === '₹-500.50');
 ok('still returns the dash for NaN', w.INR(NaN) === '—');
 
+R.section('\n=== 66. Motion scale and spring easing ===');
+const cssTxt2 = readAsset('assets/styles.css');
+ok('easing tokens defined',
+   cssTxt2.indexOf('--ease-spring:') !== -1 && cssTxt2.indexOf('--ease-out:') !== -1);
+ok('duration tokens defined', /--dur:\s*\.?\d/.test(cssTxt2));
+ok('modal uses the spring', /animation:modalIn var\(--dur-slow\) var\(--ease-spring\)/.test(cssTxt2));
+ok('FAB uses the spring', /\.fab-btn\{[^}]*var\(--ease-spring\)/.test(cssTxt2));
+ok('toast uses the spring', /\.toast\{[^}]*var\(--ease-spring\)/.test(cssTxt2));
+ok('reduced motion still neutralises everything',
+   /prefers-reduced-motion[\s\S]{0,400}animation-duration:\s*\.001ms/.test(cssTxt2));
+
+R.section('\n=== 67. Count-up on headline figures ===');
+ok('animateValue is defined', typeof w.animateValue === 'function');
+ok('prefersReducedMotion is defined', typeof w.prefersReducedMotion === 'function');
+freshCalc(1000, 40, 25);
+ok('first paint sets the value directly (no animation from NaN)',
+   d.getElementById('s-pr').textContent.indexOf('150') !== -1,
+   d.getElementById('s-pr').textContent);
+// A tiny change must not animate
+d.getElementById('spd').value = '25.01';
+w.calc();
+ok('sub-threshold change applies immediately',
+   d.getElementById('s-pr').textContent !== '' &&
+   d.getElementById('s-pr').textContent.indexOf('—') === -1);
+ok('floor colouring is applied without waiting for the animation',
+   d.getElementById('s-gp').className.indexOf('sum-val') === 0);
+// Clearing inputs must not leave a stale animated value
+d.getElementById('mrp').value = '';
+w.calc();
+ok('empty state shows the dash', d.getElementById('s-pr').textContent === '—',
+   d.getElementById('s-pr').textContent);
+
+R.section('\n=== 68. View Transitions wrap the mode switch ===');
+ok('withViewTransition is defined', typeof w.withViewTransition === 'function');
+ok('setModeAnimated is defined', typeof w.setModeAnimated === 'function');
+ok('setMode itself stays synchronous', (() => {
+  freshCalc(1000, 40, 25);
+  w.setMode('quick');
+  const immediate = w.APP_MODE === 'quick';   // must be true before any frame
+  w.setMode('default');
+  return immediate;
+})(), 'setMode must remain synchronous for fcToDefault/wzToDefault');
+ok('falls back cleanly where the API is absent', (() => {
+  const had = d.startViewTransition;
+  delete d.startViewTransition;
+  let ran = false;
+  w.withViewTransition(() => { ran = true; });
+  if (had) d.startViewTransition = had;
+  return ran;   // must run synchronously, not silently drop
+})());
+ok('mode pills use the animated entry point',
+   readAsset('assets/app.js').indexOf('setModeAnimated(') !== -1);
+ok('view transition CSS is behind a no-preference query',
+   /prefers-reduced-motion:no-preference[\s\S]{0,300}view-transition/.test(cssTxt2));
+
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

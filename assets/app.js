@@ -112,8 +112,8 @@ function isValidIncKey(k){
    ─────────────────────────────────────────────────────────────────────────── */
 var ACT = {};
 
-ACT.a0 = function(self, event){ setMode('default') };
-ACT.a1 = function(self, event){ setMode('quick') };
+ACT.a0 = function(self, event){ setModeAnimated('default') };
+ACT.a1 = function(self, event){ setModeAnimated('quick') };
 ACT.a2 = function(self, event){ shareLink() };
 ACT.a3 = function(self, event){ saveToHistory() };
 ACT.a4 = function(self, event){ copyToClipboard() };
@@ -1852,6 +1852,84 @@ function resolveSP(){
   var d=parseFloat(el('spd').value);return isNaN(d)?null:roundPrice(priceFromDisc(d,SM));
 }
 
+
+/* ── Value animation ────────────────────────────────────────────────────────
+   Headline figures count toward their new value rather than jumping, so the
+   direction and size of a change are visible. Deliberately conservative:
+   only worthwhile deltas animate, and a reduced-motion preference or a
+   backgrounded tab skips straight to the final value.
+   ─────────────────────────────────────────────────────────────────────────── */
+var _animTimers = {};
+
+/** True when the user has asked for reduced motion. */
+function prefersReducedMotion(){
+  try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  catch(e){ return false; }
+}
+
+/**
+ * Ease a numeric readout from its current value to a new one.
+ *
+ * @param {string} id element id
+ * @param {number|null} to target value
+ * @param {Function} fmt formatter, e.g. INR or PCT
+ * @param {Object} [opts] {minDelta} below which the value is set directly
+ */
+function animateValue(id, to, fmt, opts){
+  opts = opts || {};
+  var node = el(id);
+  if(!node) return;
+
+  var from = _animTimers[id] && _animTimers[id].current;
+  if(from === undefined || from === null) from = NaN;
+
+  // Nothing to ease toward, or movement is unwanted — set it and stop.
+  if(to === null || to === undefined || isNaN(to) || prefersReducedMotion() ||
+     document.hidden || isNaN(from)){
+    if(_animTimers[id]) cancelAnimationFrame(_animTimers[id].raf);
+    _animTimers[id] = { current: to };
+    node.textContent = fmt(to);
+    return;
+  }
+
+  var delta = Math.abs(to - from);
+  var minDelta = opts.minDelta !== undefined ? opts.minDelta : 1;
+  if(delta < minDelta){
+    if(_animTimers[id]) cancelAnimationFrame(_animTimers[id].raf);
+    _animTimers[id] = { current: to };
+    node.textContent = fmt(to);
+    return;
+  }
+
+  if(_animTimers[id]) cancelAnimationFrame(_animTimers[id].raf);
+  var start = null;
+  // Longer for bigger jumps, but never long enough to feel laggy.
+  var dur = Math.min(520, 220 + Math.log10(1 + delta) * 90);
+  var rec = { current: from, raf: 0 };
+  _animTimers[id] = rec;
+
+  function frame(ts){
+    if(start === null) start = ts;
+    var t = Math.min(1, (ts - start) / dur);
+    // easeOutCubic: fast to begin, settling gently
+    var eased = 1 - Math.pow(1 - t, 3);
+    var v = from + (to - from) * eased;
+    rec.current = v;
+    node.textContent = fmt(v);
+    if(t < 1){
+      rec.raf = requestAnimationFrame(frame);
+    } else {
+      rec.current = to;
+      node.textContent = fmt(to);
+      node.classList.remove('bump');
+      // Re-trigger the bump on the next frame so repeats replay
+      requestAnimationFrame(function(){ node.classList.add('bump'); });
+      setTimeout(function(){ node.classList.remove('bump'); }, 400);
+    }
+  }
+  rec.raf = requestAnimationFrame(frame);
+}
+
 /* ── Fill helpers ── */
 function fillCP(cp){
   if(!cp){
@@ -1951,8 +2029,13 @@ function fillSummary(cp,sp){
   sumSet('s-sp',INR(sp.e),'');sumSet('s-esp',INR(effSP),spInc>0?'pos':'');
   sumSet('s-inc',cpInc>0?INR(cpInc):'—',cpInc>0?'amber':'dim');
   sumSet('s-spinc',spInc>0?INR(spInc):'—',spInc>0?'pos':'dim');
-  sumSet('s-pr',INR(pr),pr>=0?'pos':'neg');
-  sumSet('s-gp',PCT(gp),gpCls(gp,floor));sumSet('s-mg',PCT(mg),mgCls(mg,floor));
+  // Headline figures ease toward their new value; the class still updates now
+  // so colour and floor warnings are never late.
+  sumSet('s-pr','',pr>=0?'pos':'neg');
+  sumSet('s-gp','',gpCls(gp,floor));sumSet('s-mg','',mgCls(mg,floor));
+  animateValue('s-pr',pr,INR,{minDelta:1});
+  animateValue('s-gp',gp,PCT,{minDelta:0.5});
+  animateValue('s-mg',mg,PCT,{minDelta:0.5});
   sumSet('s-dcp',PCT(dcp.de),'');sumSet('s-dsp',PCT(dsp.de),'');
   // Order-level totals — only shown once qty > 1, so single-unit use is unchanged
   var q=getQty(),multi=q>1;
@@ -2943,12 +3026,54 @@ var FC_SPMS  = 'incl';
  * Switch between Default and Quick layouts, restoring Quick's saved inputs.
  * @param {'default'|'quick'} m
  */
+/**
+ * Run a DOM update inside a View Transition when the browser supports one, so
+ * swapping layouts cross-fades instead of snapping.
+ *
+ * Falls back to calling fn directly — which is also what happens under reduced
+ * motion, since a transition the user did not ask for is worse than none.
+ * @param {Function} fn the DOM mutation to wrap
+ */
+function withViewTransition(fn){
+  if(typeof document.startViewTransition !== 'function' || prefersReducedMotion()){
+    fn();
+    return;
+  }
+  try{
+    document.startViewTransition(fn);
+  }catch(e){
+    logWarn('view transition failed, applying the change directly',e);
+    fn();
+  }
+}
+
 function setMode(m){
   if(m!=='default'&&typeof fcBuildCards!=='function'){
     // Quick mode lives in the deferred bundle; fetch it, then retry.
     withExtras(function(){ setMode(m); });
     return;
   }
+  _applyMode(m);
+}
+
+/**
+ * Switch mode from a user gesture, wrapped in a View Transition so the layout
+ * cross-fades. Kept separate from setMode: startViewTransition defers its
+ * callback, and setMode's programmatic callers run calc() immediately after,
+ * so they need it to stay synchronous.
+ * @param {'default'|'quick'} m
+ */
+function setModeAnimated(m){
+  if(m===APP_MODE){ setMode(m); return; }
+  withViewTransition(function(){ setMode(m); });
+}
+
+/**
+ * Apply a mode switch. Split out of setMode so the whole DOM update can be
+ * handed to startViewTransition as one callback.
+ * @param {'default'|'quick'} m
+ */
+function _applyMode(m){
   haptic('select');
   APP_MODE = m;
   el('mode-default').className = 'mode-pill' + (m==='default' ? ' mode-pill-on' : '');
