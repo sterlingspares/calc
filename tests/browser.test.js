@@ -532,6 +532,11 @@ async function launchChromium(chromium) {
     });
     await p5.waitForTimeout(300);
 
+    // The preset manager and the text-entry dialog that replaced window.prompt()
+    // bring their own buttons and field; measure those too rather than only what
+    // happens to be on screen.
+    const measureIn = async (setup) => { await p5.evaluate(setup); await p5.waitForTimeout(200); };
+
     const measure = () => p5.evaluate(() => {
       const px = c => { const m = c.match(/[\d.]+/g) || [0, 0, 0, 1];
         return { r: +m[0], g: +m[1], b: +m[2], a: m[3] === undefined ? 1 : +m[3] }; };
@@ -627,6 +632,23 @@ async function launchChromium(chromium) {
     });
     ok('and its label still meets 4.5:1', selectedLabel !== null && selectedLabel >= 4.5,
        selectedLabel === null ? 'no .pill.on' : selectedLabel.toFixed(2) + ':1');
+
+    // Same again with the preset dialogs open.
+    await measureIn(() => {
+      window.closeModal('settings');
+      window.PRESETS = { 'Bosch Q3': window.capturePreset() };
+      window.openPresetManager();
+    });
+    const pmDark = await measure();
+    ok('preset manager controls are identifiable in dark theme',
+       pmDark.bad.length === 0 && pmDark.checked > 4,
+       'checked ' + pmDark.checked + '; below 3:1 -> ' + pmDark.bad.slice(0, 6).join(' | '));
+    await measureIn(() => { window.closeModal('presets');
+      window.askPrompt({ title: 'Save preset', label: 'Preset name', value: 'x', onOk: function () {} }); });
+    const prDark = await measure();
+    ok('the text-entry dialog is too', prDark.bad.length === 0,
+       'below 3:1 -> ' + prDark.bad.slice(0, 6).join(' | '));
+    await p5.evaluate(() => { window.closePrompt(); window.PRESETS = {}; });
 
     await p5.close();
   }

@@ -1747,5 +1747,216 @@ ok('rounding off means no step', w.roundStep() === 0, 'got ' + w.roundStep());
 w.QUOTE.length = 0;
 w.resetAll();
 
+R.section('\n=== 27. Presets: in-app dialogs, rename and update ===');
+
+// Naming a preset used window.prompt(). It cannot be themed, sits outside the
+// app's focus trap and Escape handling, blocks the main thread, and on a phone
+// appears as an OS alert unrelated to the page. It also has no validation, so a
+// name matching an existing preset silently replaced it, and there was no way
+// to rename a preset at all — only save and delete.
+const src = readAsset('assets/app.js') + readAsset('assets/app-extra.js');
+const stripped = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+ok('no window.prompt in the shipped code',
+   !/(^|[^.\w])prompt\s*\(/.test(stripped.replace(/askPrompt|closePrompt|runPrompt|validatePrompt|_promptField/g, '')),
+   'still present');
+ok('no window.alert either',
+   !/(^|[^.\w])alert\s*\(/.test(stripped), 'still present');
+ok('no window.confirm either',
+   !/(^|[^.\w])confirm\s*\(/.test(stripped.replace(/askConfirm|runConfirm|closeConfirm/g, '')),
+   'still present');
+
+const overlayOpen = id => {
+  const o = d.getElementById('overlay-' + id);
+  return !!o && o.classList.contains('open');
+};
+
+freshCalc(1000, 40, 25);
+w.PRESETS = {};
+d.getElementById('it-eb').checked = true;
+d.getElementById('iv-eb').value = '5';
+w.syncToggle('eb'); w.calc();
+
+// ── Saving ────────────────────────────────────────────────────────────────
+w.savePresetAs();
+ok('save opens the app dialog, not a native one', overlayOpen('prompt'));
+ok('with a heading', d.getElementById('prompt-title').textContent === 'Save preset',
+   d.getElementById('prompt-title').textContent);
+ok('and a labelled field',
+   d.getElementById('prompt-label').getAttribute('for') === 'prompt-input');
+d.getElementById('prompt-input').value = '';
+w.validatePrompt();
+ok('an empty name is refused', d.getElementById('prompt-ok').disabled === true);
+ok('and says why', d.getElementById('prompt-hint').textContent.indexOf('Give the preset a name') !== -1,
+   d.getElementById('prompt-hint').textContent);
+d.getElementById('prompt-input').value = 'Bosch Q3';
+w.validatePrompt();
+ok('a valid name is accepted', d.getElementById('prompt-ok').disabled === false);
+ok('with no complaint', d.getElementById('prompt-hint').textContent === '',
+   d.getElementById('prompt-hint').textContent);
+w.runPrompt();
+ok('the preset is saved', Object.keys(w.PRESETS).length === 1 && 'Bosch Q3' in w.PRESETS,
+   JSON.stringify(Object.keys(w.PRESETS)));
+ok('and the dialog closes', overlayOpen('prompt') === false);
+ok('the dropdown selects it', d.getElementById('preset-select').value === 'Bosch Q3',
+   d.getElementById('preset-select').value);
+
+// ── A clash warns rather than silently overwriting ────────────────────────
+w.savePresetAs();
+d.getElementById('prompt-input').value = 'Bosch Q3';
+w.validatePrompt();
+ok('an existing name warns', d.getElementById('prompt-hint').textContent.indexOf('already exists') !== -1,
+   d.getElementById('prompt-hint').textContent);
+ok('but is still allowed — replacing is a real intent',
+   d.getElementById('prompt-ok').disabled === false);
+ok('and the warning is marked as a note, not an error',
+   d.getElementById('prompt-hint').className.indexOf('prompt-note') !== -1,
+   d.getElementById('prompt-hint').className);
+w.closePrompt();
+ok('cancelling leaves the presets alone', Object.keys(w.PRESETS).length === 1);
+
+// ── Renaming, which did not exist before ──────────────────────────────────
+w.renamePreset('Bosch Q3');
+ok('rename opens the dialog', overlayOpen('prompt'));
+ok('prefilled with the current name', d.getElementById('prompt-input').value === 'Bosch Q3',
+   d.getElementById('prompt-input').value);
+ok('and the button says Rename', d.getElementById('prompt-ok').textContent === 'Rename',
+   d.getElementById('prompt-ok').textContent);
+ok('keeping the same name is not flagged as a clash',
+   d.getElementById('prompt-ok').disabled === false);
+d.getElementById('prompt-input').value = 'Bosch Q4';
+w.validatePrompt();
+w.runPrompt();
+ok('the preset is renamed', 'Bosch Q4' in w.PRESETS && !('Bosch Q3' in w.PRESETS),
+   JSON.stringify(Object.keys(w.PRESETS)));
+ok('its contents survive the rename',
+   w.PRESETS['Bosch Q4'] && w.PRESETS['Bosch Q4'].cp && w.PRESETS['Bosch Q4'].cp.eb.on === true,
+   JSON.stringify(w.PRESETS['Bosch Q4'] && w.PRESETS['Bosch Q4'].cp));
+ok('and the dropdown follows it', d.getElementById('preset-select').value === 'Bosch Q4',
+   d.getElementById('preset-select').value);
+
+// Renaming onto another preset's name warns before replacing it.
+w.PRESETS['Other'] = w.capturePreset();
+w.renderPresetList();
+w.renamePreset('Bosch Q4');
+d.getElementById('prompt-input').value = 'Other';
+w.validatePrompt();
+ok('renaming onto an existing name warns',
+   d.getElementById('prompt-hint').textContent.indexOf('already exists') !== -1,
+   d.getElementById('prompt-hint').textContent);
+w.closePrompt();
+delete w.PRESETS['Other'];
+w.renderPresetList();
+
+// ── Updating in place ─────────────────────────────────────────────────────
+d.getElementById('iv-eb').value = '9';
+w.syncToggle('eb'); w.calc();
+w.updatePreset('Bosch Q4');
+ok('update asks first', overlayOpen('confirm'));
+w.runConfirm();
+ok('and rewrites the saved copy', w.PRESETS['Bosch Q4'].cp.eb.v === '9',
+   JSON.stringify(w.PRESETS['Bosch Q4'].cp.eb));
+
+// ── Deleting, and undo ────────────────────────────────────────────────────
+w.deletePreset('Bosch Q4');
+ok('delete asks first', overlayOpen('confirm'));
+ok('and names the preset',
+   d.getElementById('confirm-msg').textContent.indexOf('Bosch Q4') !== -1,
+   d.getElementById('confirm-msg').textContent);
+w.runConfirm();
+ok('the preset is gone', !('Bosch Q4' in w.PRESETS));
+// captureState() did not include PRESETS, so pushUndo('delete preset') captured
+// everything except the thing being deleted and undo quietly did nothing.
+w.undo();
+ok('undo brings a deleted preset back', 'Bosch Q4' in w.PRESETS,
+   JSON.stringify(Object.keys(w.PRESETS)));
+w.redo();
+ok('redo removes it again', !('Bosch Q4' in w.PRESETS),
+   JSON.stringify(Object.keys(w.PRESETS)));
+w.undo();
+
+// ── The manager ───────────────────────────────────────────────────────────
+w.openPresetManager();
+ok('the manager opens', overlayOpen('presets'));
+ok('one row per preset', d.querySelectorAll('#pm-list .pm-row').length === Object.keys(w.PRESETS).length,
+   d.querySelectorAll('#pm-list .pm-row').length + ' rows for ' + Object.keys(w.PRESETS).length);
+const acts = [...d.querySelectorAll('#pm-list .pm-row')[0].querySelectorAll('.pm-btn')]
+  .map(b => b.textContent);
+ok('each row offers load, rename, update and delete',
+   acts.join(',') === 'Load,Rename,Update,Delete', acts.join(','));
+ok('every action button has an accessible name naming the preset',
+   [...d.querySelectorAll('#pm-list .pm-btn')]
+     .every(b => (b.getAttribute('aria-label') || '').indexOf('Bosch Q4') !== -1),
+   [...d.querySelectorAll('#pm-list .pm-btn')].map(b => b.getAttribute('aria-label')).join(' | '));
+w.closeModal('presets');
+
+w.PRESETS = {};
+w.renderPresetManager();
+ok('an empty manager explains what to do',
+   d.querySelector('#pm-list .pm-empty') !== null &&
+   d.querySelector('#pm-list .pm-empty').textContent.indexOf('No presets yet') !== -1,
+   d.getElementById('pm-list').innerHTML.slice(0, 80));
+
+// ── Preset names are untrusted text ───────────────────────────────────────
+// They come back from localStorage and are written into the manager's markup,
+// including into data-p attributes that the delegated handlers read back.
+const nasty = '<img src=x onerror=alert(1)>';
+w.PRESETS[nasty] = w.capturePreset();
+w.renderPresetManager();
+ok('a name containing markup does not become an element',
+   d.querySelector('#pm-list img') === null,
+   d.getElementById('pm-list').innerHTML.slice(0, 120));
+ok('it renders as text instead',
+   d.querySelector('#pm-list .pm-name').textContent === nasty,
+   d.querySelector('#pm-list .pm-name').textContent);
+ok('and round-trips through the data attribute intact',
+   d.querySelector('#pm-list .pm-btn').getAttribute('data-p') === nasty,
+   d.querySelector('#pm-list .pm-btn').getAttribute('data-p'));
+w.PRESETS = {};
+w.renderPresetList(); w.renderPresetManager();
+
+// ── The dialog behaves like a dialog ──────────────────────────────────────
+let promptResult = null;
+w.askPrompt({ title: 'T', label: 'L', value: 'seed', okLabel: 'Go',
+              onOk: function (v) { promptResult = v; } });
+ok('Enter submits', (() => {
+  d.getElementById('prompt-input').value = '  spaced  ';
+  w.validatePrompt();
+  w.runPrompt();
+  return promptResult === 'spaced';                      // trimmed
+})(), 'got ' + JSON.stringify(promptResult));
+
+promptResult = null;
+w.askPrompt({ title: 'T', label: 'L', value: 'seed', onOk: function (v) { promptResult = v; } });
+w.closePrompt();
+ok('cancelling never calls back', promptResult === null, 'got ' + JSON.stringify(promptResult));
+ok('and closes the overlay', overlayOpen('prompt') === false);
+
+w.askPrompt({ title: 'Copy link', label: 'Link', value: 'https://example.test/?s=abc',
+              readOnly: true, okLabel: 'Done', onOk: function () {} });
+ok('a copy-only dialog makes the field read-only',
+   d.getElementById('prompt-input').readOnly === true);
+ok('and hides Cancel, since there is nothing to cancel',
+   d.getElementById('overlay-prompt').querySelector('.confirm-btn:not(.primary)').style.display === 'none');
+w.closePrompt();
+
+w.askPrompt({ title: 'Copy summary', label: 'Summary', value: 'line one\nline two',
+              multiline: true, okLabel: 'Done', onOk: function () {} });
+ok('a multi-line value uses the textarea',
+   d.getElementById('prompt-textarea').style.display !== 'none' &&
+   d.getElementById('prompt-input').style.display === 'none');
+ok('and carries the whole value',
+   d.getElementById('prompt-textarea').value.indexOf('line two') !== -1,
+   d.getElementById('prompt-textarea').value);
+w.closePrompt();
+ok('the single-line field comes back afterwards', (() => {
+  w.askPrompt({ title: 'T', label: 'L', value: 'x', onOk: function () {} });
+  const back = d.getElementById('prompt-input').style.display !== 'none' &&
+               d.getElementById('prompt-textarea').style.display === 'none';
+  w.closePrompt();
+  return back;
+})());
+
+w.resetAll();
+
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

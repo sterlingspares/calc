@@ -273,7 +273,7 @@ function delegate(evt, capture){
     guard('handler ' + node.getAttribute('data-' + evt), function(){ fn(node, e); });
   }, !!capture);
 }
-['click','change','input'].forEach(function(evt){ delegate(evt); });
+['click','change','input','keydown'].forEach(function(evt){ delegate(evt); });
 // focus/blur do not bubble, so they are delegated in the capture phase.
 delegate('focus', true);
 delegate('blur', true);
@@ -636,7 +636,7 @@ function closeModal(id){
  * @param {string} id overlay suffix
  */
 function overlayClick(e,id){if(e.target===el('overlay-'+id))closeModal(id)}
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('settings');closeModal('whatif');closeModal('quote');closeConfirm();closeFab()}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('settings');closeModal('whatif');closeModal('quote');closeModal('presets');closeConfirm();closePrompt();closeFab()}});
 
 /**
  * Handler for the custom GST box. Rejects anything outside 0–100 and says so,
@@ -862,6 +862,111 @@ function askConfirm(title,msg,sub,btnLabel,fn){
     },30);
   }
 }
+/* ── Text-entry dialog ──────────────────────────────────────────────────────
+   window.prompt() was used to name presets. It cannot be themed, sits outside
+   the app's focus trap and Escape handling, blocks the main thread while open,
+   and on a phone surfaces as an OS-level alert with no visual relationship to
+   the page. It also offers exactly one field and no validation, so a name that
+   collided with an existing preset silently overwrote it.
+   ─────────────────────────────────────────────────────────────────────────── */
+var _promptFn=null,_promptValidate=null,_promptMulti=false;
+/** The field currently in use — single line or textarea. */
+function _promptField(){return _promptMulti?el('prompt-textarea'):el('prompt-input')}
+/**
+ * Ask for a single line of text.
+ *
+ * @param {Object} o
+ * @param {string} o.title dialog heading
+ * @param {string} [o.message] explanatory line above the field
+ * @param {string} [o.label] visible label for the input
+ * @param {string} [o.value] initial value, selected on open
+ * @param {string} [o.placeholder]
+ * @param {string} [o.okLabel] confirm button text
+ * @param {Function} [o.validate] receives the current value; return null to
+ *        accept, {error:'…'} to block, or {note:'…'} to warn but allow
+ * @param {boolean} [o.multiline] show a textarea instead of a single line
+ * @param {boolean} [o.readOnly] present a value to copy rather than to edit
+ * @param {Function} o.onOk receives the trimmed value
+ */
+function askPrompt(o){
+  o=o||{};
+  _promptFn=o.onOk||null;
+  _promptValidate=o.validate||null;
+  R('prompt-title',o.title||'Name');
+  R('prompt-msg',o.message||'');
+  var msgEl=el('prompt-msg');if(msgEl)msgEl.style.display=o.message?'':'none';
+  var lbl=el('prompt-label');if(lbl)lbl.textContent=o.label||'Name';
+  _promptMulti=!!o.multiline;
+  var single=el('prompt-input'),area=el('prompt-textarea');
+  if(single)single.style.display=_promptMulti?'none':'';
+  if(area)area.style.display=_promptMulti?'':'none';
+  var inp=_promptField();
+  if(inp){
+    inp.value=o.value||'';
+    if(!_promptMulti){
+      inp.placeholder=o.placeholder||'';
+      inp.setAttribute('maxlength',String(o.maxLength||40));
+      inp.readOnly=!!o.readOnly;
+    }
+  }
+  var cancel=el('overlay-prompt')?el('overlay-prompt').querySelector('.confirm-btn:not(.primary)'):null;
+  if(cancel)cancel.style.display=o.readOnly||o.multiline?'none':'';
+  var ok=el('prompt-ok');if(ok)ok.textContent=o.okLabel||'Save';
+  var ov=el('overlay-prompt');
+  if(ov){
+    _lastFocused=document.activeElement;
+    ov.classList.add('open');
+    document.body.style.overflow='hidden';
+    _openOverlay=ov;
+    // Select the text so typing replaces it, which is what prompt() did.
+    setTimeout(function(){if(inp){inp.focus();if(inp.select)inp.select()}},30);
+  }
+  validatePrompt();
+}
+/**
+ * Re-run the validator and reflect it in the hint line and the OK button.
+ * @returns {boolean} whether the current value may be submitted
+ */
+function validatePrompt(){
+  var inp=_promptField(),ok=el('prompt-ok'),hint=el('prompt-hint');
+  if(!inp||!ok)return true;
+  var v=_promptValidate?_promptValidate(inp.value):null;
+  var err=v&&v.error,note=v&&v.note;
+  if(hint){
+    hint.textContent=err||note||'';
+    hint.className='confirm-sub'+(err?' prompt-err':(note?' prompt-note':''));
+  }
+  ok.disabled=!!err;
+  return !err;
+}
+/** Submit the dialog, if the value passes validation. */
+function runPrompt(){
+  if(!validatePrompt())return;
+  var inp=_promptField();
+  var val=inp?String(inp.value).trim():'';
+  var fn=_promptFn;
+  closePrompt();
+  if(fn)guard('prompt callback',function(){fn(val)});
+}
+/** Dismiss without submitting. */
+function closePrompt(){
+  _promptFn=null;_promptValidate=null;
+  var ov=el('overlay-prompt');
+  if(ov&&ov.classList.contains('open')){
+    ov.classList.remove('open');
+    document.body.style.overflow='';
+    if(_openOverlay===ov)_openOverlay=null;
+    if(_lastFocused&&_lastFocused.focus)_lastFocused.focus();
+  }
+}
+ACT.promptOverlay = function(self,event){ if(event.target===el('overlay-prompt'))closePrompt() };
+ACT.promptCancel  = function(){ closePrompt() };
+ACT.promptOk      = function(){ runPrompt() };
+ACT.promptType    = function(){ validatePrompt() };
+ACT.promptKey     = function(self,event){
+  if(event.key==='Enter'){ event.preventDefault(); runPrompt(); }
+};
+
 /**
  * Dismiss the confirmation dialog without running the pending action.
  */
@@ -908,6 +1013,10 @@ function captureState(){
     spIncMode:JSON.parse(JSON.stringify(SP_INC_MODE)),
     history:JSON.parse(JSON.stringify(HISTORY)),
     quote:JSON.parse(JSON.stringify(QUOTE)),
+    /* Presets were missing here, so every pushUndo('delete preset') captured
+       everything except the thing being deleted and undo silently did nothing
+       for it. */
+    presets:JSON.parse(JSON.stringify(PRESETS)),
     round:ROUND_MODE,
     qty:el('qty')?el('qty').value:'1'
   };
@@ -929,12 +1038,14 @@ function restoreState(s){
     SP_INC_MODE=JSON.parse(JSON.stringify(s.spIncMode));
     HISTORY=JSON.parse(JSON.stringify(s.history));
     QUOTE=JSON.parse(JSON.stringify(s.quote));
+    if(s.presets)PRESETS=JSON.parse(JSON.stringify(s.presets));
     ROUND_MODE=s.round;
     renderCPIncRows();renderSPIncRows();
     setRounding(ROUND_MODE);
     if(el('qty'))el('qty').value=s.qty;
     applyShareState(s.share);
     saveLabels();saveHistoryToStorage();saveQuote();
+    if(s.presets){savePresets();renderPresetList();renderPresetManager()}
     renderHistory();
     if(typeof qtRender==='function'&&el('overlay-quote').classList.contains('open'))qtRender();
     calc();
@@ -1937,48 +2048,171 @@ function renderPresetList(){
   sel.innerHTML='<option value="">Presets…</option>'+
     names.map(function(n){return '<option value="'+escHtml(n)+'">'+escHtml(n)+'</option>'}).join('');
   if(names.indexOf(cur)!==-1)sel.value=cur;
-  var del=el('preset-del');
-  if(del)del.disabled=!sel.value;
 }
 
 /** Load whichever preset the dropdown selects. */
 function onPresetPick(){
   var sel=el('preset-select');
   if(!sel||!sel.value)return renderPresetList();
-  pushUndo('load preset');
-  applyPreset(PRESETS[sel.value]);
-  renderPresetList();
-  toast('Loaded "'+sel.value+'"',true);
+  loadPreset(sel.value);
 }
 
-/** Save the current configuration under a name. */
-function savePresetAs(){
-  var name=prompt('Save this incentive setup as:', el('preset-select').value||'');
-  if(name===null)return;
-  name=String(name).trim().slice(0,40);
-  if(!name){toast('Give the preset a name');return}
-  var overwriting=Object.prototype.hasOwnProperty.call(PRESETS,name);
-  pushUndo(overwriting?'overwrite preset':'save preset');
-  PRESETS[name]=capturePreset();
-  savePresets();renderPresetList();
+/**
+ * Apply a saved preset by name.
+ * @param {string} name
+ */
+function loadPreset(name){
+  if(!Object.prototype.hasOwnProperty.call(PRESETS,name)){
+    logWarn('no preset named '+JSON.stringify(name));
+    toast('That preset no longer exists');
+    renderPresetList();
+    return;
+  }
+  pushUndo('load preset');
+  applyPreset(PRESETS[name]);
   var sel=el('preset-select');if(sel)sel.value=name;
   renderPresetList();
-  toast(overwriting?'Updated "'+name+'"':'Saved "'+name+'"',true);
+  toast('Loaded "'+name+'"',true);
 }
 
-/** Delete the selected preset, after confirmation. */
-function deletePreset(){
+/**
+ * Validator shared by save and rename.
+ * @param {string} raw the typed value
+ * @param {string} [self] a name that may collide with itself without warning
+ * @returns {Object|null} null, {error} or {note}, per askPrompt's contract
+ */
+function validatePresetName(raw,self){
+  var n=String(raw||'').trim();
+  if(!n)return {error:'Give the preset a name.'};
+  if(n.length>40)return {error:'Keep the name to 40 characters or fewer.'};
+  if(n!==self&&Object.prototype.hasOwnProperty.call(PRESETS,n))
+    return {note:'"'+n+'" already exists — saving will replace it.'};
+  return null;
+}
+
+/** Save the incentives currently on screen under a name. */
+function savePresetAs(){
   var sel=el('preset-select');
-  if(!sel||!sel.value){toast('Pick a preset first');return}
-  var name=sel.value;
+  askPrompt({
+    title:'Save preset',
+    message:'Stores both incentive panels as they are now, to bring back later.',
+    label:'Preset name',
+    value:(sel&&sel.value)||'',
+    placeholder:'e.g. Bosch — Q3 terms',
+    okLabel:'Save',
+    validate:function(v){return validatePresetName(v)},
+    onOk:function(name){
+      var overwriting=Object.prototype.hasOwnProperty.call(PRESETS,name);
+      pushUndo(overwriting?'overwrite preset':'save preset');
+      PRESETS[name]=capturePreset();
+      savePresets();
+      renderPresetList();renderPresetManager();
+      // After the options exist — assigning a value with no matching option
+      // is silently ignored, which left the dropdown blank.
+      var s2=el('preset-select');if(s2)s2.value=name;
+      toast(overwriting?'Updated "'+name+'"':'Saved "'+name+'"',true);
+    }
+  });
+}
+
+/**
+ * Rename a preset, keeping its contents.
+ * @param {string} name existing key
+ */
+function renamePreset(name){
+  if(!Object.prototype.hasOwnProperty.call(PRESETS,name))return;
+  askPrompt({
+    title:'Rename preset',
+    message:'Renaming "'+name+'". Its incentives are unchanged.',
+    label:'New name',
+    value:name,
+    okLabel:'Rename',
+    validate:function(v){return validatePresetName(v,name)},
+    onOk:function(next){
+      if(next===name)return;
+      pushUndo('rename preset');
+      var body=PRESETS[name];
+      delete PRESETS[name];
+      PRESETS[next]=body;
+      savePresets();
+      var sel=el('preset-select');
+      var wasSelected=!!sel&&sel.value===name;
+      renderPresetList();renderPresetManager();
+      if(wasSelected&&sel)sel.value=next;
+      toast('Renamed to "'+next+'"',true);
+    }
+  });
+}
+
+/**
+ * Overwrite a preset with whatever is on screen now.
+ * @param {string} name existing key
+ */
+function updatePreset(name){
+  if(!Object.prototype.hasOwnProperty.call(PRESETS,name))return;
+  askConfirm('Update preset','Replace "'+name+'" with the incentives currently on screen?',
+    'The saved version is discarded. This can be undone.','Update',function(){
+      pushUndo('update preset');
+      PRESETS[name]=capturePreset();
+      savePresets();renderPresetList();renderPresetManager();
+      toast('Updated "'+name+'"',true);
+    });
+}
+
+/**
+ * Delete a preset, after confirmation.
+ * @param {string} name existing key
+ */
+function deletePreset(name){
+  if(!Object.prototype.hasOwnProperty.call(PRESETS,name))return;
   askConfirm('Delete preset','Delete the preset "'+name+'"?',
-    'The incentives currently on screen are not changed.','Delete',function(){
+    'The incentives currently on screen are not changed. This can be undone.','Delete',function(){
       pushUndo('delete preset');
       delete PRESETS[name];
-      savePresets();sel.value='';renderPresetList();
+      savePresets();
+      var sel=el('preset-select');
+      if(sel&&sel.value===name)sel.value='';
+      renderPresetList();renderPresetManager();
       toast('Deleted "'+name+'"',true);
     });
 }
+
+/** Draw the rows inside the preset manager. */
+function renderPresetManager(){
+  var c=el('pm-list');
+  if(!c)return;
+  var names=Object.keys(PRESETS).sort();
+  if(!names.length){
+    c.innerHTML='<p class="pm-empty">No presets yet. Set the incentives up the way you want them, '+
+                'then use the button above.</p>';
+    return;
+  }
+  c.innerHTML=names.map(function(n){
+    var e=escHtml(n);
+    return '<div class="pm-row">'+
+      '<span class="pm-name" title="'+e+'">'+e+'</span>'+
+      '<span class="pm-acts">'+
+        '<button class="pm-btn" data-click="pmLoad"   data-p="'+e+'" aria-label="Load preset '+e+'">Load</button>'+
+        '<button class="pm-btn" data-click="pmRename" data-p="'+e+'" aria-label="Rename preset '+e+'">Rename</button>'+
+        '<button class="pm-btn" data-click="pmUpdate" data-p="'+e+'" aria-label="Update preset '+e+' from the current screen">Update</button>'+
+        '<button class="pm-btn danger" data-click="pmDelete" data-p="'+e+'" aria-label="Delete preset '+e+'">Delete</button>'+
+      '</span></div>';
+  }).join('');
+}
+
+/** Open the preset manager. */
+function openPresetManager(){
+  renderPresetManager();
+  openModal('presets');
+}
+
+ACT.presetManage  = function(){ openPresetManager() };
+ACT.presetsClose  = function(){ closeModal('presets') };
+ACT.presetsOverlay= function(self,event){ overlayClick(event,'presets') };
+ACT.pmLoad   = function(self){ loadPreset(self.getAttribute('data-p')); closeModal('presets'); };
+ACT.pmRename = function(self){ renamePreset(self.getAttribute('data-p')); };
+ACT.pmUpdate = function(self){ updatePreset(self.getAttribute('data-p')); };
+ACT.pmDelete = function(self){ deletePreset(self.getAttribute('data-p')); };
 
 /* ── Target-margin solver ───────────────────────────────────────────────────
    Answers "what incentive do I need to hit X% GP?" rather than making the user
@@ -2077,7 +2311,6 @@ function renderSolver(){
 
 ACT.presetPick = function(){ onPresetPick(); };
 ACT.presetSave = function(){ savePresetAs(); };
-ACT.presetDel  = function(){ deletePreset(); };
 ACT.solve      = function(){ renderSolver(); };
 
 /* ── Layout ── */
@@ -2720,7 +2953,7 @@ function autoSave(){
 function saveToHistory(){
   if(!LAST_CP||!LAST_SP){
     logWarn('saveToHistory called with an incomplete calculation',{cp:LAST_CP,sp:LAST_SP});
-    alert('Enter CP and SP first.');
+    toast('Enter CP and SP first.');
     return;
   }
   var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
@@ -2849,7 +3082,7 @@ function renderHistory(){
 function exportHistoryCSV(){
   if(HISTORY.length===0){
     logWarn('exportHistoryCSV called with an empty history');
-    alert('No history entries to export.');
+    toast('No history entries to export.');
     return;
   }
   var headers=['Time','Tag','MRP (incl GST)','CP excl GST','CP incl GST','SP excl GST','SP incl GST','Eff CP excl GST','CP Incentives INR','Eff SP excl GST','SP Incentives INR','Profit INR','GP %','Margin %','GST Rate %','Qty','Total Profit INR'];
@@ -3029,14 +3262,15 @@ function getSummaryText(){
  */
 function copyToClipboard(){
   var text=getSummaryText();
-  if(!text){alert('Enter CP and SP first.');return}
+  if(!text){toast('Enter CP and SP first.');return}
   navigator.clipboard.writeText(text).then(function(){
     var btn=el('copy-btn');if(!btn)return;
     var orig=btn.innerHTML;btn.textContent='✓ Copied!';
     setTimeout(function(){btn.innerHTML=orig},1800);
   }).catch(function(e){
     logWarn('clipboard unavailable, falling back to a dialog',e);
-    alert(text);
+    askPrompt({title:'Copy summary',message:'The clipboard is unavailable here — select this and copy it.',
+               label:'Summary',value:text,multiline:true,okLabel:'Done',onOk:function(){}});
   });
 }
 /**
@@ -3044,7 +3278,7 @@ function copyToClipboard(){
  */
 function sendWhatsApp(){
   var text=getSummaryText();
-  if(!text){alert('Enter CP and SP first.');return}
+  if(!text){toast('Enter CP and SP first.');return}
   window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
 }
 /**
@@ -3052,14 +3286,14 @@ function sendWhatsApp(){
  */
 function sendEmail(){
   var text=getSummaryText();
-  if(!text){alert('Enter CP and SP first.');return}
+  if(!text){toast('Enter CP and SP first.');return}
   window.location.href='mailto:?subject='+encodeURIComponent('Pricing Summary — Sterling Spares')+'&body='+encodeURIComponent(text);
 }
 /**
  * Print the page using the print stylesheet.
  */
 function exportPDF(){
-  if(!LAST_CP||!LAST_SP){alert('Enter CP and SP first.');return}
+  if(!LAST_CP||!LAST_SP){toast('Enter CP and SP first.');return}
   window.print();
 }
 
@@ -4079,7 +4313,8 @@ function copyUrl(url){
     setTimeout(function(){btn.innerHTML=orig},2000);
   }).catch(function(e){
     logWarn('clipboard write failed, prompting user to copy manually',e);
-    prompt('Copy this link:',url);
+    askPrompt({title:'Copy link',message:'The clipboard is unavailable here — select this and copy it.',
+               label:'Share link',value:url,readOnly:true,maxLength:4000,okLabel:'Done',onOk:function(){}});
   });
 }
 
