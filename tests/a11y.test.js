@@ -285,13 +285,23 @@ function cssVar(block, name) {
   const base = await aw.axe.run(ad, Object.assign({ resultTypes: ['violations'] }, TAGS));
   ok('default view has no violations', base.violations.length === 0, describe(base.violations));
 
-  for (const id of ['settings', 'quote', 'whatif', 'shortcuts']) {
+  for (const id of ['settings', 'quote', 'whatif', 'shortcuts', 'presets']) {
+    if (id === 'presets') aw.renderPresetManager();
     aw.openModal(id);
     const r = await aw.axe.run(ad.getElementById('overlay-' + id),
       Object.assign({ resultTypes: ['violations'] }, TAGS));
     ok(`${id} dialog has no violations`, r.violations.length === 0, describe(r.violations));
     aw.closeModal(id);
   }
+
+  // The text-entry dialog replaced window.prompt(), so unlike a native dialog
+  // it is part of the page and has to satisfy the same rules as the rest.
+  aw.askPrompt({ title: 'Save preset', message: 'Name it.', label: 'Preset name',
+                 value: 'x', okLabel: 'Save', onOk: function () {} });
+  const pr = await aw.axe.run(ad.getElementById('overlay-prompt'),
+    Object.assign({ resultTypes: ['violations'] }, TAGS));
+  ok('text-entry dialog has no violations', pr.violations.length === 0, describe(pr.violations));
+  aw.closePrompt();
 
   aw.openCompare(0);
   const cmp = await aw.axe.run(ad.getElementById('overlay-compare'),

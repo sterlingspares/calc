@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-985%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-79%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1061%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -280,15 +280,30 @@ incentives take their proportion.
 
 ### Presets
 
-Incentive setups repeat — one supplier's terms, one dealer's scheme. The
-**Preset** control in the control bar saves the entire configuration of both
-panels under a name:
+Incentive setups repeat — one supplier's terms, one dealer's scheme. A preset
+snapshots both panels entirely: the rows, their names, their % / ₹ modes, which
+are switched on, the values in them, and the CD/Scheme base selectors.
 
-| Action | What it does |
-|---|---|
-| **Save** | Snapshots both incentive lists — names, %/₹ modes, toggle states, entered values, and the CD/Scheme base selectors |
-| *(dropdown)* | Applies a saved preset, replacing both panels |
-| **Delete** | Removes the selected preset |
+The control bar carries the essentials — a dropdown to apply one, **Save** to
+store what is on screen, and **Manage** for everything else. The manager is also
+in **Settings → Presets**, or press `E`:
+
+| Action | Where | What it does |
+|---|---|---|
+| Apply | dropdown | Replaces both panels with the saved setup |
+| **Save** | control bar | Names and stores the current setup |
+| **Load** | Manage | Same as the dropdown, from the list |
+| **Rename** | Manage | Renames without touching the contents |
+| **Update** | Manage | Replaces a saved preset with what is on screen |
+| **Delete** | Manage | Removes it, after confirming |
+
+Naming happens in the app's own dialog, not a browser `prompt()`. It validates
+as you type: an empty name is refused, and a name that already exists warns that
+saving will replace it — without blocking, since replacing is often the intent.
+
+**Nothing is replaced or removed without a dialog in front of it.** Save always
+asks for the name, Update and Delete always confirm, and cancelling any of them
+leaves the stored preset exactly as it was. Every preset action is undoable.
 
 Presets persist in `localStorage` and are re-validated on load, so a corrupted or
 hand-edited entry is dropped rather than trusted.
@@ -422,6 +437,7 @@ operations.
 | **Minimum Margin %** | Flags values red below this threshold |
 | **Auto-save** | Toggle automatic history logging |
 | **Rounding** | ₹1, ₹5, a custom step, or off |
+| **Saved presets** | Open the preset manager |
 | **App tour** | Restart the onboarding walkthrough |
 | **Keyboard shortcuts** | View all shortcuts |
 
@@ -474,13 +490,15 @@ The layout adapts below 800 px.
 |---|---|---|---|
 | `?` | Keyboard shortcuts | `1` | GST 18% |
 | `S` | Settings | `2` | GST 5% |
-| `R` | Reset all inputs | `P` | Solve for Profit |
+| `E` | Saved presets | `P` | Solve for Profit |
 | `M` | Quote builder | `L` | Solve for Selling Price |
-| `Q` | Default / Quick mode | `K` | Solve for Cost Price |
-| `⌘/Ctrl + S` | Save to history | `⌘/Ctrl + Z` | Undo |
-| `⌘/Ctrl + C` | Copy summary | `⌘/Ctrl + ⇧ + Z` | Redo |
+| `R` | Reset all inputs | `K` | Solve for Cost Price |
+| `Q` | Default / Quick mode | `⌘/Ctrl + Z` | Undo |
+| `⌘/Ctrl + S` | Save to history | `⌘/Ctrl + ⇧ + Z` | Redo |
+| `⌘/Ctrl + C` | Copy summary | | |
 
-Any GST rate other than 18% or 5% goes in the **Other %** box.
+Any GST rate other than 18% or 5% goes in the **Other %** box. `P` and `S` were
+taken by Solve-for-Profit and Settings, so presets use `E`.
 
 ---
 
@@ -578,8 +596,8 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 985 passing, 7 suites | `npm test` |
-| Statement coverage | **79.5%** (app.js 83.3%, app-extra.js 66.3%) | `npm run coverage` |
+| Tests | 1061 passing, 7 suites | `npm test` |
+| Statement coverage | **80.1%** (app.js 83.9%, app-extra.js 66.3%) | `npm run coverage` |
 | Lighthouse Performance | **98** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
 | Lighthouse Best Practices | **100** | ” |
@@ -606,7 +624,7 @@ commands after significant changes.
 
 ## Tests
 
-985 assertions across seven suites. They load the real `index.html`,
+1061 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -617,13 +635,13 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 581 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 653 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 69 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
 | `modes` | 85 | solve modes, price input modes, what-if, comparison, Quick mode, wizard, share-link round trip, theming, auto-save |
-| `a11y` | 101 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
-| `browser` | 66 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport, axe with layout |
+| `a11y` | 103 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
+| `browser` | 68 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport, axe with layout |
 
 Individual suites: `npm run test:features`, `test:errors`, `test:mobile`,
 `test:fab`, `test:modes`, `test:a11y`, `test:browser`. Full assertion output:

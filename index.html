@@ -201,7 +201,7 @@
           <option value="">None</option>
         </select>
         <button class="preset-btn" data-click="presetSave" title="Save the current incentive setup as a preset">Save</button>
-        <button class="preset-btn danger" id="preset-del" data-click="presetDel" title="Delete the selected preset" disabled>Delete</button>
+        <button class="preset-btn" id="preset-manage" data-click="presetManage" title="Rename, update or delete saved presets">Manage</button>
       </div>
     </div>
     <div class="sep"></div>
@@ -819,6 +819,18 @@
       </div>
 
       <div class="modal-section">
+        <div class="modal-section-title">Presets</div>
+        <div class="settings-row">
+          <div class="settings-lbl">
+            <span>Saved presets</span>
+            <small>Load, rename, update or delete the incentive setups you have saved.</small>
+          </div>
+          <div class="settings-control">
+            <button class="pill" data-click="settingsPresets" style="font-size:11px;padding:5px 12px">Manage</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-section">
         <div class="modal-section-title">Help</div>
         <div class="settings-row">
           <div class="settings-lbl">
@@ -889,6 +901,7 @@
         <div class="kb-row"><span class="kb-desc">Undo</span><span class="kb-keys"><span class="kbd kbd-mod">⌘</span><span class="kbd">Z</span></span></div>
         <div class="kb-row"><span class="kb-desc">Redo</span><span class="kb-keys"><span class="kbd kbd-mod">⌘</span><span class="kbd">⇧</span><span class="kbd">Z</span></span></div>
         <div class="kb-row"><span class="kb-desc">Open quote builder</span><span class="kb-keys"><span class="kbd">M</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Open saved presets</span><span class="kb-keys"><span class="kbd">E</span></span></div>
         <div class="kb-section-title">Mode &amp; GST</div>
         <div class="kb-row"><span class="kb-desc">Switch Default / Quick</span><span class="kb-keys"><span class="kbd">Q</span></span></div>
         <div class="kb-row"><span class="kb-desc">GST 18%</span><span class="kb-keys"><span class="kbd">1</span></span></div>
@@ -930,6 +943,48 @@
 </div>
 
 <!-- ═══ CONFIRM MODAL ═══ -->
+<!-- Text-entry dialog. Replaces window.prompt(), which cannot be themed,
+     is not part of the app's focus trap, blocks the main thread, and on a phone
+     appears as an OS alert with no relation to the page. -->
+<div class="modal-overlay" id="overlay-prompt" data-click="promptOverlay" role="presentation">
+  <div class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="prompt-title">
+    <div class="modal-header">
+      <h2 class="modal-title" id="prompt-title">Name</h2>
+      <button class="modal-close" data-click="promptCancel" aria-label="Cancel">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-msg" id="prompt-msg"></div>
+      <label class="prompt-label" for="prompt-input" id="prompt-label">Name</label>
+      <input class="prompt-input" id="prompt-input" type="text" maxlength="40" autocomplete="off"
+             spellcheck="false" data-input="promptType" data-keydown="promptKey"
+             aria-describedby="prompt-hint">
+      <textarea class="prompt-input prompt-area" id="prompt-textarea" rows="7" readonly
+                spellcheck="false" aria-describedby="prompt-hint" style="display:none"></textarea>
+      <div class="confirm-sub" id="prompt-hint" role="status" aria-live="polite"></div>
+      <div class="confirm-actions">
+        <button class="confirm-btn" data-click="promptCancel">Cancel</button>
+        <button class="confirm-btn primary" id="prompt-ok" data-click="promptOk">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preset manager: load, rename, update and delete in one place. -->
+<div class="modal-overlay" id="overlay-presets" data-click="presetsOverlay" role="presentation">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-presets">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-title-presets">Saved presets</h2>
+      <button class="modal-close" data-click="presetsClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="pm-intro">A preset stores both incentive panels — the rows, their names, their
+        %&nbsp;/&nbsp;&#8377; modes, which are switched on and the values in them.</p>
+      <button class="pm-new" data-click="presetSave">+ Save what is on screen as a new preset</button>
+      <div class="pm-list" id="pm-list"></div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="overlay-confirm" data-click="a127" role="presentation">
   <div class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-msg">
     <div class="modal-header">
