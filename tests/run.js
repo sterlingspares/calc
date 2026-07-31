@@ -20,6 +20,7 @@ const SUITES = [
   'errors.test.js',
   'mobile.test.js',
   'fab.test.js',
+  'a11y.test.js',
 ];
 
 const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');

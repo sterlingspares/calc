@@ -678,5 +678,64 @@ ok('total profit restored', Math.abs(num('s-tpr') - rtTotal) < 0.05,
    'got ' + num('s-tpr') + ' expected ' + rtTotal);
 
 
+R.section('\n=== 46. Custom rounding step ===');
+freshCalc(1000, 40, 25);
+ok('custom rounding input exists', !!d.getElementById('rnd-custom'));
+ok('defaults to off', w.ROUND_MODE === 'off');
+ok('roundStep is 0 when off', w.roundStep() === 0);
+
+w.setRounding('10');
+ok('accepts an arbitrary step', w.ROUND_MODE === '10', 'got ' + w.ROUND_MODE);
+ok('roundStep reads it', w.roundStep() === 10, 'got ' + w.roundStep());
+// SP excl 750 -> incl 885 -> nearest 10 = 890
+ok('SP incl rounds to nearest 10', Math.abs(w.LAST_SP.i - 890) < 1e-9, 'got ' + w.LAST_SP.i);
+ok('excl derived from the rounded incl', Math.abs(w.LAST_SP.e - 890 / 1.18) < 1e-9);
+ok('preset pills all inactive', d.getElementById('rnd-off').className === 'pill' &&
+   d.getElementById('rnd-1').className === 'pill' && d.getElementById('rnd-5').className === 'pill');
+ok('custom box mirrors the value', d.getElementById('rnd-custom').value === '10',
+   'got ' + d.getElementById('rnd-custom').value);
+
+w.setRounding('0.5');
+ok('accepts a fractional step', w.roundStep() === 0.5);
+ok('rounds to the nearest 0.5', Math.abs(w.LAST_SP.i * 2 - Math.round(w.LAST_SP.i * 2)) < 1e-9,
+   'got ' + w.LAST_SP.i);
+
+w.setRounding('5');
+ok('preset re-selects its pill', d.getElementById('rnd-5').className === 'pill on');
+ok('preset clears the custom box', d.getElementById('rnd-custom').value === '',
+   'got ' + d.getElementById('rnd-custom').value);
+
+R.section('\n=== 47. Custom rounding rejects bad input ===');
+const rc = d.getElementById('rnd-custom');
+w.setRounding('off');
+[['0','zero'], ['-5','negative'], ['abc','non-numeric']].forEach(([val, why]) => {
+  rc.value = val;
+  w.onCustomRounding(rc);
+  ok('rejects ' + why, w.ROUND_MODE === 'off', 'ROUND_MODE became ' + w.ROUND_MODE);
+});
+ok('user is told why', d.getElementById('toast-msg').textContent.indexOf('greater than 0') !== -1,
+   'got ' + d.getElementById('toast-msg').textContent);
+rc.value = '';
+w.onCustomRounding(rc);
+ok('clearing the box leaves the mode alone', w.ROUND_MODE === 'off');
+rc.value = '25';
+w.onCustomRounding(rc);
+ok('accepts a valid step', w.ROUND_MODE === '25', 'got ' + w.ROUND_MODE);
+
+R.section('\n=== 48. Custom rounding persists and reaches quote lines ===');
+freshCalc(1000, 40, 25);
+w.setRounding('20');
+const st48 = w.getShareState();
+ok('carried in share state', st48.rnd === '20', 'got ' + st48.rnd);
+w.QUOTE.length = 0;
+w.qtAddLine();
+w.qtSet(0, 'mrp', '1000'); w.qtSet(0, 'cpd', '40'); w.qtSet(0, 'spd', '25'); w.qtSet(0, 'qty', '1');
+const ql48 = w.qtCalcLine(w.QUOTE[0]);
+ok('quote line honours the custom step', ql48.spI % 20 === 0, 'got ' + ql48.spI);
+w.setRounding('off');
+w.applyShareState(st48);
+ok('restored from share state', w.ROUND_MODE === '20', 'got ' + w.ROUND_MODE);
+w.setRounding('off');
+
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

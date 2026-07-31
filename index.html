@@ -33,7 +33,7 @@
 :root{
   --bg:#f4f2ee;--surface:#fff;--surface2:#f9f8f6;
   --border:#e2ddd6;--border2:#ccc7be;
-  --text:#1a1916;--text2:#6b6760;--text3:#a09c96;
+  --text:#1a1916;--text2:#6b6760;--text3:#736e68;
   --accent:#1a1916;--accent-fg:#fff;
   --green:#1a6b45;--green-bg:#e8f5ef;--green-border:#a8d9bc;
   --red:#8b2020;--red-bg:#faeaea;
@@ -51,7 +51,7 @@
 html[data-theme="dark"]{
   --bg:#141412;--surface:#1e1d1b;--surface2:#252421;
   --border:#2e2c29;--border2:#3d3a36;
-  --text:#f0ede8;--text2:#9a9590;--text3:#5c5955;
+  --text:#f0ede8;--text2:#9a9590;--text3:#8e8a84;
   --accent:#252421;--accent-fg:#f0ede8;
   --green:#3dd68c;--green-bg:#0c261a;--green-border:#1a5235;
   --red:#f08080;--red-bg:#2a1010;
@@ -75,7 +75,8 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 /* ── HEADER ── */
 .header{background:var(--accent);color:var(--accent-fg);padding-left:max(clamp(1rem,4vw,2.5rem),env(safe-area-inset-left));padding-right:max(clamp(1rem,4vw,2.5rem),env(safe-area-inset-right));padding-top:calc(env(safe-area-inset-top,0px) + 10px);padding-bottom:10px;display:flex;align-items:center;justify-content:space-between;min-height:calc(56px + env(safe-area-inset-top,0px));position:fixed;top:0;left:0;right:0;z-index:200}
 .page-offset{height:calc(56px + env(safe-area-inset-top,0px))} /* spacer so sticky header doesn't cover content */
-.header-brand{font-family:var(--font-heading);font-size:15px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+/* h1 for the document outline; margin reset so it looks identical to the old div */
+.header-brand{font-family:var(--font-heading);font-size:15px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin:0}
 .header-brand::before{content:'';width:8px;height:8px;border-radius:50%;background:#e8c840;display:inline-block}
 .header-actions{display:flex;gap:6px;align-items:center}
 .hbtn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.2);background:transparent;font-size:11px;font-weight:500;color:rgba(255,255,255,0.75);cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap}
@@ -226,6 +227,12 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .gst-custom-wrap input{border:none;background:transparent;width:38px;font-size:12px;font-family:var(--font-body);text-align:center;outline:none;color:var(--text);padding:2px;-moz-appearance:textfield}
 .gst-custom-wrap input::-webkit-outer-spin-button,.gst-custom-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .gst-custom-wrap span{font-size:11px;color:var(--text3)}
+/* Custom rounding step — same widget as the custom GST rate, prefix instead of suffix */
+.rnd-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:20px;padding:1px 2px 1px 8px;background:var(--surface)}
+.rnd-custom-wrap:focus-within{border-color:var(--accent)}
+.rnd-custom-wrap input{border:none;background:transparent;width:44px;font-size:12px;font-family:var(--font-body);text-align:center;outline:none;color:var(--text);padding:2px;-moz-appearance:textfield}
+.rnd-custom-wrap input::-webkit-outer-spin-button,.rnd-custom-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.rnd-custom-wrap span{font-size:11px;color:var(--text3)}
 
 /* ── SUMMARY ── */
 .summary-wrap{margin-bottom:1.25rem}
@@ -281,6 +288,7 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
 .hist-btn:hover{background:var(--surface2);color:var(--text)}
 .hist-btn.save{border-color:var(--blue);color:var(--blue)}
 .hist-btn.save:hover{background:var(--blue-bg)}
+.hist-autosave{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;font-weight:500;color:var(--text2);margin-right:auto}
 .hist-btn.export{border-color:var(--green);color:var(--green)}
 .hist-btn.export:hover{background:var(--green-bg)}
 
@@ -386,7 +394,7 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
 .ob-overlay.show{opacity:1;pointer-events:all}
 .ob-card{background:var(--surface);border-radius:20px;width:100%;max-width:420px;padding:32px 28px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.3);display:flex;flex-direction:column;gap:16px;position:relative}
 .ob-step-dots{display:flex;gap:6px;justify-content:center}
-.ob-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);transition:all .25s}
+.ob-dot{appearance:none;-webkit-appearance:none;padding:0;width:6px;height:6px;border-radius:50%;background:var(--border2);transition:all .25s}
 .ob-dot.cur{background:var(--accent);width:18px;border-radius:3px}
 .ob-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;margin:0 auto}
 .ob-title{font-family:var(--font-heading);font-size:20px;font-weight:700;text-align:center;line-height:1.2;color:var(--text)}
@@ -725,7 +733,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .hist-fpill{padding:3px 10px;border-radius:14px;border:1px solid var(--border2);background:transparent;font-size:10.5px;font-weight:500;color:var(--text3);cursor:pointer;font-family:var(--font-body);white-space:nowrap}
 .hist-fpill:hover{background:var(--surface2)}
 .hist-fpill.on{background:var(--accent);border-color:var(--accent);color:var(--surface)}
-.hist-tag{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:1px 7px;border-radius:9px;background:var(--blue-bg);color:var(--blue);border:1px solid transparent;cursor:pointer;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.hist-tag{font-family:var(--font-body);appearance:none;-webkit-appearance:none;display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:1px 7px;border-radius:9px;background:var(--blue-bg);color:var(--blue);border:1px solid transparent;cursor:pointer;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
 .hist-tag:hover{border-color:var(--blue)}
 .hist-tag.empty{background:transparent;color:var(--text3);border:1px dashed var(--border2)}
 .hist-tag.empty:hover{color:var(--accent);border-color:var(--accent)}
@@ -820,6 +828,55 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
   .sum-lbl{font-size:10.5px}
 }
 
+/* ── ACCESSIBILITY ── */
+
+/* Visually hidden but available to screen readers. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Skip link — first tab stop, visible only when focused. */
+.skip-link{position:absolute;left:8px;top:-60px;z-index:900;background:var(--accent);color:#fff;padding:10px 18px;border-radius:0 0 var(--radius-sm) var(--radius-sm);font-size:13px;font-weight:600;font-family:var(--font-body);text-decoration:none;transition:top .15s}
+.skip-link:focus{top:0}
+
+/* Every input suppresses its own outline (they are styled via a wrapper), so a
+   single visible focus ring is defined here for keyboard users. :focus-visible
+   means pointer users never see it. */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+html[data-theme="dark"] :focus-visible{outline-color:var(--text)}
+/* Inputs sit inside bordered wrappers; ring the wrapper so it isn't clipped. */
+.big-input:has(:focus-visible),.field:has(:focus-visible),.floor-input-wrap:has(:focus-visible),
+.gst-custom-wrap:has(:focus-visible),.rnd-custom-wrap:has(:focus-visible),.inc-pct-wrap:has(:focus-visible),
+.fc-input-wrap:has(:focus-visible),.wz-field:has(:focus-visible),.hist-search-wrap:has(:focus-visible),
+.qty-box:has(:focus-visible),.lbl-field:has(:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+/* Fallback for browsers without :has() — ring the input itself. */
+@supports not selector(:has(*)){
+  input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+}
+
+/* Panel headers: a stretched button provides the keyboard/AT target while the
+   visible content stays laid out as before. Sibling controls (Edit) opt back
+   into pointer events so they are not swallowed by the overlay. */
+.panel-header{position:relative}
+.panel-hdr-btn{position:absolute;inset:0;width:100%;height:100%;padding:0;margin:0;border:none;background:none;cursor:pointer;z-index:0}
+.panel-hdr-btn:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;border-radius:var(--radius-sm)}
+.panel-header>.panel-header-left,.panel-header>.panel-hdr-actions{position:relative;z-index:1;pointer-events:none}
+.panel-header>.panel-hdr-actions button,.panel-header>.panel-header-left label,
+.panel-header>.panel-header-left input{pointer-events:auto}
+.panel-hdr-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+/* h2 used for the document outline — keep the original inline appearance */
+h2.panel-title,h2.card-title,h2.modal-title,h2.summary-title{margin:0;display:inline;font-size:inherit}
+h2.card-title,h2.modal-title{font-size:unset}
+
+/* Respect a reduced-motion preference: keep state changes, drop the movement. */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+    scroll-behavior:auto !important;
+  }
+  .toast,.fab-item,.fab-btn svg,.modal{transition:none !important;animation:none !important}
+}
+
 /* Suppress double-tap zoom on controls without disabling pinch-zoom page-wide */
 button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 .hmenu-item,.modal-close,.hist-fpill,label{touch-action:manipulation}
@@ -842,9 +899,17 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 <body>
 <div id="pull-reset" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 12V4M8 4L5 7M8 4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 11a5.5 5.5 0 1 0 11 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span id="pull-reset-txt">Pull down to reset</span></div>
 
+<!-- First tab stop: lets keyboard users bypass the header controls -->
+<a href="#sec-calc" class="skip-link">Skip to calculator</a>
+
+<!-- Polite live region: the summary is a grid of values, so announcing the
+     whole thing on every keystroke would be unusable. updateA11yStatus()
+     debounces a single sentence with the figures that matter. -->
+<div id="a11y-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
 <!-- ═══ HEADER ═══ -->
 <header class="header">
-  <div class="header-brand">Price Calc</div>
+  <h1 class="header-brand">Price Calc</h1>
   <div class="header-actions">
     <!-- Mode toggle -->
     <div style="display:flex;background:rgba(255,255,255,0.1);border-radius:20px;padding:2px;gap:1px">
@@ -979,8 +1044,8 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
       <span class="mrp-label">MRP (incl. GST)</span>
       <div class="big-input">
         <span class="sym">₹</span>
-        <input type="text" inputmode="decimal" id="mrp" value="100" autocomplete="off" oninput="onMrpInput(this)" placeholder="0" style="font-variant-numeric:tabular-nums">
-        <button class="big-input-next" onclick="nextFrom('mrp')" title="Next" tabindex="-1">
+        <input type="text" inputmode="decimal" id="mrp" value="100" autocomplete="off" oninput="onMrpInput(this)" placeholder="0" style="font-variant-numeric:tabular-nums" aria-label="Maximum Retail Price, inclusive of GST">
+        <button class="big-input-next" onclick="nextFrom('mrp')" title="Next" aria-label="Go to the next field after MRP" tabindex="-1">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
@@ -1007,7 +1072,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 
     <!-- COST PRICE -->
     <div class="card" id="cpc">
-      <div class="card-head"><span class="card-title">Cost Price</span><span class="badge b-input" id="cpb">Input</span></div>
+      <div class="card-head"><h2 class="card-title">Cost Price</h2><span class="badge b-input" id="cpb">Input</span></div>
       <div class="mode-tabs" id="cp-mode-tabs">
         <button class="mtab on" id="cme"  onclick="setCM('excl')">Discount<br>+ GST</button>
         <button class="mtab"    id="cmi"  onclick="setCM('incl')">Nett<br>Discount %</button>
@@ -1015,9 +1080,9 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
       </div>
       <div class="field" id="cpf-disc">
         <span class="sym">Disc</span>
-        <input type="number" inputmode="decimal" id="cpd" placeholder="e.g. 30" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off">
+        <input type="number" inputmode="decimal" id="cpd" placeholder="e.g. 30" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off" aria-label="Cost price discount percentage">
         <span class="field-suf" id="cpd-suf">% + 18% GST</span>
-        <button class="field-next" onclick="nextFrom('cpd')" title="Next" tabindex="-1">
+        <button class="field-next" onclick="nextFrom('cpd')" title="Next" aria-label="Go to the next field after cost price discount" tabindex="-1">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
@@ -1026,8 +1091,8 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
           <button class="stab on" id="cpm-incl" onclick="setCPManual('incl')">CP incl 18% GST</button>
           <button class="stab"    id="cpm-excl" onclick="setCPManual('excl')">CP excl 18% GST</button>
         </div>
-        <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="cpv" placeholder="e.g. 77.88" oninput="onAmtInput(this)" autocomplete="off">
-          <button class="field-next" onclick="nextFrom('cpv')" title="Next" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="cpv" placeholder="e.g. 77.88" oninput="onAmtInput(this)" autocomplete="off" aria-label="Cost price amount in rupees">
+          <button class="field-next" onclick="nextFrom('cpv')" title="Next" aria-label="Go to the next field after cost price amount" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
       </div>
       <button class="acc-toggle" onclick="toggleAcc('cp')" id="acc-btn-cp" aria-expanded="false" aria-controls="acc-body-cp">
@@ -1051,7 +1116,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 
     <!-- SELLING PRICE -->
     <div class="card" id="spc">
-      <div class="card-head"><span class="card-title">Selling Price</span><span class="badge b-input" id="spb">Input</span></div>
+      <div class="card-head"><h2 class="card-title">Selling Price</h2><span class="badge b-input" id="spb">Input</span></div>
       <div class="mode-tabs" id="sp-mode-tabs">
         <button class="mtab on" id="sme" onclick="setSM('excl')">Discount<br>+ GST</button>
         <button class="mtab"    id="smi" onclick="setSM('incl')">Nett<br>Discount %</button>
@@ -1059,9 +1124,9 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
       </div>
       <div class="field" id="spf-disc">
         <span class="sym">Disc</span>
-        <input type="number" inputmode="decimal" id="spd" placeholder="e.g. 20" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off">
+        <input type="number" inputmode="decimal" id="spd" placeholder="e.g. 20" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off" aria-label="Selling price discount percentage">
         <span class="field-suf" id="spd-suf">% + 18% GST</span>
-        <button class="field-next" onclick="nextFrom('spd')" title="Next" tabindex="-1">
+        <button class="field-next" onclick="nextFrom('spd')" title="Next" aria-label="Go to the next field after selling price discount" tabindex="-1">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
@@ -1070,8 +1135,8 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
           <button class="stab on" id="spm-incl" onclick="setSPManual('incl')">SP incl 18% GST</button>
           <button class="stab"    id="spm-excl" onclick="setSPManual('excl')">SP excl 18% GST</button>
         </div>
-        <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="spv" placeholder="e.g. 90.00" oninput="onAmtInput(this)" autocomplete="off">
-          <button class="field-next" onclick="nextFrom('spv')" title="Next" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="spv" placeholder="e.g. 90.00" oninput="onAmtInput(this)" autocomplete="off" aria-label="Selling price amount in rupees">
+          <button class="field-next" onclick="nextFrom('spv')" title="Next" aria-label="Go to the next field after selling price amount" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
       </div>
       <button class="acc-toggle" onclick="toggleAcc('sp')" id="acc-btn-sp" aria-expanded="false" aria-controls="acc-body-sp">
@@ -1093,7 +1158,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
       </div>
     </div><!-- /spc -->
     <div class="card computed" id="prc">
-      <div class="card-head"><span class="card-title">Profit</span><span class="badge b-calc" id="prb">Calculated</span></div>
+      <div class="card-head"><h2 class="card-title">Profit</h2><span class="badge b-calc" id="prb">Calculated</span></div>
       <div class="mode-tabs" id="pmt" style="display:none">
         <button class="mtab on" id="pmv" onclick="setPM('val')">₹ Value</button>
         <button class="mtab"    id="pmg" onclick="setPM('gp')">GP %</button>
@@ -1101,7 +1166,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
       </div>
       <div class="field" id="prf" style="display:none">
         <span class="sym" id="pru">₹</span>
-        <input type="text" inputmode="decimal" id="pri" placeholder="0.00" oninput="onAmtInput(this)" autocomplete="off">
+        <input type="text" inputmode="decimal" id="pri" placeholder="0.00" oninput="onAmtInput(this)" autocomplete="off" aria-label="Target profit">
       </div>
       <div class="rows">
         <div class="row"><span class="row-lbl">Profit (excl GST basis)</span><span class="row-val big" id="pvv">—</span></div>
@@ -1115,13 +1180,16 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 
   <!-- INCENTIVES PANEL -->
   <div class="panel panel-amber" id="sec-inc">
-    <div class="panel-header" onclick="togglePanel('inc')">
+    <div class="panel-header">
+      <!-- Stretched button: the whole header stays clickable and is now a real
+           keyboard control, without nesting the Edit button inside it. -->
+      <button class="panel-hdr-btn" id="phdr-inc" aria-expanded="false" aria-controls="body-inc" aria-labelledby="ttl-inc" onclick="togglePanel('inc')"></button>
       <div class="panel-header-left">
-        <span class="panel-title">Incentives on CP</span>
+        <h2 class="panel-title" id="ttl-inc">Incentives on CP</h2>
         <span class="panel-tag" id="inc-summary-tag">All off — 0.00%</span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        <button class="panel-edit-btn" id="cp-inc-edit-btn" onclick="event.stopPropagation();toggleIncEditMode('cp')">Edit</button>
+      <div class="panel-hdr-actions">
+        <button class="panel-edit-btn" id="cp-inc-edit-btn" onclick="toggleIncEditMode('cp')">Edit</button>
         <svg class="panel-chevron" id="chev-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
     </div>
@@ -1141,13 +1209,14 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 
   <!-- SP INCENTIVES PANEL -->
   <div class="panel panel-green" id="sec-sp-inc">
-    <div class="panel-header" onclick="togglePanel('sp-inc')">
+    <div class="panel-header">
+      <button class="panel-hdr-btn" id="phdr-sp-inc" aria-expanded="false" aria-controls="body-sp-inc" aria-labelledby="ttl-sp-inc" onclick="togglePanel('sp-inc')"></button>
       <div class="panel-header-left">
-        <span class="panel-title">Incentives on SP</span>
+        <h2 class="panel-title" id="ttl-sp-inc">Incentives on SP</h2>
         <span class="panel-tag" id="sp-inc-summary-tag">All off — 0.00%</span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        <button class="panel-edit-btn" id="sp-inc-edit-btn" onclick="event.stopPropagation();toggleIncEditMode('sp')">Edit</button>
+      <div class="panel-hdr-actions">
+        <button class="panel-edit-btn" id="sp-inc-edit-btn" onclick="toggleIncEditMode('sp')">Edit</button>
         <svg class="panel-chevron" id="chev-sp-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
     </div>
@@ -1168,7 +1237,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
   <div class="summary-wrap" id="sec-summary">
     <div class="summary">
       <div class="summary-title-row">
-        <span class="summary-title">Summary</span>
+        <h2 class="summary-title">Summary</h2>
         <button class="btn-whatif" onclick="openModal('whatif')">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="4" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="7" y="4" width="4" height="7" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
           What-if scenarios
@@ -1197,20 +1266,15 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 
   <!-- HISTORY PANEL -->
   <div class="panel panel-gray" id="sec-hist">
-    <div class="panel-header" id="phdr-hist" role="button" tabindex="0" aria-expanded="false" aria-controls="body-hist" onclick="togglePanel('hist')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePanel('hist')}">
+    <div class="panel-header">
+      <button class="panel-hdr-btn" id="phdr-hist" aria-expanded="false" aria-controls="body-hist" aria-labelledby="ttl-hist" onclick="togglePanel('hist')"></button>
       <div class="panel-header-left">
-        <span class="panel-title">History</span>
+        <h2 class="panel-title" id="ttl-hist">History</h2>
         <span class="panel-tag" id="hist-tag">0 entries</span>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:4px" onclick="event.stopPropagation()" title="Auto-save every completed calculation">
-          <span style="font-size:10px;font-weight:500;color:var(--text2);white-space:nowrap">Auto-save</span>
-          <span class="toggle" style="width:28px;height:16px">
-            <input type="checkbox" id="autosave-toggle" checked onchange="calc()" aria-label="Auto-save calculations to history">
-            <span class="toggle-track"></span>
-            <span class="toggle-thumb" style="width:10px;height:10px;top:3px;left:3px"></span>
-          </span>
-        </label>
       </div>
-      <svg class="panel-chevron" id="chev-hist" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="panel-hdr-actions">
+        <svg class="panel-chevron" id="chev-hist" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
     </div>
     <div class="panel-body" id="body-hist">
       <div class="hist-tools" id="hist-tools" style="display:none">
@@ -1228,6 +1292,14 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
       </div>
       <div class="hist-table-wrap"><div id="hist-content" role="list" aria-label="Calculation history"><div class="hist-empty" role="status">No entries yet — save a calculation to start.</div></div></div>
       <div class="hist-actions">
+        <label class="hist-autosave" title="Auto-save every completed calculation">
+          <span class="toggle" style="width:28px;height:16px">
+            <input type="checkbox" id="autosave-toggle" checked onchange="syncAutosave(this)" aria-label="Auto-save calculations to history">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb" style="width:10px;height:10px;top:3px;left:3px"></span>
+          </span>
+          <span>Auto-save</span>
+        </label>
         <button class="hist-btn save" onclick="saveToHistory()">Save current</button>
         <button class="hist-btn export" onclick="exportHistoryCSV()">Export CSV</button>
         <button class="hist-btn" onclick="clearHistory()">Clear all</button>
@@ -1247,7 +1319,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
       <span class="wz-lbl">MRP (incl. GST)</span>
       <div class="wz-field">
         <span class="wz-sym">₹</span>
-        <input class="wz-input" type="text" inputmode="decimal" id="wz-mrp" placeholder="e.g. 1,000" oninput="onMrpInput(this);wzCalc()" autocomplete="off">
+        <input class="wz-input" type="text" inputmode="decimal" id="wz-mrp" placeholder="e.g. 1,000" oninput="onMrpInput(this);wzCalc()" autocomplete="off" aria-label="Wizard: Maximum Retail Price">
       </div>
     </div>
     <div class="wz-row">
@@ -1277,7 +1349,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
     <div id="wz-disc-wrap">
       <div class="wz-field">
         <span class="wz-sym">Disc</span>
-        <input class="wz-input" type="number" inputmode="decimal" id="wz-disc" placeholder="e.g. 34" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off">
+        <input class="wz-input" type="number" inputmode="decimal" id="wz-disc" placeholder="e.g. 34" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off" aria-label="Wizard: discount percentage">
         <span class="wz-suf" id="wz-disc-suf">% + 18% GST</span>
       </div>
     </div>
@@ -1288,7 +1360,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
       </div>
       <div class="wz-field">
         <span class="wz-sym">₹</span>
-        <input class="wz-input" type="text" inputmode="decimal" id="wz-manual" placeholder="e.g. 77.88" oninput="wzFmtAmt(this);wzCalc()" autocomplete="off">
+        <input class="wz-input" type="text" inputmode="decimal" id="wz-manual" placeholder="e.g. 77.88" oninput="wzFmtAmt(this);wzCalc()" autocomplete="off" aria-label="Wizard: price amount in rupees">
       </div>
     </div>
   </div>
@@ -1300,7 +1372,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
     <div class="wz-inc-row">
       <label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-cd" onchange="wzSyncCD()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
       <span class="wz-inc-lbl">Cash Discount</span>
-      <div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-cd" value="2" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off"><span class="wz-inc-sym">%</span></div>
+      <div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-cd" value="2" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off" aria-label="Wizard: cash discount percentage"><span class="wz-inc-sym">%</span></div>
     </div>
     <div id="wz-cdm-sub" style="padding:6px 0 8px 32px;display:none">
       <div style="font-size:10.5px;color:var(--text3);margin-bottom:5px">CD calculated on:</div>
@@ -1310,14 +1382,14 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
       </div>
     </div>
 
-    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-eb" onchange="wzCalc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Early Bird</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-eb" value="1" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off"><span class="wz-inc-sym">%</span></div></div>
-    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-qt" onchange="wzCalc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Quarterly</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-qt" value="2" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off"><span class="wz-inc-sym">%</span></div></div>
-    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-an" onchange="wzCalc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Annual</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-an" value="1" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off"><span class="wz-inc-sym">%</span></div></div>
+    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-eb" onchange="wzCalc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Early Bird</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-eb" value="1" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off" aria-label="Wizard: early bird discount percentage"><span class="wz-inc-sym">%</span></div></div>
+    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-qt" onchange="wzCalc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Quarterly</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-qt" value="2" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off" aria-label="Wizard: quarterly discount percentage"><span class="wz-inc-sym">%</span></div></div>
+    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-an" onchange="wzCalc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Annual</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-an" value="1" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off" aria-label="Wizard: annual discount percentage"><span class="wz-inc-sym">%</span></div></div>
 
     <div class="wz-inc-row">
       <label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-sc" onchange="wzSyncSc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
       <span class="wz-inc-lbl">Scheme</span>
-      <div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-sc" placeholder="0" min="0" step="0.01" oninput="wzCalc()" autocomplete="off"><span class="wz-inc-sym" id="wz-sc-unit">%</span></div>
+      <div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-sc" placeholder="0" min="0" step="0.01" oninput="wzCalc()" autocomplete="off" aria-label="Wizard: scheme value"><span class="wz-inc-sym" id="wz-sc-unit">%</span></div>
     </div>
     <div id="wz-scm-sub" style="padding:6px 0 8px 32px;display:none">
       <div style="font-size:10.5px;color:var(--text3);margin-bottom:5px">Scheme type:</div>
@@ -1397,7 +1469,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
       <div>
         <div class="fc-input-wrap">
           <span class="fc-input-sym">₹</span>
-          <input class="fc-input" type="text" inputmode="decimal" id="fc-mrp" placeholder="e.g. 1,000" autocomplete="off" oninput="onMrpInput(this);fcCalc()" style="font-variant-numeric:tabular-nums">
+          <input class="fc-input" type="text" inputmode="decimal" id="fc-mrp" aria-label="Maximum Retail Price, inclusive of GST" placeholder="e.g. 1,000" autocomplete="off" oninput="onMrpInput(this);fcCalc()" style="font-variant-numeric:tabular-nums">
         </div>
         <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap">
           <div id="fc-mx-wrap" style="display:none;flex:1;min-width:100px">
@@ -1479,7 +1551,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 <div class="modal-overlay" id="overlay-settings" onclick="overlayClick(event,'settings')" role="presentation">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-settings">
     <div class="modal-header">
-      <span class="modal-title" id="modal-title-settings">Settings</span>
+      <h2 class="modal-title" id="modal-title-settings">Settings</h2>
       <button class="modal-close" onclick="closeModal('settings')" aria-label="Close settings">×</button>
     </div>
     <div class="modal-body">
@@ -1533,6 +1605,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
               <button class="pill on" id="rnd-off" onclick="setRounding('off')">Off</button>
               <button class="pill"    id="rnd-1"   onclick="setRounding('1')">₹1</button>
               <button class="pill"    id="rnd-5"   onclick="setRounding('5')">₹5</button>
+              <span class="rnd-custom-wrap"><span>₹</span><input type="number" id="rnd-custom" value="" placeholder="Other" min="0" step="0.5" inputmode="decimal" onchange="onCustomRounding(this)" autocomplete="off" aria-label="Custom rounding step in rupees"></span>
             </div>
           </div>
         </div>
@@ -1583,7 +1656,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 <div class="modal-overlay" id="overlay-whatif" onclick="overlayClick(event,'whatif')" role="presentation">
   <div class="modal wi-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-whatif">
     <div class="modal-header">
-      <span class="modal-title" id="modal-title-whatif">What-if scenarios</span>
+      <h2 class="modal-title" id="modal-title-whatif">What-if scenarios</h2>
       <button class="modal-close" onclick="closeModal('whatif')" aria-label="Close what-if scenarios">×</button>
     </div>
     <div class="modal-body">
@@ -1598,7 +1671,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 <div class="modal-overlay" id="overlay-compare" onclick="overlayClick(event,'compare')" role="presentation">
   <div class="modal cmp-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-compare">
     <div class="modal-header">
-      <span class="modal-title" id="modal-title-compare">Comparison</span>
+      <h2 class="modal-title" id="modal-title-compare">Comparison</h2>
       <button class="modal-close" onclick="closeModal('compare')" aria-label="Close comparison">×</button>
     </div>
     <div class="modal-body">
@@ -1612,7 +1685,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 <div class="modal-overlay" id="overlay-shortcuts" onclick="overlayClick(event,'shortcuts')" role="presentation">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-shortcuts" style="max-width:560px">
     <div class="modal-header">
-      <span class="modal-title" id="modal-title-shortcuts">Keyboard Shortcuts</span>
+      <h2 class="modal-title" id="modal-title-shortcuts">Keyboard Shortcuts</h2>
       <button class="modal-close" onclick="closeModal('shortcuts')" aria-label="Close keyboard shortcuts">×</button>
     </div>
     <div class="modal-body">
@@ -1647,7 +1720,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 <div class="modal-overlay" id="overlay-quote" onclick="overlayClick(event,'quote')" role="presentation">
   <div class="modal quote-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-quote">
     <div class="modal-header">
-      <span class="modal-title" id="modal-title-quote">Quote Builder</span>
+      <h2 class="modal-title" id="modal-title-quote">Quote Builder</h2>
       <button class="modal-close" onclick="closeModal('quote')" aria-label="Close quote builder">×</button>
     </div>
     <div class="modal-body">
@@ -1670,7 +1743,7 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
 <div class="modal-overlay" id="overlay-confirm" onclick="overlayClick(event,'confirm')" role="presentation">
   <div class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-msg">
     <div class="modal-header">
-      <span class="modal-title" id="confirm-title">Confirm</span>
+      <h2 class="modal-title" id="confirm-title">Confirm</h2>
       <button class="modal-close" onclick="closeConfirm()" aria-label="Cancel">×</button>
     </div>
     <div class="modal-body">
@@ -1770,13 +1843,23 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
    ═══════════════════════════════════════════════════════════════════════════ */
 var APP_TAG='[pricing-calc]';
 
-/** Report a genuine fault. @param {string} context where it happened @param {*} err the thrown value */
+/**
+ * Report a genuine fault.
+ * @param {string} context where it happened
+ * @param {*} [err] the thrown value; omitted for conditions with no exception
+ */
 function logError(context,err){
-  try{console.error(APP_TAG+' '+context,err)}catch(_){}
+  try{
+    if(arguments.length>1)console.error(APP_TAG+' '+context,err);
+    else console.error(APP_TAG+' '+context);
+  }catch(_){}
 }
-/** Report a recoverable/expected condition. Same signature as logError. */
+/** Report a recoverable or expected condition. Same signature as logError. */
 function logWarn(context,err){
-  try{console.warn(APP_TAG+' '+context,err)}catch(_){}
+  try{
+    if(arguments.length>1)console.warn(APP_TAG+' '+context,err);
+    else console.warn(APP_TAG+' '+context);
+  }catch(_){}
 }
 /**
  * Run fn, log and swallow anything it throws. Used at event-handler and
@@ -2007,12 +2090,70 @@ function relTime(ts){
 }
 
 /* ── Modal ── */
+/* Focusable descendants, in DOM order, for the dialog focus trap. */
+var FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),'
+  +'textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+/** Element that had focus before the current dialog opened, restored on close. */
+var _lastFocused=null;
+/** The open dialog's overlay, or null. Used by the Tab handler. */
+var _openOverlay=null;
+
+/**
+ * Visible focusable descendants of an element.
+ * @param {HTMLElement} root
+ * @returns {HTMLElement[]}
+ */
+function focusablesIn(root){
+  if(!root)return [];
+  return Array.prototype.filter.call(root.querySelectorAll(FOCUSABLE),function(e){
+    if(e.disabled||e.getAttribute('aria-hidden')==='true')return false;
+    // Walk up to the container looking for a hidden ancestor rather than using
+    // offsetParent, which is null for position:fixed elements (every dialog
+    // here) and unavailable wherever layout is not computed.
+    for(var n=e;n&&n!==root.parentNode;n=n.parentNode){
+      if(n.nodeType!==1)continue;
+      if(n.hasAttribute('hidden'))return false;
+      if(n.style&&(n.style.display==='none'||n.style.visibility==='hidden'))return false;
+    }
+    return true;
+  });
+}
+
+/**
+ * Keep Tab inside the open dialog.
+ * aria-modal="true" asserts the rest of the page is inert, so the focus order
+ * has to actually behave that way.
+ */
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Tab'||!_openOverlay)return;
+  var f=focusablesIn(_openOverlay);
+  if(!f.length){e.preventDefault();return}
+  var first=f[0],last=f[f.length-1],active=document.activeElement;
+  if(e.shiftKey&&(active===first||!_openOverlay.contains(active))){
+    e.preventDefault();last.focus();
+  } else if(!e.shiftKey&&active===last){
+    e.preventDefault();first.focus();
+  }
+});
+
 function openModal(id){
   var o=el('overlay-'+id);
   closeFab();
-  if(o){o.classList.add('open');document.body.style.overflow='hidden'}
+  if(o){
+    _lastFocused=document.activeElement;
+    o.classList.add('open');
+    document.body.style.overflow='hidden';
+    _openOverlay=o;
+  }
   if(id==='whatif')renderWhatIf(LAST_CP);
   if(id==='quote')qtRender();
+  // Move focus into the dialog so keyboard and screen-reader users start inside
+  // it rather than behind it.
+  if(o)setTimeout(function(){
+    var f=focusablesIn(o);
+    if(f.length)f[0].focus();
+  },30);
 }
 /**
  * Hide a modal overlay and restore page scrolling.
@@ -2020,7 +2161,16 @@ function openModal(id){
  */
 function closeModal(id){
   var o=el('overlay-'+id);
-  if(o){o.classList.remove('open');document.body.style.overflow=''}
+  if(!o||!o.classList.contains('open'))return;
+  o.classList.remove('open');
+  document.body.style.overflow='';
+  if(_openOverlay===o)_openOverlay=null;
+  // Return focus to whatever opened the dialog, so keyboard users are not
+  // dumped back at the top of the document.
+  if(_lastFocused&&typeof _lastFocused.focus==='function'){
+    try{_lastFocused.focus()}catch(e){logWarn('could not restore focus after closing '+id,e)}
+  }
+  _lastFocused=null;
 }
 /**
  * Close a modal when the click landed on the backdrop rather than the panel.
@@ -2099,6 +2249,23 @@ function fabRun(fn){
   setTimeout(function(){guard('FAB action',fn)},80);
 }
 
+/**
+ * Handler for the custom rounding box. Rejects anything that is not a positive
+ * step and says why, rather than silently ignoring the entry.
+ * @param {HTMLInputElement} inp the custom rounding field
+ */
+function onCustomRounding(inp){
+  if(inp.value==='')return;                 // cleared — leave the preset alone
+  var v=parseFloat(inp.value);
+  if(isNaN(v)||v<=0||v>100000){
+    logWarn('ignoring invalid rounding step: '+JSON.stringify(inp.value)+' (expected a positive number)');
+    toast('Rounding step must be greater than 0');
+    inp.value=(ROUND_MODE==='off'||ROUND_MODE==='1'||ROUND_MODE==='5')?'':ROUND_MODE;
+    return;
+  }
+  setRounding(String(v));
+}
+
 /* ── Quantity ── */
 /**
  * Current order quantity. Never returns less than 1, so callers can multiply
@@ -2123,7 +2290,11 @@ function stepQty(d){
 /* ── Rounding ──
    Rounds the incl-GST price to a whole amount and derives excl from it, so the
    sticker price is the clean number and profit stays consistent with what's shown. */
-function roundStep(){return ROUND_MODE==='1'?1:ROUND_MODE==='5'?5:0}
+function roundStep(){
+  if(ROUND_MODE==='off')return 0;
+  var v=parseFloat(ROUND_MODE);
+  return (isNaN(v)||v<=0)?0:v;
+}
 /**
  * Apply the current rounding setting to a price pair.
  * The incl-GST figure is the one rounded (it is the sticker price), and excl
@@ -2138,15 +2309,21 @@ function roundPrice(p){
   return {e:i/(1+G),i:i};
 }
 /**
- * Change the rounding mode, repaint the pills and recalculate.
- * @param {'off'|'1'|'5'} m
+ * Change the rounding step and recalculate.
+ * @param {string} m 'off', or any positive step as a string — '1' and '5' have
+ *   preset buttons, anything else comes from the custom box.
  */
 function setRounding(m){
   haptic('select');
-  ROUND_MODE=m;
+  ROUND_MODE=String(m);
   ['off','1','5'].forEach(function(k){
-    var b=el('rnd-'+k);if(b)b.className='pill'+(k===m?' on':'');
+    var b=el('rnd-'+k);if(b)b.className='pill'+(k===ROUND_MODE?' on':'');
   });
+  // Mirror into the custom box, unless the user is mid-edit in it
+  var rc=el('rnd-custom');
+  if(rc&&document.activeElement!==rc){
+    rc.value=(ROUND_MODE==='off'||ROUND_MODE==='1'||ROUND_MODE==='5')?'':ROUND_MODE;
+  }
   calc();saveCalcState();
   if(el('overlay-quote').classList.contains('open'))qtRender();
 }
@@ -2187,7 +2364,17 @@ function askConfirm(title,msg,sub,btnLabel,fn){
   R('confirm-title',title);R('confirm-msg',msg);R('confirm-sub',sub||'');
   var y=el('confirm-yes');if(y)y.textContent=btnLabel||'Delete';
   var o=el('overlay-confirm');
-  if(o){o.classList.add('open');document.body.style.overflow='hidden'}
+  if(o){
+    _lastFocused=document.activeElement;
+    o.classList.add('open');
+    document.body.style.overflow='hidden';
+    _openOverlay=o;
+    // Focus Cancel, not the destructive button — a stray Enter should not delete.
+    setTimeout(function(){
+      var cancel=o.querySelector('.confirm-btn:not(.danger)');
+      if(cancel)cancel.focus();
+    },30);
+  }
 }
 /**
  * Dismiss the confirmation dialog without running the pending action.
@@ -2195,7 +2382,15 @@ function askConfirm(title,msg,sub,btnLabel,fn){
 function closeConfirm(){
   _confirmFn=null;
   var o=el('overlay-confirm');
-  if(o){o.classList.remove('open');document.body.style.overflow=''}
+  if(o&&o.classList.contains('open')){
+    o.classList.remove('open');
+    document.body.style.overflow='';
+    if(_openOverlay===o)_openOverlay=null;
+    if(_lastFocused&&typeof _lastFocused.focus==='function'){
+      try{_lastFocused.focus()}catch(e){logWarn('could not restore focus after closing confirm',e)}
+    }
+    _lastFocused=null;
+  }
 }
 /**
  * Run the pending confirmed action. Closes the dialog first so the callback
@@ -2468,6 +2663,8 @@ function _incRowHTML(k,panel,editMode){
   var inpId=(isCP?'iv-':'siv-')+k;
   var lblId='lbl-'+(isCP?'cp':'sp')+'-'+k;
   var lbl=(INC_LABELS[k]||k).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  // Same text, for use inside aria-label attributes
+  var lblPlain=lbl;
   var syncFn=isCP?'syncToggle':'syncSpToggle';
   var defVal=(k==='sc')?'':(k==='cd'||k==='qt')?'2':'1';
   var placeholder=(k==='sc')?'0':'';
@@ -2476,14 +2673,14 @@ function _incRowHTML(k,panel,editMode){
 
   var delBtn=editMode?'<button class="inc-del-btn" onclick="deleteInc(\''+panel+'\',\''+k+'\')" title="Delete" aria-label="Delete">&#x2212;</button>':'';
   var labelHtml=editMode
-    ?'<input class="inc-label-edit" id="'+lblId+'" value="'+lbl+'" onfocus="pushUndo(\'rename incentive\')" oninput="INC_LABELS[\''+k+'\']=this.value.trim()||INC_LABELS_DEFAULT[\''+k+'\'];saveLabels()" maxlength="30" autocomplete="off" spellcheck="false">'
+    ?'<input class="inc-label-edit" id="'+lblId+'" aria-label="Rename '+lblPlain+'" value="'+lbl+'" onfocus="pushUndo(\'rename incentive\')" oninput="INC_LABELS[\''+k+'\']=this.value.trim()||INC_LABELS_DEFAULT[\''+k+'\'];saveLabels()" maxlength="30" autocomplete="off" spellcheck="false">'
     :'<span class="inc-name" id="'+lblId+'">'+lbl+'</span>';
 
   var unitId=(k==='sc')?' id="'+(isCP?'sc':'ssc')+'-unit"':(custom?' id="unit-'+panel+'-'+k+'"':'');
   var unitTxt=cAbs?'&#x20B9;':'%';
   var pctWrapId=(k==='sc'&&isCP)?' id="sc-pct-wrap"':'';
 
-  var mainRow='<div class="inc-row-main">'+delBtn+'<label class="toggle"><input type="checkbox" id="'+cbId+'" onchange="'+syncFn+'(\''+k+'\');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>'+labelHtml+'<div class="inc-pct-wrap"'+pctWrapId+'><input type="number" inputmode="decimal" id="'+inpId+'" value="'+defVal+'" placeholder="'+placeholder+'" min="0"'+maxAttr+' step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym"'+unitId+'>'+unitTxt+'</span></div></div>';
+  var mainRow='<div class="inc-row-main">'+delBtn+'<label class="toggle"><input type="checkbox" id="'+cbId+'" aria-label="Enable '+lblPlain+'" onchange="'+syncFn+'(\''+k+'\');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>'+labelHtml+'<div class="inc-pct-wrap"'+pctWrapId+'><input type="number" inputmode="decimal" id="'+inpId+'" aria-label="'+lblPlain+' value" value="'+defVal+'" placeholder="'+placeholder+'" min="0"'+maxAttr+' step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym"'+unitId+'>'+unitTxt+'</span></div></div>';
 
   var subRow='';
   var gPct=Math.round(G*100);
@@ -3215,7 +3412,7 @@ function fillSummary(cp,sp){
   ['s-mrp','s-cp','s-ecp','s-sp','s-esp','s-inc','s-spinc','s-pr','s-gp','s-mg','s-dcp','s-dsp'].forEach(function(id){sumSet(id,'—','dim')});
   var mrpV=parseMRP();
   if(mrpV&&mrpV>0)sumSet('s-mrp',INR(mrpV),'');
-  if(!cp||!sp){updateMiniResult(null,null,null);return}
+  if(!cp||!sp){updateMiniResult(null,null,null);updateA11yStatus(null,null,null);return}
   var floor=getFloor();
   var cpInc=getIncentiveInr(cp),eff=cp.e-cpInc;
   var spInc=getSPIncentiveInr(sp),effSP=sp.e-spInc;
@@ -3239,9 +3436,39 @@ function fillSummary(cp,sp){
     sumSet('s-tpr',INR(pr*q),pr>=0?'pos':'neg');
   }
   updateMiniResult(pr,gp,mg);
+  updateA11yStatus(pr,gp,mg);
   // Flash key values
   ['s-pr','s-gp','s-mg'].forEach(flashSumVal);
 }
+/* Announcing on every keystroke would make the live region unusable, so the
+   message settles first and is only spoken if the figures actually changed. */
+var _a11yTimer=null,_a11yLast='';
+/**
+ * Announce the current result to assistive technology.
+ * @param {number|null} pr profit in rupees
+ * @param {number|null} gp gross profit %
+ * @param {number|null} mg margin %
+ */
+function updateA11yStatus(pr,gp,mg){
+  var node=el('a11y-status');
+  if(!node)return;
+  clearTimeout(_a11yTimer);
+  _a11yTimer=setTimeout(function(){
+    var msg;
+    if(pr===null||pr===undefined||isNaN(pr)){
+      msg='';
+    }else{
+      var floor=getFloor();
+      msg='Profit '+INR(pr)+', GP '+PCT(gp)+', Margin '+PCT(mg);
+      var q=getQty();
+      if(q>1)msg+='. Total for '+q+' units '+INR(pr*q);
+      if(belowFloor(gp,floor.gp))msg+='. Warning: GP is below your floor';
+      if(belowFloor(mg,floor.mg))msg+='. Warning: Margin is below your floor';
+    }
+    if(msg!==_a11yLast){_a11yLast=msg;node.textContent=msg}
+  },700);
+}
+
 /**
  * Update the sticky mobile result bar. Hidden entirely when the calculation is
  * incomplete, or in Quick mode which shows its own result card.
@@ -3573,8 +3800,8 @@ function renderHistory(){
   rows.forEach(function(row){
     var h=row.h,idx=row.idx;
     var tagHtml=h.tag
-      ?'<span class="hist-tag" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Edit tag">'+String(h.tag).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>'
-      :'<span class="hist-tag empty" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Add a tag">+ Tag</span>';
+      ?'<button type="button" class="hist-tag" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Edit tag" aria-label="Edit tag: '+String(h.tag).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')+'">'+String(h.tag).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</button>'
+      :'<button type="button" class="hist-tag empty" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Add a tag" aria-label="Add a tag to this entry">+ Tag</button>';
     var timeDisp=h.ts?relTime(h.ts):h.time;
     var timeFull=h.ts?fmtTime(h.ts):h.time;
     var gpCls=belowFloor(h.gp,floor.gp)?'warn':(h.gp>=0?'pos':'neg');
@@ -4956,7 +5183,7 @@ function startTagEdit(idx){
   var cell=document.getElementById('tag-'+idx);
   if(!cell)return;
   var cur=HISTORY[idx]&&HISTORY[idx].tag?HISTORY[idx].tag:'';
-  cell.outerHTML='<input class="hist-tag-input" id="tagin-'+idx+'" value="'+cur.replace(/"/g,'&quot;')+'" maxlength="24" placeholder="Tag…" autocomplete="off" '
+  cell.outerHTML='<input class="hist-tag-input" id="tagin-'+idx+'" aria-label="Tag for this entry" value="'+cur.replace(/"/g,'&quot;')+'" maxlength="24" placeholder="Tag…" autocomplete="off" '
     +'onblur="commitTag('+idx+',this.value)" '
     +'onkeydown="if(event.key===\'Enter\'){this.blur()}else if(event.key===\'Escape\'){this.value=\'\\u0000\';this.blur()}">';
   var inp=document.getElementById('tagin-'+idx);
@@ -5359,7 +5586,7 @@ function qtRenderTable(){
     +'<th>#</th><th>Description</th><th class="num">MRP</th><th class="num">Qty</th>'
     +'<th class="num">CP disc %</th><th class="num">SP disc %</th>'
     +'<th class="num">SP incl '+g+'%</th><th class="num">Line value</th>'
-    +'<th class="num">Profit</th><th class="num">GP %</th><th></th>'
+    +'<th class="num">Profit</th><th class="num">GP %</th><th><span class="sr-only">Actions</span></th>'
     +'</tr></thead><tbody>';
   QUOTE.forEach(function(L,i){
     var r=qtCalcLine(L);
@@ -5903,7 +6130,7 @@ function obRender(){
   var s=OB_STEPS[OB_STEP];
   // dots
   var dots='';
-  for(var i=0;i<OB_STEPS.length;i++)dots+='<div class="ob-dot'+(i===OB_STEP?' cur':'')+'" onclick="OB_STEP='+i+';obRender()"></div>';
+  for(var i=0;i<OB_STEPS.length;i++)dots+='<button type="button" class="ob-dot'+(i===OB_STEP?' cur':'')+'" onclick="OB_STEP='+i+';obRender()" aria-label="Go to step '+(i+1)+'"'+(i===OB_STEP?' aria-current="step"':'')+'></button>';
   el('ob-dots').innerHTML=dots;
   // icon
   var icon=el('ob-icon');
