@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-388%20passing-brightgreen?style=flat-square)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -299,9 +299,32 @@ All monetary values use **Indian number formatting** (₹1,00,000.00). Percentag
 
 ---
 
+## 🧪 Tests
+
+388 assertions across four suites. They load the real `index.html` into jsdom and drive the actual application functions — no application code is mocked.
+
+```bash
+npm install   # jsdom, dev-only
+npm test
+```
+
+| Suite | Assertions | Covers |
+|---|---|---|
+| `features` | 237 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
+| `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
+| `mobile` | 68 | modal layering, touch targets, sticky result bar, responsive quote layouts |
+| `fab` | 50 | floating action button behaviour and z-index ordering |
+
+Individual suites: `npm run test:features`, `test:errors`, `test:mobile`, `test:fab`. Full assertion output: `npm run test:verbose`.
+
+Every push and pull request runs them via GitHub Actions. See [`tests/README.md`](tests/README.md) for how the harness works and how to add a suite.
+
+---
+
 ## 🛠️ Technical Notes
 
 - Single HTML file — all CSS and JS embedded, no external dependencies beyond Google Fonts
+- `package.json` exists only for the test suite; the app ships as `index.html` and needs no build step or install
 - Vanilla JS (ES5-compatible), no frameworks
 - Google Fonts: Syne (headings), DM Sans (UI), JetBrains Mono (numbers)
 - MIT Licence
