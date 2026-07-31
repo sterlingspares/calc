@@ -834,7 +834,7 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
       <div class="pill-group">
         <button class="pill on" id="g18" onclick="setGST(18)">18%</button>
         <button class="pill"    id="g5"  onclick="setGST(5)">5%</button>
-        <div class="gst-custom-wrap"><input type="number" id="gst-custom" value="" placeholder="Other" min="0" max="100" step="0.5" inputmode="decimal" onchange="var p=parseFloat(this.value);if(!isNaN(p)&&p>=0&&p<=100)setGST(p)" autocomplete="off" aria-label="Custom GST rate"><span>%</span></div>
+        <div class="gst-custom-wrap"><input type="number" id="gst-custom" value="" placeholder="Other" min="0" max="100" step="0.5" inputmode="decimal" onchange="onCustomGST(this)" autocomplete="off" aria-label="Custom GST rate"><span>%</span></div>
       </div>
     </div>
     <div class="divider"></div>
@@ -1578,6 +1578,58 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
 </div>
 
 <script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   ERROR LOGGING
+
+   Every failure path in this file reports through logError / logWarn rather
+   than being swallowed. The distinction:
+
+     logError — something went wrong that the user may notice (a save failed,
+                a render threw). Always worth investigating.
+     logWarn  — a recoverable/expected-in-some-browsers condition, e.g. reading
+                localStorage in Safari private mode, or corrupt stored JSON that
+                we can safely fall back to defaults for.
+
+   Storage failures are the most common in practice and the easiest to miss:
+   both Safari private mode and an exhausted quota throw from setItem, and
+   without logging the symptom is simply "my settings don't stick".
+
+   The logging calls are themselves wrapped, because a console shim that throws
+   must never take down the calculation that called it.
+   ═══════════════════════════════════════════════════════════════════════════ */
+var APP_TAG='[pricing-calc]';
+
+/** Report a genuine fault. @param {string} context where it happened @param {*} err the thrown value */
+function logError(context,err){
+  try{console.error(APP_TAG+' '+context,err)}catch(_){}
+}
+/** Report a recoverable/expected condition. Same signature as logError. */
+function logWarn(context,err){
+  try{console.warn(APP_TAG+' '+context,err)}catch(_){}
+}
+/**
+ * Run fn, log and swallow anything it throws. Used at event-handler and
+ * render boundaries so one bad value can't leave the UI half-updated with
+ * no trace of why.
+ * @param {string} context label used in the log message
+ * @param {Function} fn work to attempt
+ * @param {*} [fallback] value returned if fn throws
+ * @returns {*} fn's return value, or fallback
+ */
+function guard(context,fn,fallback){
+  try{return fn()}catch(e){logError(context+' failed',e);return fallback}
+}
+
+// Catch anything that escapes a handler entirely — inline onclick attributes,
+// async callbacks, listeners — so nothing fails silently in production.
+window.addEventListener('error',function(ev){
+  logError('Uncaught error at '+(ev.filename||'inline')+':'+(ev.lineno||'?')+':'+(ev.colno||'?'),
+           ev.error||ev.message);
+});
+window.addEventListener('unhandledrejection',function(ev){
+  logError('Unhandled promise rejection',ev.reason);
+});
+
 /* ── Platform ── */
 var IS_MAC=/Mac/.test(navigator.platform);
 var MOD_KEY=IS_MAC?'⌘':'Ctrl';
@@ -1597,7 +1649,18 @@ var QUOTE=[];         // multi-line quote rows
 var HIST_QUERY='',HIST_FILTER='all';
 var BUILTIN_INC=['cd','eb','qt','an','sc'];
 var INC_MODE={},SP_INC_MODE={};
+/**
+ * True for incentives the user added (anything not one of the five built-ins).
+ * @param {string} k incentive key
+ * @returns {boolean}
+ */
 function isCustomInc(k){return BUILTIN_INC.indexOf(k)===-1}
+/**
+ * The %/₹ setting for a user-added incentive. Defaults to 'pct'.
+ * @param {'cp'|'sp'} panel which incentive list
+ * @param {string} k incentive key
+ * @returns {'pct'|'abs'}
+ */
 function incModeOf(panel,k){var m=(panel==='cp'?INC_MODE:SP_INC_MODE)[k];return m==='abs'?'abs':'pct'}
 var HISTORY=[];
 var MAX_HIST=50;
@@ -1608,6 +1671,12 @@ var WI_SCENES=[
 ];
 var LAST_CP=null,LAST_SP=null;
 
+/**
+ * Format a number with Indian digit grouping (1,00,000.00).
+ * Trailing '.00' is dropped so whole rupees read cleanly.
+ * @param {number} n
+ * @returns {string} grouped number, or '' when n is not finite
+ */
 function fmtINDIAN(n){
   // Format a number in Indian style: 1,00,000 with up to 2 decimals
   if(isNaN(n)||n===null)return '';
@@ -1620,10 +1689,19 @@ function fmtINDIAN(n){
   if(rest.length>0)lastThree=rest.replace(/\B(?=(\d{2})+(?!\d))/g,',')+','+lastThree;
   return dec==='00'?lastThree:lastThree+'.'+dec;
 }
+/**
+ * Read the MRP field as a number, stripping the display commas.
+ * @returns {number} MRP incl GST, 0 when blank or unparseable
+ */
 function parseMRP(){
   var raw=el('mrp').value.replace(/,/g,'');
   return parseFloat(raw)||0;
 }
+/**
+ * Live-format the MRP field as the user types, preserving a decimal point
+ * mid-entry (so typing "100." doesn't get rewritten to "100").
+ * @param {HTMLInputElement} inp
+ */
 function onMrpInput(inp){
   var raw=inp.value.replace(/[^0-9.]/g,'');
   // Allow only one decimal point
@@ -1649,6 +1727,10 @@ function parseAmt(id){
   var e=el(id);if(!e)return NaN;
   return parseFloat(e.value.replace(/,/g,''));
 }
+/**
+ * Live-format any ₹ amount field. Same rules as onMrpInput.
+ * @param {HTMLInputElement} inp
+ */
 function onAmtInput(inp){
   var raw=inp.value.replace(/[^0-9.]/g,'');
   var parts=raw.split('.');
@@ -1668,17 +1750,48 @@ function onAmtInput(inp){
   calc();
 }
 var _elCache={};
+/**
+ * getElementById with a cache. Elements are looked up on nearly every
+ * keystroke, so this avoids repeated DOM traversal.
+ * Call elClearCache() after replacing any cached node's innerHTML.
+ * @param {string} id
+ * @returns {HTMLElement|null}
+ */
 function el(id){return _elCache[id]||(_elCache[id]=document.getElementById(id))}
+/**
+ * Drop every cached element reference. Must run after any innerHTML rewrite
+ * that replaces nodes the cache may still be holding.
+ */
 function elClearCache(){_elCache={}}
+/**
+ * Set an element's textContent if it exists. No-op for absent ids, which keeps
+ * callers free of null checks for optional UI.
+ * @param {string} id
+ * @param {string} v
+ */
 function R(id,v){var e=el(id);if(e)e.textContent=v}
+/**
+ * Format a number as rupees for display.
+ * @param {number} n
+ * @returns {string} e.g. '₹1,23,456.78', or '—' when not a finite number
+ */
 function INR(n){
   if(n===null||n===undefined||isNaN(n))return'—';
   return'₹'+parseFloat(n.toFixed(2)).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
+/**
+ * Format a number as a percentage to 2 decimals.
+ * @param {number} n
+ * @returns {string} e.g. '12.34%', or '—' when not a finite number
+ */
 function PCT(n){
   if(n===null||n===undefined||isNaN(n))return'—';
   return parseFloat(n.toFixed(4)).toFixed(2)+'%';
 }
+/**
+ * Current time as a short display string (e.g. '31 Jul 4:05 pm').
+ * @returns {string}
+ */
 function now(){
   var d=new Date();
   var h=d.getHours(),m=d.getMinutes(),ampm=h>=12?'pm':'am';
@@ -1686,6 +1799,12 @@ function now(){
   return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+h+':'+(m<10?'0'+m:m)+' '+ampm;
 }
 
+/**
+ * Format a timestamp as an absolute 12-hour string including the year.
+ * Used for the hover title on history entries.
+ * @param {number} ts epoch milliseconds
+ * @returns {string}
+ */
 function fmtTime(ts){
   // Format a timestamp (ms) as 12h readable string
   var d=new Date(ts);
@@ -1694,6 +1813,13 @@ function fmtTime(ts){
   return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+' '+h+':'+(m<10?'0'+m:m)+' '+ampm;
 }
 
+/**
+ * Human-friendly relative age ('just now', '5 mins ago', 'yesterday').
+ * Day boundaries are compared by calendar date, not elapsed hours, so an
+ * entry from 11pm reads 'yesterday' at 1am rather than '2 hrs ago'.
+ * @param {number} ts epoch milliseconds
+ * @returns {string}
+ */
 function relTime(ts){
   var diff=Date.now()-ts; // ms
   if(diff<60000)return 'just now';
@@ -1716,19 +1842,54 @@ function openModal(id){
   if(id==='whatif')renderWhatIf(LAST_CP);
   if(id==='quote')qtRender();
 }
+/**
+ * Hide a modal overlay and restore page scrolling.
+ * @param {string} id overlay suffix, e.g. 'settings'
+ */
 function closeModal(id){
   var o=el('overlay-'+id);
   if(o){o.classList.remove('open');document.body.style.overflow=''}
 }
+/**
+ * Close a modal when the click landed on the backdrop rather than the panel.
+ * @param {MouseEvent} e
+ * @param {string} id overlay suffix
+ */
 function overlayClick(e,id){if(e.target===el('overlay-'+id))closeModal(id)}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('settings');closeModal('whatif');closeModal('quote');closeConfirm()}});
 
+/**
+ * Handler for the custom GST box. Rejects anything outside 0–100 and says so,
+ * rather than silently ignoring the keystroke.
+ * @param {HTMLInputElement} inp the "Other %" field
+ */
+function onCustomGST(inp){
+  var p=parseFloat(inp.value);
+  if(inp.value==='')return;                 // cleared — leave the preset alone
+  if(isNaN(p)||p<0||p>100){
+    logWarn('ignoring out-of-range custom GST rate: '+JSON.stringify(inp.value)+' (expected 0–100)');
+    toast('GST must be between 0 and 100');
+    inp.value=(G*100===18||G*100===5)?'':String(G*100);
+    return;
+  }
+  setGST(p);
+}
+
 /* ── Quantity ── */
+/**
+ * Current order quantity. Never returns less than 1, so callers can multiply
+ * unconditionally.
+ * @returns {number} quantity, minimum 1
+ */
 function getQty(){
   var e=el('qty');if(!e)return 1;
   var q=parseInt(e.value,10);
   return (isNaN(q)||q<1)?1:q;
 }
+/**
+ * Nudge the quantity by delta, clamped at 1.
+ * @param {number} d +1 or -1
+ */
 function stepQty(d){
   var e=el('qty');if(!e)return;
   e.value=Math.max(1,getQty()+d);
@@ -1739,12 +1900,23 @@ function stepQty(d){
    Rounds the incl-GST price to a whole amount and derives excl from it, so the
    sticker price is the clean number and profit stays consistent with what's shown. */
 function roundStep(){return ROUND_MODE==='1'?1:ROUND_MODE==='5'?5:0}
+/**
+ * Apply the current rounding setting to a price pair.
+ * The incl-GST figure is the one rounded (it is the sticker price), and excl
+ * is re-derived from it so the two stay consistent with each other.
+ * @param {{e:number,i:number}|null} p price pair
+ * @returns {{e:number,i:number}|null} rounded pair, or p unchanged when rounding is off
+ */
 function roundPrice(p){
   var s=roundStep();
   if(!s||!p)return p;
   var i=Math.round(p.i/s)*s;
   return {e:i/(1+G),i:i};
 }
+/**
+ * Change the rounding mode, repaint the pills and recalculate.
+ * @param {'off'|'1'|'5'} m
+ */
 function setRounding(m){
   haptic('select');
   ROUND_MODE=m;
@@ -1757,6 +1929,11 @@ function setRounding(m){
 
 /* ── Toast ── */
 var _toastTimer=null;
+/**
+ * Show a transient status message.
+ * @param {string} msg
+ * @param {boolean} [withUndo] show an inline Undo affordance and hold longer
+ */
 function toast(msg,withUndo){
   var t=el('toast'),m=el('toast-msg'),u=el('toast-undo');
   if(!t)return;
@@ -1766,10 +1943,21 @@ function toast(msg,withUndo){
   clearTimeout(_toastTimer);
   _toastTimer=setTimeout(function(){t.classList.remove('show')},withUndo?5000:2400);
 }
+/**
+ * Dismiss the toast immediately and cancel its auto-hide timer.
+ */
 function hideToast(){var t=el('toast');if(t)t.classList.remove('show');clearTimeout(_toastTimer)}
 
 /* ── Confirm dialog ── */
 var _confirmFn=null;
+/**
+ * Open the confirmation dialog. The action runs only via runConfirm().
+ * @param {string} title dialog heading
+ * @param {string} msg main question
+ * @param {string} sub secondary explanation line
+ * @param {string} btnLabel label for the destructive button
+ * @param {Function} fn invoked when the user confirms
+ */
 function askConfirm(title,msg,sub,btnLabel,fn){
   _confirmFn=fn;
   R('confirm-title',title);R('confirm-msg',msg);R('confirm-sub',sub||'');
@@ -1777,11 +1965,18 @@ function askConfirm(title,msg,sub,btnLabel,fn){
   var o=el('overlay-confirm');
   if(o){o.classList.add('open');document.body.style.overflow='hidden'}
 }
+/**
+ * Dismiss the confirmation dialog without running the pending action.
+ */
 function closeConfirm(){
   _confirmFn=null;
   var o=el('overlay-confirm');
   if(o){o.classList.remove('open');document.body.style.overflow=''}
 }
+/**
+ * Run the pending confirmed action. Closes the dialog first so the callback
+ * is free to open another modal.
+ */
 function runConfirm(){
   var fn=_confirmFn;
   closeConfirm();
@@ -1792,6 +1987,12 @@ function runConfirm(){
    Snapshots the whole mutable app state. Cheap enough at this size, and it means
    any new action gets undo for free by calling pushUndo() before it mutates. */
 var UNDO=[],REDO=[],MAX_UNDO=40,_undoBusy=false;
+/**
+ * Deep-copy every piece of mutable app state into a plain object.
+ * This is what makes undo generic: a new feature becomes undoable simply by
+ * storing its state here and calling pushUndo() before mutating.
+ * @returns {Object} snapshot suitable for restoreState
+ */
 function captureState(){
   return {
     share:getShareState(),
@@ -1806,6 +2007,12 @@ function captureState(){
     qty:el('qty')?el('qty').value:'1'
   };
 }
+/**
+ * Apply a snapshot from captureState, rebuilding the incentive rows (whose
+ * keys may differ) before restoring per-field values.
+ * Sets _undoBusy so the restore's own writes don't push new undo entries.
+ * @param {Object} s snapshot
+ */
 function restoreState(s){
   if(!s)return;
   _undoBusy=true;
@@ -1826,9 +2033,17 @@ function restoreState(s){
     renderHistory();
     if(el('overlay-quote').classList.contains('open'))qtRender();
     calc();
-  }catch(e){}
+  }catch(e){
+    // Leaves the UI mid-restore, so this is always worth surfacing.
+    logError('undo/redo could not fully restore the previous state',e);
+  }
   _undoBusy=false;
 }
+/**
+ * Record the current state so the next action can be undone. Clears the redo
+ * stack, since branching history would be more confusing than useful here.
+ * @param {string} label short description shown in the 'Undid: …' toast
+ */
 function pushUndo(label){
   if(_undoBusy)return;
   UNDO.push({label:label,state:captureState()});
@@ -1836,6 +2051,9 @@ function pushUndo(label){
   REDO=[];
   updateUndoBtns();
 }
+/**
+ * Enable/disable and dim the undo and redo controls to match stack depth.
+ */
 function updateUndoBtns(){
   var u=el('undo-btn'),r=el('redo-btn');
   if(u){u.disabled=UNDO.length===0;u.style.opacity=UNDO.length?'':'0.4'}
@@ -1843,6 +2061,9 @@ function updateUndoBtns(){
   var hu=el('hmenu-undo');
   if(hu)hu.style.opacity=UNDO.length?'':'0.4';
 }
+/**
+ * Step back one action, moving the current state onto the redo stack.
+ */
 function undo(){
   if(UNDO.length===0){toast('Nothing to undo');return}
   var entry=UNDO.pop();
@@ -1853,6 +2074,9 @@ function undo(){
   haptic('light');
   toast('Undid: '+entry.label);
 }
+/**
+ * Re-apply the most recently undone action.
+ */
 function redo(){
   if(REDO.length===0){toast('Nothing to redo');return}
   var entry=REDO.pop();
@@ -1867,12 +2091,30 @@ function redo(){
 function getFloor(){
   return{gp:parseFloat(el('floor-gp').value)||null, mg:parseFloat(el('floor-mg').value)||null};
 }
+/**
+ * Whether a value breaches a floor limit. Null floors never trigger.
+ * @param {number} val
+ * @param {number|null} floor
+ * @returns {boolean}
+ */
 function belowFloor(val,floor){return floor!==null&&val!==null&&!isNaN(val)&&val<floor}
+/**
+ * CSS class for a GP% figure: 'warn' below floor, else pos/neg/dim.
+ * @param {number|null} gp
+ * @param {{gp:number|null,mg:number|null}} floor
+ * @returns {string}
+ */
 function gpCls(gp,floor){
   if(gp===null||isNaN(gp))return'dim';
   if(belowFloor(gp,floor.gp))return'warn';
   return gp>=0?'pos':'neg';
 }
+/**
+ * CSS class for a Margin% figure. Mirrors gpCls against the margin floor.
+ * @param {number|null} mg
+ * @param {{gp:number|null,mg:number|null}} floor
+ * @returns {string}
+ */
 function mgCls(mg,floor){
   if(mg===null||isNaN(mg))return'dim';
   if(belowFloor(mg,floor.mg))return'warn';
@@ -1881,6 +2123,12 @@ function mgCls(mg,floor){
 
 /* ── Panel toggles ── */
 var _histRefreshTimer=null;
+/**
+ * Expand or collapse a panel and sync its chevron and aria-expanded state.
+ * The history panel additionally starts/stops its relative-time refresh timer
+ * here, so it only ticks while visible.
+ * @param {string} id panel suffix, e.g. 'inc'
+ */
 function togglePanel(id){
   var body=el('body-'+id),chev=el('chev-'+id);
   var hdr=el('phdr-'+id);
@@ -1900,11 +2148,19 @@ function togglePanel(id){
 
 /* ── Autosave — single source of truth ── */
 var AUTOSAVE = true;
+/**
+ * Set auto-save on/off and mirror it to both toggle controls.
+ * @param {boolean} on
+ */
 function setAutosave(val) {
   AUTOSAVE = val;
   el('autosave-toggle').checked = val;
   el('autosave-toggle-settings').checked = val;
 }
+/**
+ * Adopt the state of whichever auto-save toggle the user just clicked.
+ * @param {HTMLInputElement} src the toggle that changed
+ */
 function syncAutosave(src) {
   var val = (src === 'settings') ? el('autosave-toggle-settings').checked : el('autosave-toggle').checked;
   setAutosave(val);
@@ -1914,10 +2170,16 @@ function syncAutosave(src) {
 /* ── Dark mode ── */
 function toggleDarkMode(on) {
   document.documentElement.setAttribute('data-theme', on ? 'dark' : 'light');
-  try { localStorage.setItem('pc-theme', on ? 'dark' : 'light'); } catch(e){}
+  try { localStorage.setItem('pc-theme', on ? 'dark' : 'light'); }
+  catch(e){ logWarn('could not persist theme preference',e); }
 }
+/**
+ * Apply the saved theme, falling back to the OS colour-scheme preference.
+ */
 function initTheme() {
-  var saved; try { saved = localStorage.getItem('pc-theme'); } catch(e){}
+  var saved;
+  try { saved = localStorage.getItem('pc-theme'); }
+  catch(e){ logWarn('could not read saved theme, falling back to system preference',e); }
   var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   var dark = saved ? saved === 'dark' : prefersDark;
   if (dark) { document.documentElement.setAttribute('data-theme','dark'); }
@@ -1930,8 +2192,12 @@ function saveCalcState(){
     var s=getShareState();
     s._as=AUTOSAVE;
     localStorage.setItem('pc-state',JSON.stringify(s));
-  }catch(e){}
+  }catch(e){ logError('could not save calculator state (pc-state)',e); }
 }
+/**
+ * Restore the calculator from localStorage.
+ * @returns {boolean} true if a saved state was applied
+ */
 function loadCalcState(){
   try{
     var raw=localStorage.getItem('pc-state');
@@ -1946,8 +2212,14 @@ function loadCalcState(){
     }
     applyShareState(s);
     return true;
-  }catch(e){return false;}
+  }catch(e){
+    logError('could not restore saved calculator state (pc-state); starting fresh',e);
+    return false;
+  }
 }
+/**
+ * Save calculator state 800ms after typing stops, to avoid writing on every keystroke.
+ */
 function debouncedSaveCalcState(){
   clearTimeout(_saveStateTimer);
   _saveStateTimer=setTimeout(saveCalcState,800);
@@ -1956,6 +2228,15 @@ function debouncedSaveCalcState(){
 /* ── Incentive edit mode ── */
 var CP_EDIT_MODE=false,SP_EDIT_MODE=false;
 
+/**
+ * Build the markup for one incentive row.
+ * All element ids match what the calculation code expects (it-/iv-/ir- for CP,
+ * sit-/siv-/sir- for SP), so rows can be re-rendered freely.
+ * @param {string} k incentive key
+ * @param {'cp'|'sp'} panel which list
+ * @param {boolean} editMode render delete badge + editable label
+ * @returns {string} HTML for a single .inc-row
+ */
 function _incRowHTML(k,panel,editMode){
   var isCP=panel==='cp';
   var rowId=(isCP?'ir-':'sir-')+k;
@@ -2016,6 +2297,13 @@ function applyIncModeVisuals(panel,k){
   if(iv){iv.placeholder=(m==='abs')?'0.00':'0';if(m==='abs'){iv.removeAttribute('max')}else{iv.max='100'}}
 }
 
+/**
+ * Switch a user-added incentive between percentage and fixed ₹, updating the
+ * unit symbol and the input's max constraint, then recalculating.
+ * @param {'cp'|'sp'} panel
+ * @param {string} k incentive key
+ * @param {'pct'|'abs'} m
+ */
 function setIncMode(panel,k,m){
   haptic('select');
   (panel==='cp'?INC_MODE:SP_INC_MODE)[k]=m;
@@ -2030,6 +2318,11 @@ function setIncMode(panel,k,m){
   calc();
 }
 
+/**
+ * Capture checkbox and value state for a panel before a re-render.
+ * @param {'cp'|'sp'} panel
+ * @returns {Object} keyed by incentive key
+ */
 function _snapshotInc(panel){
   var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS;
   var snap={};
@@ -2041,6 +2334,12 @@ function _snapshotInc(panel){
   return snap;
 }
 
+/**
+ * Re-apply a _snapshotInc result after the rows have been rebuilt, including
+ * the CD/Scheme sub-tab states and per-key %/₹ settings.
+ * @param {'cp'|'sp'} panel
+ * @param {Object} snap
+ */
 function _restoreInc(panel,snap){
   var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS;
   var isCP=panel==='cp';
@@ -2071,6 +2370,9 @@ function _restoreInc(panel,snap){
   }
 }
 
+/**
+ * Rebuild the CP incentive grid from INC_KEYS.
+ */
 function renderCPIncRows(){
   var grid=document.getElementById('cp-inc-grid');
   if(!grid)return;
@@ -2081,6 +2383,9 @@ function renderCPIncRows(){
   elClearCache();
 }
 
+/**
+ * Rebuild the SP incentive grid from SP_INC_KEYS.
+ */
 function renderSPIncRows(){
   var grid=document.getElementById('sp-inc-grid');
   if(!grid)return;
@@ -2091,6 +2396,11 @@ function renderSPIncRows(){
   elClearCache();
 }
 
+/**
+ * Enter or leave edit mode for one panel, preserving toggles and values across
+ * the re-render.
+ * @param {'cp'|'sp'} panel
+ */
 function toggleIncEditMode(panel){
   var snap=_snapshotInc(panel);
   if(panel==='cp'){
@@ -2109,6 +2419,10 @@ function toggleIncEditMode(panel){
   calc();
 }
 
+/**
+ * Append a new percentage incentive with a unique key and focus its label.
+ * @param {'cp'|'sp'} panel
+ */
 function addInc(panel){
   pushUndo('add incentive');
   var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS;
@@ -2132,6 +2446,11 @@ function addInc(panel){
   if(lblEl&&typeof lblEl.select==='function'){lblEl.focus();lblEl.select();}
 }
 
+/**
+ * Ask before removing an incentive. doDeleteInc performs the removal.
+ * @param {'cp'|'sp'} panel
+ * @param {string} key
+ */
 function deleteInc(panel,key){
   var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS;
   if(keys.indexOf(key)===-1)return;
@@ -2142,6 +2461,12 @@ function deleteInc(panel,key){
     'Delete',
     function(){doDeleteInc(panel,key)});
 }
+/**
+ * Remove an incentive and recalculate. Undoable.
+ * Call deleteInc for the user-facing path; this skips the confirmation.
+ * @param {'cp'|'sp'} panel
+ * @param {string} key
+ */
 function doDeleteInc(panel,key){
   var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS;
   var idx=keys.indexOf(key);
@@ -2160,9 +2485,21 @@ function doDeleteInc(panel,key){
   haptic('light');
 }
 
+/**
+ * Persist incentive names, the CP/SP key lists and their %/₹ modes.
+ */
 function saveLabels(){
-  try{localStorage.setItem('pc-labels',JSON.stringify({labels:INC_LABELS,cpKeys:INC_KEYS,spKeys:SP_INC_KEYS,cpModes:INC_MODE,spModes:SP_INC_MODE}));}catch(e){}
+  try{
+    localStorage.setItem('pc-labels',JSON.stringify({
+      labels:INC_LABELS,cpKeys:INC_KEYS,spKeys:SP_INC_KEYS,
+      cpModes:INC_MODE,spModes:SP_INC_MODE
+    }));
+  }catch(e){ logError('could not save incentive names/list (pc-labels)',e); }
 }
+/**
+ * Restore incentive names, key lists and modes. Accepts the older flat
+ * {key:label} format written before lists were customisable.
+ */
 function loadLabels(){
   try{
     var raw=localStorage.getItem('pc-labels');
@@ -2174,11 +2511,18 @@ function loadLabels(){
     if(parsed.spKeys&&Array.isArray(parsed.spKeys))SP_INC_KEYS=parsed.spKeys;
     if(parsed.cpModes)INC_MODE=parsed.cpModes;
     if(parsed.spModes)SP_INC_MODE=parsed.spModes;
-  }catch(e){}
+  }catch(e){ logWarn('could not read saved incentives (pc-labels); using defaults',e); }
 }
 
 /* ── Incentive helpers ── */
 function syncToggle(k){haptic('select');var row=el('ir-'+k),cb=el('it-'+k);if(row&&cb)row.className='inc-row'+(cb.checked?' active':'')}
+/**
+ * Total CP incentive value in rupees for a given cost price.
+ * CD may be charged on the incl-GST base; Scheme and user-added rows may be
+ * flat ₹ instead of a percentage.
+ * @param {{e:number,i:number}|null} cp
+ * @returns {number} rupees, 0 when cp is null
+ */
 function getIncentiveInr(cp){
   if(!cp)return 0;
   var t=0;
@@ -2198,6 +2542,10 @@ function getIncentiveInr(cp){
   });
   return t;
 }
+/**
+ * Refresh the CP panel header tag with the active count, summed percentage and
+ * any flat ₹ amounts.
+ */
 function updateIncSummaryTag(){
   var active=INC_KEYS.filter(function(k){var e=document.getElementById('it-'+k);return e&&e.checked}).length;
   var nom=0, hasAbsSc=false, absScVal=0;
@@ -2214,6 +2562,13 @@ function updateIncSummaryTag(){
   var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' fixed':'';
   el('inc-summary-tag').textContent=(active===0?'All off':active+' active')+' — '+nom.toFixed(2)+'%'+scNote+note;
 }
+/**
+ * Proportional factor (effective CP ÷ CP excl GST) from percentage incentives.
+ * Flat ₹ incentives are excluded because they have no proportional form —
+ * cpFromProfit uses K to estimate the base, then getIncentiveInr subtracts the
+ * flat amounts exactly.
+ * @returns {number}
+ */
 function computeK(){
   // K = effCPE / cp.e — the proportional factor after all %-based incentives.
   // Absolute scheme ₹ is NOT included here (can't express as a ratio without knowing cp.e).
@@ -2252,6 +2607,9 @@ function getSPIncentiveInr(sp){
   });
   return t;
 }
+/**
+ * Refresh the SP panel header tag. Mirrors updateIncSummaryTag.
+ */
 function updateSpIncSummaryTag(){
   var active=SP_INC_KEYS.filter(function(k){var e=document.getElementById('sit-'+k);return e&&e.checked}).length;
   var nom=0,hasAbsSc=false,absScVal=0;
@@ -2268,11 +2626,19 @@ function updateSpIncSummaryTag(){
   var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' fixed':'';
   el('sp-inc-summary-tag').textContent=(active===0?'All off':active+' active')+' — '+nom.toFixed(2)+'%'+scNote+note;
 }
+/**
+ * Update an SP incentive row's active styling from its checkbox.
+ * @param {string} k
+ */
 function syncSpToggle(k){
   haptic('select');
   var row=el('sir-'+k),cb=el('sit-'+k);
   if(row&&cb)row.className='inc-row'+(cb.checked?' sp-active':'');
 }
+/**
+ * Choose whether SP cash discount applies before or after GST.
+ * @param {'before'|'after'} m
+ */
 function setSCDMode(m){
   haptic('select');SCDM=m;
   var e1=el('scdm-before'),e2=el('scdm-after');
@@ -2280,6 +2646,10 @@ function setSCDMode(m){
   if(e2)e2.className=(m==='after')?'stab on':'stab';
   calc();
 }
+/**
+ * Switch the SP scheme between percentage and flat ₹.
+ * @param {'pct'|'abs'} m
+ */
 function setSpSchemeMode(m){
   haptic('select');SSCM=m;
   var e1=el('sscm-pct'),e2=el('sscm-abs'),eu=el('ssc-unit'),iv=el('siv-sc');
@@ -2289,6 +2659,10 @@ function setSpSchemeMode(m){
   if(iv){iv.placeholder=(m==='abs')?'0.00':'0';if(m==='abs'){iv.removeAttribute('max')}else{iv.max='100'}}
   calc();
 }
+/**
+ * Write the SP incentive totals into the panel footer.
+ * @param {{e:number,i:number}|null} sp
+ */
 function fillSpIncPanel(sp){
   updateSpIncSummaryTag();
   var inc=getSPIncentiveInr(sp),eff=sp?sp.e-inc:null;
@@ -2362,8 +2736,21 @@ function updateGSTLabels(){
   R('wz-rlbl-effi','Eff. '+wzLbl+' incl '+wzg+'% GST');
 }
 
+/**
+ * Set the GST rate. Accepts any rate, not just the two presets; the custom box
+ * is cleared when a preset is chosen and filled otherwise.
+ * @param {number} p rate as a percentage, e.g. 18
+ */
 function setGST(p){haptic('select');G=p/100;el('g18').className=(p===18)?'pill on':'pill';el('g5').className=(p===5)?'pill on':'pill';var gc=el('gst-custom');if(gc&&document.activeElement!==gc)gc.value=(p===18||p===5)?'':p;el('grate').textContent=p+'%';updateGSTLabels();calc()}
+/**
+ * Choose which figure the calculator solves for.
+ * @param {'profit'|'sp'|'cp'} t
+ */
 function setT(t){haptic('select');T=t;el('tprofit').className=(t==='profit')?'pill on':'pill';el('tsp').className=(t==='sp')?'pill on':'pill';el('tcp').className=(t==='cp')?'pill on':'pill';updateLayout();calc()}
+/**
+ * Set the cost-price input mode and show the matching fields.
+ * @param {'excl'|'incl'|'manual'} m
+ */
 function setCM(m){
   CM=m;
   el('cme').className=(m==='excl')?'mtab on':'mtab';el('cmi').className=(m==='incl')?'mtab on':'mtab';el('cmm').className=(m==='manual')?'mtab on':'mtab';
@@ -2373,7 +2760,15 @@ function setCM(m){
   updateGSTLabels();
   calc();
 }
+/**
+ * Choose whether a manually entered CP is incl or excl GST.
+ * @param {'incl'|'excl'} s
+ */
 function setCPManual(s){haptic('select');CPMS=s;el('cpm-incl').className=(s==='incl')?'stab on':'stab';el('cpm-excl').className=(s==='excl')?'stab on':'stab';calc()}
+/**
+ * Set the selling-price input mode and show the matching fields.
+ * @param {'excl'|'incl'|'manual'} m
+ */
 function setSM(m){
   haptic('select');
   SM=m;
@@ -2386,6 +2781,10 @@ function setSM(m){
   updateGSTLabels();
   calc();
 }
+/**
+ * Choose whether a manually entered SP is incl or excl GST.
+ * @param {'incl'|'excl'} s
+ */
 function setSPManual(s){
   haptic('select');
   SPMS=s;
@@ -2393,8 +2792,20 @@ function setSPManual(s){
   el('spm-excl').className=(s==='excl')?'stab on':'stab';
   calc();
 }
+/**
+ * Set how target profit is expressed when solving for SP or CP.
+ * @param {'val'|'gp'|'margin'} m
+ */
 function setPM(m){haptic('select');PM=m;el('pmv').className=(m==='val')?'mtab on':'mtab';el('pmg').className=(m==='gp')?'mtab on':'mtab';el('pmm').className=(m==='margin')?'mtab on':'mtab';el('pru').textContent=(m==='val')?'₹':'%';calc()}
+/**
+ * Choose whether CP cash discount applies before or after GST.
+ * @param {'before'|'after'} m
+ */
 function setCDMode(m){haptic('select');CDM=m;var e1=el('cdm-before'),e2=el('cdm-after');if(e1)e1.className=(m==='before')?'stab on':'stab';if(e2)e2.className=(m==='after')?'stab on':'stab';calc()}
+/**
+ * Switch the CP scheme between percentage and flat ₹.
+ * @param {'pct'|'abs'} m
+ */
 function setSchemeMode(m){
   haptic('select');SCM=m;
   var e1=el('scm-pct'),e2=el('scm-abs'),eu=el('sc-unit'),iv=el('iv-sc');
@@ -2427,17 +2838,43 @@ function priceFromDisc(d,mode){
   if(mode==='excl'){var e=MI*(1-d/100);return{e:e,i:e*(1+G)}}
   var i=MI*(1-d/100);return{e:i/(1+G),i:i};
 }
+/**
+ * Build a price pair from a typed amount.
+ * @param {number} v the amount
+ * @param {'incl'|'excl'} sub which side of GST v represents
+ * @returns {{e:number,i:number}|null} null when v is not a positive number
+ */
 function priceFromManual(v,sub){
   if(!v||isNaN(v)||v<=0)return null;
   return sub==='incl'?{e:v/(1+G),i:v}:{e:v,i:v*(1+G)};
 }
+/**
+ * Discounts off MRP implied by an excl-GST price.
+ * @param {number} pe price excl GST
+ * @returns {{de:number,di:number}} de = on the excl basis, di = on the incl basis
+ */
 function discFromPrice(pe){return{de:(1-pe/MI)*100,di:(1-(pe*(1+G))/MI)*100}}
+/**
+ * Selling price excl GST that yields a target profit.
+ * @param {number} effCPE effective CP excl GST
+ * @param {'val'|'gp'|'margin'} mode how val is expressed
+ * @param {number} val target
+ * @returns {number|null} null when unsolvable (e.g. GP >= 100%)
+ */
 function spFromProfit(effCPE,mode,val){
   if(mode==='val')return effCPE+val;
   if(mode==='gp')return(val>=100)?null:effCPE/(1-val/100);
   if(mode==='margin')return effCPE*(1+val/100);
   return null;
 }
+/**
+ * Cost price that yields a target profit at a given selling price.
+ * Inverts the percentage incentives via computeK.
+ * @param {number} spe effective SP excl GST
+ * @param {'val'|'gp'|'margin'} mode
+ * @param {number} val target
+ * @returns {{e:number,i:number}|null}
+ */
 function cpFromProfit(spe,mode,val){
   var K=computeK();if(K<=0)return null;
   var e;
@@ -2448,10 +2885,18 @@ function cpFromProfit(spe,mode,val){
   if(!e||e<=0)return null;
   var n=e/K;return{e:n,i:n*(1+G)};
 }
+/**
+ * Current cost price from whichever input mode is active, with rounding applied.
+ * @returns {{e:number,i:number}|null}
+ */
 function resolveCP(){
   if(CM==='manual')return roundPrice(priceFromManual(parseAmt('cpv'),CPMS));
   var d=parseFloat(el('cpd').value);return isNaN(d)?null:roundPrice(priceFromDisc(d,CM));
 }
+/**
+ * Current selling price from whichever input mode is active, with rounding applied.
+ * @returns {{e:number,i:number}|null}
+ */
 function resolveSP(){
   if(SM==='manual')return roundPrice(priceFromManual(parseAmt('spv'),SPMS));
   var d=parseFloat(el('spd').value);return isNaN(d)?null:roundPrice(priceFromDisc(d,SM));
@@ -2479,6 +2924,10 @@ function fillCP(cp){
     var b=el('acc-body-cp');if(b&&!b.classList.contains('open'))toggleAcc('cp');
   }
 }
+/**
+ * Write selling-price figures into the SP card and flag an over-MRP price.
+ * @param {{e:number,i:number}|null} sp
+ */
 function fillSP(sp){
   if(!sp){
     ['sde','sdi','sve','svi','sga'].forEach(function(id){R(id,'—')});
@@ -2499,6 +2948,11 @@ function fillSP(sp){
     var b=el('acc-body-sp');if(b&&!b.classList.contains('open'))toggleAcc('sp');
   }
 }
+/**
+ * Write profit, GP% and Margin% into the profit card with floor colouring.
+ * @param {number|null} effCPE effective CP excl GST
+ * @param {number|null} spe effective SP excl GST
+ */
 function fillProfit(effCPE,spe){
   var floor=getFloor(),pvEl=el('pvv');
   if(effCPE===null||spe===null||isNaN(effCPE)||isNaN(spe)){
@@ -2510,13 +2964,29 @@ function fillProfit(effCPE,spe){
   el('pgp').className='row-val '+gpCls(gp,floor);
   el('pmrg').className='row-val '+mgCls(mg,floor);
 }
+/**
+ * Write the CP incentive totals into the panel footer.
+ * @param {{e:number,i:number}|null} cp
+ */
 function fillIncPanel(cp){
   updateIncSummaryTag();
   var inc=getIncentiveInr(cp),eff=cp?cp.e-inc:null;
   R('inc-total-pct',(inc>0&&cp)?PCT((inc/cp.e)*100):'0.00%');
   R('inc-total-inr',inc>0?INR(inc):'—');R('inc-eff-cp',INR(eff));
 }
+/**
+ * Set one summary cell's text and state class.
+ * @param {string} id
+ * @param {string} val
+ * @param {string} cls
+ */
 function sumSet(id,val,cls){var e=el(id);if(!e)return;e.textContent=val;e.className='sum-val '+cls}
+/**
+ * Repaint the whole summary bar, including the order-level block which only
+ * appears once quantity is above 1.
+ * @param {{e:number,i:number}|null} cp
+ * @param {{e:number,i:number}|null} sp
+ */
 function fillSummary(cp,sp){
   ['s-mrp','s-cp','s-ecp','s-sp','s-esp','s-inc','s-spinc','s-pr','s-gp','s-mg','s-dcp','s-dsp'].forEach(function(id){sumSet(id,'—','dim')});
   var mrpV=parseMRP();
@@ -2552,6 +3022,11 @@ function fillSummary(cp,sp){
 /* ── What-if helpers ── */
 var WI_CHEVRON_SVG='<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+/**
+ * Selling price for one what-if scenario.
+ * @param {Object} sc scenario record from WI_SCENES
+ * @returns {{e:number,i:number}|null}
+ */
 function resolveWiSP(sc){
   if(sc.spMode==='manual'){
     var v=parseFloat(String(sc.spVal).replace(/,/g,''));
@@ -2720,6 +3195,9 @@ function renderWhatIf(cp){
 var _autoSaveTimer=null;
 var _saveStateTimer=null;
 var _saveQTimer=null;
+/**
+ * Persist Quick mode inputs so returning to it restores the last entry.
+ */
 function saveQState(){
   try{
     localStorage.setItem('pc-qstate',JSON.stringify({
@@ -2732,12 +3210,20 @@ function saveQState(){
       spv:el('fc-spv')?el('fc-spv').value:'',
       prv:el('fc-pr-val')?el('fc-pr-val').value:''
     }));
-  }catch(e){}
+  }catch(e){ logError('could not save Quick mode state (pc-qstate)',e); }
 }
+/**
+ * Save Quick mode state 500ms after typing stops.
+ */
 function debouncedSaveQState(){
   clearTimeout(_saveQTimer);
   _saveQTimer=setTimeout(saveQState,500);
 }
+/**
+ * Save to history 900ms after input settles, when auto-save is on.
+ * Skips the write when the result matches the newest entry, so nudging a value
+ * back and forth doesn't fill the list with duplicates.
+ */
 function autoSave(){
   clearTimeout(_autoSaveTimer);
   _autoSaveTimer=setTimeout(function(){
@@ -2758,7 +3244,11 @@ function autoSave(){
 
 /* ── History ── */
 function saveToHistory(){
-  if(!LAST_CP||!LAST_SP){alert('Enter CP and SP first.');return}
+  if(!LAST_CP||!LAST_SP){
+    logWarn('saveToHistory called with an incomplete calculation',{cp:LAST_CP,sp:LAST_SP});
+    alert('Enter CP and SP first.');
+    return;
+  }
   var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
   var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
   var pr=effSP-eff;
@@ -2769,6 +3259,9 @@ function saveToHistory(){
   renderHistory();
   if(el('body-hist').style.display!=='block')togglePanel('hist');
 }
+/**
+ * Remove all history entries, after confirmation. Undoable.
+ */
 function clearHistory(){
   if(HISTORY.length===0){toast('History is already empty');return}
   askConfirm('Clear history',
@@ -2778,14 +3271,22 @@ function clearHistory(){
     function(){
       pushUndo('clear history');
       HISTORY=[];
-      try{localStorage.removeItem('pc-history');}catch(e){}
+      try{localStorage.removeItem('pc-history');}
+      catch(e){ logError('could not clear history from storage (pc-history)',e); }
       renderHistory();
       toast('History cleared',true);
     });
 }
+/**
+ * Persist the history array.
+ */
 function saveHistoryToStorage(){
-  try{localStorage.setItem('pc-history',JSON.stringify(HISTORY));}catch(e){}
+  try{localStorage.setItem('pc-history',JSON.stringify(HISTORY));}
+  catch(e){ logError('could not save history (pc-history) — it may exceed the storage quota',e); }
 }
+/**
+ * Restore history, trimming to MAX_HIST.
+ */
 function loadHistoryFromStorage(){
   try{
     var raw=localStorage.getItem('pc-history');
@@ -2794,8 +3295,14 @@ function loadHistoryFromStorage(){
     if(!Array.isArray(arr))return;
     HISTORY=arr.slice(0,MAX_HIST);
     if(HISTORY.length>0)renderHistory();
-  }catch(e){}
+  }catch(e){ logWarn('could not read saved history (pc-history); starting empty',e); }
 }
+/**
+ * Rebuild the history list under the active search and filter.
+ * Each rendered row carries its true HISTORY index, so deleting, comparing or
+ * tagging from a filtered view acts on the right entry rather than the nth
+ * visible one.
+ */
 function renderHistory(){
   var c=el('hist-content');
   c.setAttribute('role','list');
@@ -2858,7 +3365,11 @@ function renderHistory(){
 
 /* ── History export ── */
 function exportHistoryCSV(){
-  if(HISTORY.length===0){alert('No history entries to export.');return}
+  if(HISTORY.length===0){
+    logWarn('exportHistoryCSV called with an empty history');
+    alert('No history entries to export.');
+    return;
+  }
   var headers=['Time','Tag','MRP (incl GST)','CP excl GST','CP incl GST','SP excl GST','SP incl GST','Eff CP excl GST','CP Incentives INR','Eff SP excl GST','SP Incentives INR','Profit INR','GP %','Margin %','GST Rate %','Qty','Total Profit INR'];
   var rows=[headers.join(',')];
   HISTORY.forEach(function(h){
@@ -2895,12 +3406,19 @@ function exportHistoryCSV(){
 /* ── Comparison modal ── */
 var COMPARE_IDX=null;
 
+/**
+ * Open the comparison modal for one history entry.
+ * @param {number} idx index into HISTORY
+ */
 function openCompare(idx){
   COMPARE_IDX=idx;
   renderCompare();
   openModal('compare');
 }
 
+/**
+ * Draw the current-vs-saved comparison table with per-row deltas.
+ */
 function renderCompare(){
   var floor=getFloor();
   var hist=HISTORY[COMPARE_IDX];
@@ -3005,6 +3523,10 @@ function renderCompare(){
 
   el('cmp-grid').innerHTML=html;
 }
+/**
+ * Build the plain-text summary used by copy, WhatsApp and email.
+ * @returns {string|null} null when CP or SP is missing
+ */
 function getSummaryText(){
   if(!LAST_CP||!LAST_SP)return null;
   var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
@@ -3018,6 +3540,9 @@ function getSummaryText(){
   lines.push('','Profit ₹:         '+INR(pr),'GP %:             '+PCT(gp),'Margin %:         '+PCT(mg),'─────────────────────────');
   return lines.join('\n');
 }
+/**
+ * Copy the summary, falling back to a dialog when the clipboard is unavailable.
+ */
 function copyToClipboard(){
   var text=getSummaryText();
   if(!text){alert('Enter CP and SP first.');return}
@@ -3025,18 +3550,30 @@ function copyToClipboard(){
     var btn=el('copy-btn');if(!btn)return;
     var orig=btn.innerHTML;btn.textContent='✓ Copied!';
     setTimeout(function(){btn.innerHTML=orig},1800);
-  }).catch(function(){alert(text)});
+  }).catch(function(e){
+    logWarn('clipboard unavailable, falling back to a dialog',e);
+    alert(text);
+  });
 }
+/**
+ * Open WhatsApp with the summary pre-filled.
+ */
 function sendWhatsApp(){
   var text=getSummaryText();
   if(!text){alert('Enter CP and SP first.');return}
   window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
 }
+/**
+ * Open the mail client with the summary pre-filled.
+ */
 function sendEmail(){
   var text=getSummaryText();
   if(!text){alert('Enter CP and SP first.');return}
   window.location.href='mailto:?subject='+encodeURIComponent('Pricing Summary — Sterling Spares')+'&body='+encodeURIComponent(text);
 }
+/**
+ * Print the page using the print stylesheet.
+ */
 function exportPDF(){
   if(!LAST_CP||!LAST_SP){alert('Enter CP and SP first.');return}
   window.print();
@@ -3145,7 +3682,8 @@ function resetAll(){
     {spDisc:'',spMode:'excl',spVal:'',spManualSub:'incl'},
     {spDisc:'',spMode:'excl',spVal:'',spManualSub:'incl'}
   ];
-  try{localStorage.removeItem('pc-state');}catch(e){}
+  try{localStorage.removeItem('pc-state');}
+  catch(e){ logError('could not clear saved state on reset (pc-state)',e); }
   updateLayout();
   calc();
 }
@@ -3155,6 +3693,9 @@ function toggleHMenu(){
   var d=el('hmenu-dropdown');
   if(d)d.classList.toggle('open');
 }
+/**
+ * Close the mobile hamburger menu.
+ */
 function closeHMenu(){
   var d=el('hmenu-dropdown');
   if(d)d.classList.remove('open');
@@ -3202,6 +3743,9 @@ function nextFrom(fromId){
   if(map[fromId])map[fromId]();
 }
 
+/**
+ * Move focus from the CP card to the SP card.
+ */
 function nextToSP(){
   // CP → SP
   var spInput=(SM==='manual')?el('spv'):el('spd');
@@ -3215,6 +3759,9 @@ function nextToSP(){
   setTimeout(function(){spInput.focus()},350);
 }
 
+/**
+ * Move focus from the SP card to the result area.
+ */
 function nextToResult(){
   // SP → profit card or summary
   if(T==='profit'){
@@ -3293,6 +3840,10 @@ document.addEventListener('keydown',function(e){
 
 /* ── Bottom nav ── */
 var BNAV_ACTIVE='calc';
+/**
+ * Scroll to a section from the bottom navigation bar.
+ * @param {string} id section suffix
+ */
 function bnavGo(id){
   // Close any open modal first
   ['settings','whatif','compare'].forEach(function(m){closeModal(m)});
@@ -3371,6 +3922,10 @@ var FC_SM    = 'excl';    // SP mode
 var FC_CPMS  = 'incl';
 var FC_SPMS  = 'incl';
 
+/**
+ * Switch between Default and Quick layouts, restoring Quick's saved inputs.
+ * @param {'default'|'quick'} m
+ */
 function setMode(m){
   haptic('select');
   APP_MODE = m;
@@ -3384,7 +3939,8 @@ function setMode(m){
     FC_STEP=0;
     // Phase 1: restore FC_* vars before building cards (FC_T drives card layout)
     var _qs=null;
-    try{_qs=JSON.parse(localStorage.getItem('pc-qstate'));}catch(e){}
+    try{_qs=JSON.parse(localStorage.getItem('pc-qstate'));}
+    catch(e){ logWarn('could not read Quick mode state (pc-qstate); using defaults',e); }
     if(_qs){
       if(_qs.t)  FC_T=_qs.t;
       if(_qs.g)  FC_G=_qs.g/100;
@@ -3419,10 +3975,19 @@ function fcINR(n){
   if(n===null||n===undefined||isNaN(n))return'—';
   return'₹'+fmtINDIAN(n);
 }
+/**
+ * Percentage formatter for Quick mode cards.
+ * @param {number|null} n
+ * @returns {string}
+ */
 function fcPCT(n){
   if(n===null||isNaN(n))return'—';
   return parseFloat(n.toFixed(4)).toFixed(2)+'%';
 }
+/**
+ * Set the GST rate in Quick mode (independent of the main calculator).
+ * @param {number} p
+ */
 function fcSetGST(p){
   haptic('select');
   FC_G=p/100;
@@ -3432,6 +3997,10 @@ function fcSetGST(p){
   fcCalc();
   saveQState();
 }
+/**
+ * Choose what Quick mode solves for.
+ * @param {'profit'|'sp'|'cp'} t
+ */
 function fcSetT(t){
   FC_T=t;
   ['profit','sp','cp'].forEach(function(k){
@@ -3443,6 +4012,10 @@ function fcSetT(t){
   if(FC_STEP>0)fcGoto(1,false);
   saveQState();
 }
+/**
+ * Set how target profit is expressed in Quick mode.
+ * @param {'val'|'gp'|'margin'} m
+ */
 function fcSetPM(m){
   FC_PM=m;
   ['val','gp','margin'].forEach(function(k){
@@ -3463,6 +4036,10 @@ function fcSetPM(m){
   }
   fcCalc();
 }
+/**
+ * Set the Quick mode CP input mode.
+ * @param {'excl'|'incl'|'manual'} m
+ */
 function fcSetCM(m){
   haptic('select');
   FC_CM=m;
@@ -3474,6 +4051,10 @@ function fcSetCM(m){
   updateGSTLabels();
   fcCalc();
 }
+/**
+ * Choose incl/excl GST for a manually entered Quick mode CP.
+ * @param {'incl'|'excl'} s
+ */
 function fcSetCPMS(s){
   haptic('select');
   FC_CPMS=s;
@@ -3481,6 +4062,10 @@ function fcSetCPMS(s){
   var inp=el('fc-cpv');if(inp)inp.placeholder=s==='incl'?'CP incl GST':'CP excl GST';
   fcCalc();
 }
+/**
+ * Set the Quick mode SP input mode.
+ * @param {'excl'|'incl'|'manual'} m
+ */
 function fcSetSM(m){
   haptic('select');
   FC_SM=m;
@@ -3492,6 +4077,10 @@ function fcSetSM(m){
   updateGSTLabels();
   fcCalc();
 }
+/**
+ * Choose incl/excl GST for a manually entered Quick mode SP.
+ * @param {'incl'|'excl'} s
+ */
 function fcSetSPMS(s){
   haptic('select');
   FC_SPMS=s;
@@ -3500,10 +4089,19 @@ function fcSetSPMS(s){
   fcCalc();
 }
 
+/**
+ * Read the Quick mode MRP field.
+ * @returns {number} 0 when blank
+ */
 function fcResolveMRP(){
   var raw=el('fc-mrp')&&el('fc-mrp').value||'';
   return parseFloat(raw.replace(/,/g,''))||0;
 }
+/**
+ * Quick mode cost price from its active input mode.
+ * @param {number} mrpV
+ * @returns {{e:number,i:number}|null}
+ */
 function fcResolveCP(fcMI){
   if(!el('fc-cpd'))return null;
   if(FC_CM==='manual'){
@@ -3515,6 +4113,11 @@ function fcResolveCP(fcMI){
   if(FC_CM==='excl'){var e=fcMI*(1-d/100);return{e:e,i:e*(1+FC_G)}}
   var i=fcMI*(1-d/100);return{e:i/(1+FC_G),i:i};
 }
+/**
+ * Quick mode selling price from its active input mode.
+ * @param {number} mrpV
+ * @returns {{e:number,i:number}|null}
+ */
 function fcResolveSP(fcMI){
   if(!el('fc-spd'))return null;
   if(FC_SM==='manual'){
@@ -3527,6 +4130,10 @@ function fcResolveSP(fcMI){
   var i2=fcMI*(1-d/100);return{e:i2/(1+FC_G),i:i2};
 }
 
+/**
+ * Quick mode target profit as entered.
+ * @returns {number} NaN when blank
+ */
 function fcResolveProfit(cp, sp){
   // Returns {cp, sp} after solving the missing one
   var mrpV=fcResolveMRP();
@@ -3553,6 +4160,9 @@ function fcResolveProfit(cp, sp){
   return{cp:cp,sp:sp};
 }
 
+/**
+ * Recompute and repaint the Quick mode result card.
+ */
 function fcCalc(){
   var mrpV=fcResolveMRP();
   if(mrpV>0){
@@ -3597,6 +4207,15 @@ function fcBuildCards(){
   elClearCache();
 }
 
+/**
+ * Build one Quick mode input field.
+ * @param {string} symTxt prefix symbol, e.g. '₹' or '%'
+ * @param {string} inputId
+ * @param {string} placeholder
+ * @param {string} extraStyle inline style for the wrapper
+ * @param {string} [sufId] id for an optional suffix span
+ * @returns {HTMLElement}
+ */
 function fcMkField(symTxt,inputId,placeholder,extraStyle,sufId){
   var isRupee=(symTxt==='₹');
   var wrap=document.createElement('div');wrap.className='fc-input-wrap';if(extraStyle)wrap.style.cssText=extraStyle;
@@ -3629,6 +4248,10 @@ function fcFmtInput(inp){
   } else if(raw===''||raw==='.'){inp.value=raw}
 }
 
+/**
+ * Build the Quick mode cost-price card.
+ * @returns {HTMLElement}
+ */
 function fcBuildCPCard(){
   var card=el('fcc-1');if(!card)return;
   card.innerHTML='';card.className='fc-card behind-1';
@@ -3682,6 +4305,10 @@ function fcBuildCPCard(){
   card.appendChild(acts);
 }
 
+/**
+ * Build the Quick mode selling-price card.
+ * @returns {HTMLElement}
+ */
 function fcBuildSPCard(){
   var slotId = (FC_T==='cp') ? 'fcc-1' : 'fcc-2';
   var card=el(slotId);if(!card)return;
@@ -3784,6 +4411,9 @@ function fcBuildProfitCard(solveFor){
   card.appendChild(acts);
 }
 
+/**
+ * Highlight the progress dot for the current Quick mode card.
+ */
 function fcUpdateDots(){
   // All modes are 3 steps (cards 0,1,2,3 = MRP,A,B,Result)
   for(var d=0;d<4;d++){
@@ -3792,6 +4422,9 @@ function fcUpdateDots(){
   }
 }
 
+/**
+ * Draw the Quick mode result card.
+ */
 function fcRenderResult(){
   var card=el('fcc-3');if(!card)return;
   var mrpV=fcResolveMRP();
@@ -3841,6 +4474,13 @@ function fcRenderResult(){
   card.innerHTML=html;
 }
 
+/**
+ * Build one labelled row for the Quick mode result card.
+ * @param {string} lbl
+ * @param {string} val
+ * @param {string} [cls]
+ * @returns {string} HTML
+ */
 function fcRItem(lbl,val,valCls,cardCls){
   return'<div class="fc-result-item '+(cardCls||'')+'">'
     +'<div class="fc-result-lbl">'+lbl+'</div>'
@@ -3911,14 +4551,23 @@ function fcGoto(step,animate){
   },380);
 }
 
+/**
+ * Advance to the next Quick mode card.
+ */
 function fcNext(){
   if(FC_STEP<3)haptic(FC_STEP===2?'success':'light');
   fcGoto(Math.min(FC_STEP+1,3),true);
 }
+/**
+ * Return to the previous Quick mode card.
+ */
 function fcBack(){
   if(FC_STEP>0){haptic('select');fcGoto(FC_STEP-1,true);}
 }
 
+/**
+ * Clear Quick mode back to defaults.
+ */
 function fcReset(){
   FC_CM='excl';FC_SM='excl';FC_CPMS='incl';FC_SPMS='incl';FC_T='profit';FC_PM='val';
   // Reset solve-for tabs
@@ -3927,6 +4576,9 @@ function fcReset(){
   ['fc-mrp','fc-cpd','fc-cpv','fc-spd','fc-spv'].forEach(function(id){var e=el(id);if(e)e.value=''});
 }
 
+/**
+ * Copy Quick mode values into the main calculator and switch to it.
+ */
 function fcToDefault(){
   // Copy quick-mode values into default calc and switch
   var mrpV=fcResolveMRP();
@@ -4018,6 +4670,10 @@ function deleteHistEntry(idx){
 
 /* ── History search / filter / tags ── */
 function setHistQuery(q){HIST_QUERY=(q||'').trim().toLowerCase();renderHistory()}
+/**
+ * Apply a history filter and repaint the pills.
+ * @param {'all'|'pos'|'neg'|'below'|'tagged'} f
+ */
 function setHistFilter(f){
   HIST_FILTER=f;
   ['all','pos','neg','below','tagged'].forEach(function(k){
@@ -4025,6 +4681,13 @@ function setHistFilter(f){
   });
   renderHistory();
 }
+/**
+ * Whether a history entry passes the active filter and search.
+ * The search runs over tag, GST, date and every displayed number.
+ * @param {Object} h history entry
+ * @param {{gp:number|null,mg:number|null}} floor
+ * @returns {boolean}
+ */
 function histMatches(h,floor){
   if(HIST_FILTER==='pos'&&!(h.pr>0))return false;
   if(HIST_FILTER==='neg'&&!(h.pr<0))return false;
@@ -4037,6 +4700,10 @@ function histMatches(h,floor){
     h.ts?fmtTime(h.ts):(h.time||'')].join(' ').toLowerCase();
   return hay.indexOf(HIST_QUERY)!==-1;
 }
+/**
+ * Swap an entry's tag chip for an input. Enter commits, Escape discards.
+ * @param {number} idx index into HISTORY
+ */
 function startTagEdit(idx){
   var cell=document.getElementById('tag-'+idx);
   if(!cell)return;
@@ -4047,6 +4714,11 @@ function startTagEdit(idx){
   var inp=document.getElementById('tagin-'+idx);
   if(inp){inp.focus();inp.select()}
 }
+/**
+ * Save an edited tag. An empty value removes it. Undoable.
+ * @param {number} idx index into HISTORY
+ * @param {string} val new tag, truncated to 24 chars
+ */
 function commitTag(idx,val){
   if(val==='\u0000'){renderHistory();return} // Escape — discard
   if(!HISTORY[idx]){renderHistory();return}
@@ -4108,6 +4780,10 @@ var WZ_MS='incl';  // manual sub: 'incl' | 'excl'
 var WZ_CDM='before'; // CD mode
 var WZ_SCM='pct';    // scheme mode
 
+/**
+ * Set the GST rate in wizard mode.
+ * @param {number} p
+ */
 function wzSetGST(p){
   WZ_G=p/100;
   el('wzg18').className='stab'+(p===18?' on':'');
@@ -4115,6 +4791,10 @@ function wzSetGST(p){
   updateGSTLabels();
   wzCalc();
 }
+/**
+ * Choose whether the wizard is pricing CP or SP.
+ * @param {'cp'|'sp'} t
+ */
 function wzSetT(t){
   WZ_T=t;
   el('wz-t-cp').className='stab'+(t==='cp'?' on':'');
@@ -4125,6 +4805,10 @@ function wzSetT(t){
   updateGSTLabels(); // updates all wizard incl/excl labels with current WZ_G
   wzCalc();
 }
+/**
+ * Set the wizard's price input mode.
+ * @param {'excl'|'incl'|'manual'} m
+ */
 function wzSetCM(m){
   WZ_CM=m;
   ['excl','incl','manual'].forEach(function(k){el('wz-cm-'+k).className='stab'+(m===k?' on':'')});
@@ -4133,18 +4817,30 @@ function wzSetCM(m){
   updateGSTLabels();
   wzCalc();
 }
+/**
+ * Choose incl/excl GST for a manually entered wizard price.
+ * @param {'incl'|'excl'} s
+ */
 function wzSetMS(s){
   WZ_MS=s;
   el('wz-ms-incl').className='stab'+(s==='incl'?' on':'');
   el('wz-ms-excl').className='stab'+(s==='excl'?' on':'');
   wzCalc();
 }
+/**
+ * Choose whether wizard cash discount applies before or after GST.
+ * @param {'before'|'after'} m
+ */
 function wzSetCDMode(m){
   WZ_CDM=m;
   el('wz-cdm-before').className='stab'+(m==='before'?' on':'');
   el('wz-cdm-after').className='stab'+(m==='after'?' on':'');
   wzCalc();
 }
+/**
+ * Switch the wizard scheme between percentage and flat ₹.
+ * @param {'pct'|'abs'} m
+ */
 function wzSetScMode(m){
   WZ_SCM=m;
   el('wz-scm-pct').className='stab'+(m==='pct'?' on':'');
@@ -4154,14 +4850,25 @@ function wzSetScMode(m){
   else el('wz-iv-sc').max='100';
   wzCalc();
 }
+/**
+ * Show or hide the wizard's cash-discount sub-options.
+ */
 function wzSyncCD(){
   el('wz-cdm-sub').style.display=el('wz-it-cd').checked?'block':'none';
   wzCalc();
 }
+/**
+ * Show or hide the wizard's scheme sub-options.
+ */
 function wzSyncSc(){
   el('wz-scm-sub').style.display=el('wz-it-sc').checked?'block':'none';
   wzCalc();
 }
+/**
+ * Format an amount for wizard display.
+ * @param {number} n
+ * @returns {string}
+ */
 function wzFmtAmt(inp){
   var raw=inp.value.replace(/[^0-9.]/g,'');
   var pts=raw.split('.');if(pts.length>2)raw=pts[0]+'.'+pts.slice(1).join('');
@@ -4172,6 +4879,11 @@ function wzFmtAmt(inp){
     inp.value=fmt;
   } else if(raw===''||raw==='.'){inp.value=raw}
 }
+/**
+ * Total wizard incentive value in rupees.
+ * @param {{e:number,i:number}} p base price
+ * @returns {number}
+ */
 function wzGetInc(price){
   if(!price)return 0;
   var t=0;
@@ -4184,6 +4896,9 @@ function wzGetInc(price){
   });
   return t;
 }
+/**
+ * Recompute and repaint the wizard's breakdown.
+ */
 function wzCalc(){
   var mrp=parseFloat((el('wz-mrp').value||'').replace(/,/g,''))||0;
   var ids=['wz-rde','wz-rdi','wz-rve','wz-rvi','wz-rga','wz-rinc','wz-reff','wz-reffi'];
@@ -4232,6 +4947,9 @@ function wzCalc(){
   }
 }
 
+/**
+ * Clear the wizard back to defaults.
+ */
 function wzReset(){
   el('wz-mrp').value='';el('wz-disc').value='';el('wz-manual').value='';
   ['cd','eb','qt','an','sc'].forEach(function(k){if(el('wz-it-'+k))el('wz-it-'+k).checked=false});
@@ -4239,6 +4957,9 @@ function wzReset(){
   wzSetT('cp');wzSetCM('excl');wzSetMS('incl');wzSetCDMode('before');wzSetScMode('pct');wzSetGST(18);
 }
 
+/**
+ * Copy wizard values into the main calculator and switch to it.
+ */
 function wzToDefault(){
   var mrpV=el('wz-mrp').value;if(mrpV)el('mrp').value=mrpV;
   setGST(Math.round(WZ_G*100));
@@ -4264,15 +4985,29 @@ function wzToDefault(){
    Each line is self-contained: MRP, qty and net CP/SP discounts on MRP.
    Incentives are deliberately excluded — enter the net landed discount per line. */
 function qtBlank(){return{desc:'',mrp:'',qty:1,cpd:'',spd:''}}
-function saveQuote(){try{localStorage.setItem('pc-quote',JSON.stringify(QUOTE))}catch(e){}}
+/**
+ * Persist the quote lines.
+ */
+function saveQuote(){
+  try{ localStorage.setItem('pc-quote',JSON.stringify(QUOTE)) }
+  catch(e){ logError('could not save quote lines (pc-quote)',e); }
+}
+/**
+ * Restore saved quote lines.
+ */
 function loadQuote(){
   try{
     var raw=localStorage.getItem('pc-quote');
     if(!raw)return;
     var a=JSON.parse(raw);
     if(Array.isArray(a))QUOTE=a;
-  }catch(e){}
+  }catch(e){ logWarn('could not read saved quote (pc-quote); starting empty',e); }
 }
+/**
+ * Compute one quote line at the current GST and rounding settings.
+ * @param {Object} L line record
+ * @returns {Object|null} null when MRP or either discount is missing/invalid
+ */
 function qtCalcLine(L){
   var mrp=parseFloat(L.mrp),qty=parseInt(L.qty,10)||1;
   if(isNaN(mrp)||mrp<=0)return null;
@@ -4289,6 +5024,12 @@ function qtCalcLine(L){
     gp:(sp.e>0)?(unitPr/sp.e)*100:null
   };
 }
+/**
+ * Aggregate every complete quote line.
+ * Incomplete lines are skipped rather than treated as zero, so a half-typed row
+ * doesn't drag the blended GP down.
+ * @returns {Object} totals including blended gp and mg
+ */
 function qtTotals(){
   var t={val:0,pr:0,cost:0,rev:0,units:0,lines:0};
   QUOTE.forEach(function(L){
@@ -4302,6 +5043,9 @@ function qtTotals(){
   t.mg=(t.cost>0)?(t.pr/t.cost)*100:null;
   return t;
 }
+/**
+ * Rebuild the quote table and its totals row.
+ */
 function qtRender(){
   var tbl=el('qt-table');
   if(!tbl)return;
@@ -4347,6 +5091,14 @@ function qtRender(){
     +'</tr></tfoot>';
   tbl.innerHTML=h;
 }
+/**
+ * Update one field of one quote line.
+ * Refreshes only the derived cells, leaving the inputs untouched so focus and
+ * caret position survive typing.
+ * @param {number} i line index
+ * @param {string} field property name
+ * @param {string} val
+ */
 function qtSet(i,field,val){
   if(!QUOTE[i])return;
   QUOTE[i][field]=val;
@@ -4354,6 +5106,9 @@ function qtSet(i,field,val){
   // Recompute derived cells without rebuilding the row (keeps focus/caret intact)
   qtRefreshDerived();
 }
+/**
+ * Recompute the calculated cells and totals without rebuilding the inputs.
+ */
 function qtRefreshDerived(){
   var rowsEls=document.querySelectorAll('#qt-table tbody tr');
   var floor=getFloor();
@@ -4374,11 +5129,17 @@ function qtRefreshDerived(){
   if(tp){tp.textContent=INR(t.pr);tp.className='num '+(t.pr>=0?'qt-pos':'qt-neg')}
   if(tg)tg.textContent=PCT(t.gp);
 }
+/**
+ * Append a blank quote line.
+ */
 function qtAddLine(){
   pushUndo('add quote line');
   QUOTE.push(qtBlank());
   saveQuote();qtRender();haptic('light');
 }
+/**
+ * Add a quote line from the main calculator's current MRP, quantity and discounts.
+ */
 function qtAddFromCalc(){
   var mrpV=parseMRP();
   if(!mrpV||!LAST_CP||!LAST_SP){toast('Enter MRP, CP and SP first');return}
@@ -4394,6 +5155,10 @@ function qtAddFromCalc(){
   saveQuote();qtRender();haptic('light');
   toast('Line added from calculator',true);
 }
+/**
+ * Remove one quote line. Undoable.
+ * @param {number} i line index
+ */
 function qtDelLine(i){
   if(!QUOTE[i])return;
   pushUndo('delete quote line');
@@ -4401,6 +5166,9 @@ function qtDelLine(i){
   saveQuote();qtRender();haptic('light');
   toast('Line removed',true);
 }
+/**
+ * Remove all quote lines, after confirmation. Undoable.
+ */
 function qtClear(){
   if(QUOTE.length===0){toast('Quote is already empty');return}
   askConfirm('Clear quote',
@@ -4413,6 +5181,9 @@ function qtClear(){
       toast('Quote cleared',true);
     });
 }
+/**
+ * Download the quote as CSV, including a totals row.
+ */
 function qtExportCSV(){
   if(QUOTE.length===0){toast('Nothing to export');return}
   var g=Math.round(G*100);
@@ -4437,6 +5208,10 @@ function qtExportCSV(){
   document.body.appendChild(a);a.click();
   setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url)},200);
 }
+/**
+ * Build the plain-text quote for copying.
+ * @returns {string|null} null when the quote is empty
+ */
 function getQuoteText(){
   if(QUOTE.length===0)return null;
   var g=Math.round(G*100),t=qtTotals();
@@ -4458,6 +5233,9 @@ function getQuoteText(){
   lines.push('Blended GP:   '+PCT(t.gp));
   return lines.join('\n');
 }
+/**
+ * Copy the quote text to the clipboard.
+ */
 function qtCopy(){
   var txt=getQuoteText();
   if(!txt){toast('Nothing to copy');return}
@@ -4466,6 +5244,11 @@ function qtCopy(){
     navigator.clipboard.writeText(txt).then(done,function(){fallbackCopyQuote(txt,done)});
   } else fallbackCopyQuote(txt,done);
 }
+/**
+ * Clipboard fallback via a hidden textarea, for browsers without the async API.
+ * @param {string} txt
+ * @param {Function} done success callback
+ */
 function fallbackCopyQuote(txt,done){
   try{
     var ta=document.createElement('textarea');
@@ -4474,7 +5257,10 @@ function fallbackCopyQuote(txt,done){
     document.execCommand('copy');
     document.body.removeChild(ta);
     done();
-  }catch(e){toast('Copy failed')}
+  }catch(e){
+    logError('clipboard copy failed (execCommand fallback)',e);
+    toast('Copy failed');
+  }
 }
 
 /* ── Share as link ── */
@@ -4502,6 +5288,11 @@ function getShareState(){
   };
 }
 
+/**
+ * Apply a state object from a share link or localStorage.
+ * Each field is applied independently so one bad value can't block the rest.
+ * @param {Object} s state object from getShareState
+ */
 function applyShareState(s){
   try{
     if(s.rnd)setRounding(s.rnd);
@@ -4546,25 +5337,41 @@ function applyShareState(s){
     if(s.spincm){SP_INC_MODE=s.spincm;SP_INC_KEYS.forEach(function(k){if(isCustomInc(k))applyIncModeVisuals('sp',k)});}
     if(s.t)setT(s.t);
     calc();
-  }catch(e){console.warn('share state restore failed',e)}
+  }catch(e){ logError('could not apply shared/saved state — some fields may be unset',e) }
 }
 
+/**
+ * Share the current calculation as a URL, via the native share sheet on mobile
+ * or the clipboard elsewhere.
+ */
 function shareLink(){
   var state=getShareState();
   var encoded;
   try{encoded=btoa(unescape(encodeURIComponent(JSON.stringify(state))))}
-  catch(e){encoded=btoa(JSON.stringify(state))}
+  catch(e){
+    // Unicode in a description can break btoa's Latin-1 assumption; retry raw.
+    logWarn('unicode-safe share encoding failed, retrying plain',e);
+    encoded=btoa(JSON.stringify(state));
+  }
   var url=location.href.split('?')[0].split('#')[0]+'?s='+encoded;
 
   // Use Web Share API on mobile if available
   if(navigator.share&&window.innerWidth<=800){
     navigator.share({title:'Pricing Calculation — Sterling Spares',url:url})
-      .catch(function(){copyUrl(url)});
+      .catch(function(e){
+        // Includes the user simply dismissing the sheet, hence warn not error.
+        logWarn('Web Share dismissed or unavailable, copying instead',e);
+        copyUrl(url);
+      });
     return;
   }
   copyUrl(url);
 }
 
+/**
+ * Copy a URL to the clipboard, prompting the user if that fails.
+ * @param {string} url
+ */
 function copyUrl(url){
   navigator.clipboard.writeText(url).then(function(){
     var btn=el('share-btn');
@@ -4572,11 +5379,16 @@ function copyUrl(url){
     var orig=btn.innerHTML;
     btn.textContent='✓ Copied!';
     setTimeout(function(){btn.innerHTML=orig},2000);
-  }).catch(function(){
+  }).catch(function(e){
+    logWarn('clipboard write failed, prompting user to copy manually',e);
     prompt('Copy this link:',url);
   });
 }
 
+/**
+ * Apply state from the ?s= parameter if present and decodable.
+ * @returns {boolean} true if state was applied
+ */
 function restoreFromUrl(){
   try{
     var params=new URLSearchParams(location.search);
@@ -4587,9 +5399,17 @@ function restoreFromUrl(){
     // Show a subtle banner
     showRestoreBanner();
     return true;
-  }catch(e){return false}
+  }catch(e){
+    // A truncated or hand-edited ?s= param lands here; fall through to
+    // localStorage rather than showing the user a broken calculator.
+    logWarn('could not decode shared state from the URL (?s=); ignoring it',e);
+    return false;
+  }
 }
 
+/**
+ * Briefly confirm that a shared calculation was loaded.
+ */
 function showRestoreBanner(){
   var b=document.createElement('div');
   b.style.cssText='position:fixed;top:64px;left:50%;transform:translateX(-50%);background:var(--blue);color:#fff;font-family:var(--font,sans-serif);font-size:12px;padding:7px 16px;border-radius:20px;z-index:400;box-shadow:0 2px 12px rgba(0,0,0,0.2);white-space:nowrap;pointer-events:none';
@@ -4613,9 +5433,12 @@ function registerSW(){
         }
       });
     });
-  }).catch(function(e){console.log('SW registration skipped:',e.message)});
+  }).catch(function(e){ logWarn('service worker registration skipped — offline mode unavailable',e) });
 }
 
+/**
+ * Tell the user a new version is cached and offer a reload.
+ */
 function showUpdateBanner(){
   var b=document.createElement('div');
   b.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-family:sans-serif;font-size:12px;padding:8px 18px;border-radius:20px;z-index:400;box-shadow:0 2px 12px rgba(0,0,0,0.3);cursor:pointer;white-space:nowrap';
@@ -4684,20 +5507,32 @@ var OB_STEPS=[
 ];
 var OB_STEP=0;
 
+/**
+ * Start the onboarding walkthrough.
+ */
 function obShow(){
   OB_STEP=0;
   el('ob-overlay').classList.add('show');
   obRender();
 }
+/**
+ * Dismiss onboarding and remember that it was seen.
+ */
 function obSkip(){
   el('ob-overlay').classList.remove('show');
   localStorage.setItem('ob-done','1');
 }
+/**
+ * Advance onboarding, finishing after the last step.
+ */
 function obNext(){
   OB_STEP++;
   if(OB_STEP>=OB_STEPS.length){obSkip();return}
   obRender();
 }
+/**
+ * Draw the current onboarding step.
+ */
 function obRender(){
   var s=OB_STEPS[OB_STEP];
   // dots
