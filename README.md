@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-578%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-578%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
