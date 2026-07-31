@@ -113,8 +113,6 @@ Tap **Done** to leave edit mode. Tapping **Edit** on a collapsed panel expands i
 - Toggle states and entered values are preserved when entering or leaving edit mode.
 - Your incentive list and custom names **persist across sessions** (`pc-labels` in `localStorage`).
 
-> Renaming used to live in Settings → Incentive Labels. That section has been removed; renaming now happens inline in each panel.
-
 ---
 
 ## 📊 Calculation Summary
