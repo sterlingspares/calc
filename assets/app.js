@@ -445,7 +445,7 @@ function onCustomRounding(inp){
   if(isNaN(v)||v<=0||v>100000){
     logWarn('ignoring invalid rounding step: '+JSON.stringify(inp.value)+' (expected a positive number)');
     toast('Rounding step must be greater than 0');
-    inp.value=(ROUND_MODE==='off'||ROUND_MODE==='1'||ROUND_MODE==='5')?'':ROUND_MODE;
+    inp.value=isCustomRounding()?ROUND_MODE:'';
     return;
   }
   setRounding(String(v));
@@ -498,16 +498,30 @@ function roundPrice(p){
  * @param {string} m 'off', or any positive step as a string — '1' and '5' have
  *   preset buttons, anything else comes from the custom box.
  */
+/**
+ * Whether the active rounding step came from the custom box rather than a
+ * preset button.
+ * @returns {boolean}
+ */
+function isCustomRounding(){
+  return ROUND_MODE!=='off'&&ROUND_MODE!=='1'&&ROUND_MODE!=='5';
+}
+
 function setRounding(m){
   haptic('select');
   ROUND_MODE=String(m);
+  var custom=isCustomRounding();
   ['off','1','5'].forEach(function(k){
     var b=el('rnd-'+k);if(b)b.className='pill'+(k===ROUND_MODE?' on':'');
   });
+  // Highlight the custom chip when it is the live mode, so the row always has
+  // exactly one control reading as selected.
+  var wrap=el('rnd-custom-wrap');
+  if(wrap)wrap.className='rnd-custom-wrap'+(custom?' on':'');
   // Mirror into the custom box, unless the user is mid-edit in it
   var rc=el('rnd-custom');
   if(rc&&document.activeElement!==rc){
-    rc.value=(ROUND_MODE==='off'||ROUND_MODE==='1'||ROUND_MODE==='5')?'':ROUND_MODE;
+    rc.value=custom?ROUND_MODE:'';
   }
   calc();saveCalcState();
   if(el('overlay-quote').classList.contains('open'))qtRender();

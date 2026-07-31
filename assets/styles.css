@@ -208,11 +208,17 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .gst-custom-wrap input::-webkit-outer-spin-button,.gst-custom-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .gst-custom-wrap span{font-size:11px;color:var(--text3)}
 /* Custom rounding step — same widget as the custom GST rate, prefix instead of suffix */
-.rnd-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:20px;padding:1px 2px 1px 8px;background:var(--surface)}
+.rnd-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:20px;padding:1px 2px 1px 8px;background:var(--surface);transition:background .15s,border-color .15s}
 .rnd-custom-wrap:focus-within{border-color:var(--accent)}
 .rnd-custom-wrap input{border:none;background:transparent;width:44px;font-size:12px;font-family:var(--font-body);text-align:center;outline:none;color:var(--text);padding:2px;-moz-appearance:textfield}
 .rnd-custom-wrap input::-webkit-outer-spin-button,.rnd-custom-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .rnd-custom-wrap span{font-size:11px;color:var(--text3)}
+/* Active state: a custom step is the live rounding mode. Matches .pill.on, so
+   exactly one control in the row reads as selected at any time. The value shown
+   in the field is the non-colour cue (WCAG 1.4.1). */
+.rnd-custom-wrap.on{background:var(--accent);border-color:var(--accent)}
+.rnd-custom-wrap.on input{color:var(--accent-fg);font-weight:600}
+.rnd-custom-wrap.on span{color:rgba(255,255,255,0.72)}
 
 /* ── SUMMARY ── */
 .summary-wrap{margin-bottom:1.25rem}

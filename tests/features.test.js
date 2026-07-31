@@ -844,5 +844,62 @@ ok('values survive the collapse-as-Done path', Math.abs(num('pvv') - beforeEdit)
    'got ' + num('pvv'));
 ok('checkbox still set', d.getElementById('it-eb').checked === true);
 
+R.section('\n=== 54. Custom rounding chip shows it is active ===');
+freshCalc(1000, 40, 25);
+const rndWrap = d.getElementById('rnd-custom-wrap');
+ok('chip wrapper exists', !!rndWrap);
+
+w.setRounding('off');
+ok('off: chip not highlighted', rndWrap.className === 'rnd-custom-wrap', rndWrap.className);
+ok('off: isCustomRounding is false', w.isCustomRounding() === false);
+ok('off: Off pill is the selected one', d.getElementById('rnd-off').className === 'pill on');
+
+w.setRounding('5');
+ok('preset: chip not highlighted', rndWrap.className === 'rnd-custom-wrap', rndWrap.className);
+ok('preset: isCustomRounding is false', w.isCustomRounding() === false);
+ok('preset: chip is emptied', d.getElementById('rnd-custom').value === '');
+
+w.setRounding('20');
+ok('custom: chip is highlighted', rndWrap.className.indexOf('on') !== -1, rndWrap.className);
+ok('custom: isCustomRounding is true', w.isCustomRounding() === true);
+ok('custom: chip shows the value', d.getElementById('rnd-custom').value === '20');
+ok('custom: no preset pill is selected',
+   ['off','1','5'].every(k => d.getElementById('rnd-' + k).className === 'pill'));
+
+// Exactly one control in the row should read as selected at any time
+const selectedCount = () =>
+  ['off','1','5'].filter(k => d.getElementById('rnd-' + k).className.indexOf('on') !== -1).length +
+  (rndWrap.className.indexOf('on') !== -1 ? 1 : 0);
+ok('custom: exactly one control selected', selectedCount() === 1, 'got ' + selectedCount());
+w.setRounding('1');
+ok('preset: exactly one control selected', selectedCount() === 1, 'got ' + selectedCount());
+w.setRounding('off');
+ok('off: exactly one control selected', selectedCount() === 1, 'got ' + selectedCount());
+
+// Fractional custom values count as custom too
+w.setRounding('0.5');
+ok('fractional step highlights the chip', rndWrap.className.indexOf('on') !== -1);
+w.setRounding('off');
+ok('returning to off clears the highlight', rndWrap.className === 'rnd-custom-wrap');
+
+// Highlight must survive a reload from saved state
+w.setRounding('25');
+const rndState = w.getShareState();
+w.setRounding('off');
+ok('highlight cleared before restore', rndWrap.className === 'rnd-custom-wrap');
+w.applyShareState(rndState);
+ok('restored state re-applies the highlight', rndWrap.className.indexOf('on') !== -1,
+   rndWrap.className);
+ok('restored chip shows the value', d.getElementById('rnd-custom').value === '25');
+w.setRounding('off');
+
+// Rejecting a bad entry must not leave a stale highlight
+const rndInput = d.getElementById('rnd-custom');
+rndInput.value = '-3';
+w.onCustomRounding(rndInput);
+ok('rejected input leaves rounding off', w.ROUND_MODE === 'off');
+ok('rejected input leaves the chip unhighlighted', rndWrap.className === 'rnd-custom-wrap',
+   rndWrap.className);
+
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

@@ -270,6 +270,76 @@ async function launchChromium(chromium) {
      (await page.textContent('#cp-inc-edit-btn')).trim() === 'Edit',
      await page.textContent('#cp-inc-edit-btn'));
 
+  /* ── 7d. Custom rounding chip highlight (computed) ────────────────── */
+  R.section('\n=== 7d. Rounding chip highlight ===');
+  await page.evaluate(() => window.openModal('settings'));
+  await page.waitForTimeout(150);
+
+  // The chip animates via `transition: background .15s`. Sampling the computed
+  // value against that transition made this section flaky, so run the whole
+  // comparison under reduced motion — the app collapses transition-duration to
+  // ~0 there, making every read deterministic. It also exercises that CSS.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+
+  const chipStyle = () => page.evaluate(() => {
+    const w = document.getElementById('rnd-custom-wrap');
+    const i = document.getElementById('rnd-custom');
+    const s = getComputedStyle(w);
+    return {
+      on: w.classList.contains('on'),
+      bg: s.backgroundColor,
+      border: s.borderTopColor,
+      fg: getComputedStyle(i).color,
+    };
+  });
+
+  await page.evaluate(() => window.setRounding('off'));
+  const offStyle = await chipStyle();
+  await page.evaluate(() => window.setRounding('20'));
+  const onStyle = await chipStyle();
+
+  ok('chip is marked active only for a custom step',
+     offStyle.on === false && onStyle.on === true,
+     `off=${offStyle.on} on=${onStyle.on}`);
+
+  ok('chip background changes when active', onStyle.bg !== offStyle.bg,
+     offStyle.bg + ' -> ' + onStyle.bg);
+  ok('chip border changes when active', onStyle.border !== offStyle.border,
+     offStyle.border + ' -> ' + onStyle.border);
+  ok('chip text colour changes when active', onStyle.fg !== offStyle.fg,
+     offStyle.fg + ' -> ' + onStyle.fg);
+
+  // The value itself is the non-colour cue, so the state is not colour-only
+  ok('chip shows the step as a non-colour cue',
+     await page.inputValue('#rnd-custom') === '20');
+
+  // Highlighted text must stay legible on the new background
+  const chipContrast = await page.evaluate(() => {
+    const parse = c => (c.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+    const lum = ([r, g, b]) => {
+      const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
+    const w = document.getElementById('rnd-custom-wrap');
+    const i = document.getElementById('rnd-custom');
+    const [la, lb] = [lum(parse(getComputedStyle(i).color)), lum(parse(getComputedStyle(w).backgroundColor))];
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  });
+  ok('highlighted value meets 4.5:1 on the chip', chipContrast >= 4.5,
+     chipContrast.toFixed(2) + ':1');
+
+  // Only one control in the row may read as selected
+  const selected = await page.evaluate(() =>
+    ['rnd-off', 'rnd-1', 'rnd-5'].filter(id =>
+      document.getElementById(id).className.includes('on')).length +
+    (document.getElementById('rnd-custom-wrap').className.includes('on') ? 1 : 0));
+  ok('exactly one rounding control reads as selected', selected === 1, 'got ' + selected);
+
+  await page.evaluate(() => window.setRounding('off'));
+  await page.emulateMedia({ reducedMotion: null });
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(120);
+
   /* ── 8. Mobile viewport ───────────────────────────────────────────── */
   R.section('\n=== 8. Mobile viewport ===');
   await page.setViewportSize({ width: 390, height: 780 });

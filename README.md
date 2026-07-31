@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-578%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-606%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -39,6 +39,8 @@ Quantity is saved with history entries and included in the CSV export. Absolute 
 
 ### Rounding
 Settings → **Rounding**: **Off**, **₹1**, **₹5**, or any step you type into the **Other ₹** box (₹20, ₹0.50, ₹100 — anything above zero, decimals allowed).
+
+The active option is always highlighted — including the custom box, which fills with the accent colour when a custom step is what's live, so it is obvious at a glance that rounding is on. The step is shown in the field itself, so the state is never signalled by colour alone.
 
 Rounding is applied to the incl-GST (sticker) price, with excl-GST and profit derived from the rounded figure — so what you quote and what you bank stay consistent. It applies to the main calculator and every quote line, and persists in share links.
 
@@ -327,7 +329,7 @@ Checked with axe-core (WCAG 2.0/2.1 A + AA + best practice) across the default v
 
 ## 🧪 Tests
 
-578 assertions across six suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
+606 assertions across six suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
 
 ```bash
 npm install   # jsdom, dev-only
@@ -336,12 +338,12 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 299 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
+| `features` | 320 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 68 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
 | `a11y` | 90 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
-| `browser` | 38 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport |
+| `browser` | 45 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport |
 
 Individual suites: `npm run test:features`, `test:errors`, `test:mobile`, `test:fab`, `test:a11y`, `test:browser`. Full assertion output: `npm run test:verbose`.
 
