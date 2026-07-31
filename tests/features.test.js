@@ -993,6 +993,19 @@ ok('index.html has zero on* attributes',
    !/\son(click|change|input|focus|blur|keydown|load|submit)\s*=/.test(mk));
 ok('generated markup has zero on* attributes',
    !/\son(click|change|input|focus|blur|keydown)\s*=\s*["\\]/.test(js));
+// A toast confirming something done inside a dialog has to sit above it. The
+// overlay is z-index 600 and carries a backdrop blur, so a toast underneath was
+// dimmed and softened rather than merely behind.
+ok('toasts stack above dialogs', (() => {
+  const cssSrc = readAsset('assets/styles.css');
+  const zOf = sel => {
+    const m = cssSrc.match(new RegExp('^\\' + sel + '\\{[^}]*z-index:(\\d+)', 'm'));
+    return m ? +m[1] : null;
+  };
+  const t = zOf('.toast'), o = zOf('.modal-overlay');
+  return t !== null && o !== null && t > o;
+})(), 'toast is not above .modal-overlay');
+
 ok('CSP omits unsafe-inline for scripts',
    /script-src\s+'self'\s*;/.test(mk), 'script-src is not exactly self');
 ok('CSP still present', mk.indexOf('Content-Security-Policy') !== -1);
@@ -2138,6 +2151,32 @@ ok('and the display dashes instead of showing rupees wearing a foreign symbol',
    w.SINR(1000) === '—', w.SINR(1000));
 ok('the note says so', d.getElementById('fx-note').textContent.indexOf('no rate') !== -1,
    d.getElementById('fx-note').textContent);
+
+// ── The override must be findable ────────────────────────────
+// It used to hide itself whenever rupees were showing. That worked while the
+// currency picker sat in the control bar, but the picker moved into that same
+// panel, so the setting looked as though it had been dropped.
+w.setDisplayCcy('INR', 'both');
+w.openModal('settings');
+const fxRow = d.getElementById('fx-manual-row');
+const fxBoxEl = d.getElementById('fx-manual');
+ok('the rate override is visible with rupees showing', fxRow.style.display !== 'none',
+   'display=' + fxRow.style.display);
+ok('but not editable until a currency is chosen', fxBoxEl.disabled === true);
+ok('and it says so',
+   d.getElementById('fx-manual-hint').textContent.indexOf('Pick a currency') !== -1,
+   d.getElementById('fx-manual-hint').textContent);
+w.FX.rates = { INR: 1, USD: 0.01, BRL: 0.02 }; w.FX.fetched = w.nowMs();
+w.setDisplayCcy('USD', 'both');
+ok('choosing one enables it', fxBoxEl.disabled === false);
+ok('and it names the currency',
+   d.getElementById('fx-manual-pre').textContent === '1 USD =',
+   d.getElementById('fx-manual-pre').textContent);
+w.setDisplayCcy('INR', 'both');
+ok('going back to rupees does not hide it again', fxRow.style.display !== 'none',
+   'display=' + fxRow.style.display);
+w.closeModal('settings');
+w.setDisplayCcy('BRL', 'both');
 
 // ── Manual override ───────────────────────────────────────────────────────
 const fxIn = d.getElementById('fx-manual');

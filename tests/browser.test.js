@@ -541,6 +541,34 @@ async function launchChromium(chromium) {
     await p6.close();
   }
 
+  /* ── 7f3. A toast raised inside a dialog is actually visible ───────── */
+  R.section('\n=== 7f3. Toasts clear the dialog above them ===');
+  {
+    // Stacking is one thing; being the element actually painted is another.
+    // The overlay carries a backdrop-filter, so a toast beneath it was dimmed
+    // and blurred rather than merely behind — invisible in practice.
+    const p7 = await browser.newPage({ viewport: { width: 1100, height: 900 } });
+    // Onboarding is z-index 1000 and would be the topmost element on a first visit.
+    await p7.addInitScript(() => { try { localStorage.setItem('ob-done', '1'); } catch (e) {} });
+    await p7.goto(origin + '/');
+    await p7.waitForTimeout(500);
+    await p7.emulateMedia({ reducedMotion: 'reduce' });
+    await p7.evaluate(() => { window.openModal('settings'); window.toast('Rates updated', true); });
+    await p7.waitForTimeout(400);
+    const hit = await p7.evaluate(() => {
+      const t = document.getElementById('toast');
+      const b = t.getBoundingClientRect();
+      const top = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      return { inside: t.contains(top), top: top ? (top.id || top.className) : null,
+               tz: +getComputedStyle(t).zIndex,
+               oz: +getComputedStyle(document.getElementById('overlay-settings')).zIndex };
+    });
+    ok('the toast is the element painted at its own centre', hit.inside === true,
+       'topmost was ' + hit.top);
+    ok('and it stacks above the dialog', hit.tz > hit.oz, hit.tz + ' vs ' + hit.oz);
+    await p7.close();
+  }
+
   /* ── 7g. Non-text contrast, WCAG 1.4.11 ───────────────────────────── */
   R.section('\n=== 7g. Control boundaries (WCAG 1.4.11) ===');
   {

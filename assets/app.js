@@ -797,18 +797,28 @@ function renderFxNote(){
       ? 'Rates last updated '+fxAgeText(fxAge())+', from open.er-api.com. '
       : 'Rates not fetched yet. ')+tail;
   }
+  // The row used to hide itself whenever rupees were showing. That was fine
+  // while the currency picker sat in the control bar, but the picker is in this
+  // same panel now — so hiding the override until a currency is chosen made it
+  // look as though the setting had gone. It stays put, and explains itself.
   var row=el('fx-manual-row'),pre=el('fx-manual-pre'),inp=el('fx-manual');
-  if(row)row.style.display=DISPLAY_CCY==='INR'?'none':'';
-  if(pre)pre.textContent='1 '+DISPLAY_CCY+' =';
-  if(inp&&document.activeElement!==inp){
-    var m=FX.manual?FX.manual[DISPLAY_CCY]:0;
-    inp.value=m>0?String(+(1/m).toFixed(4)):'';
+  var rupees=(DISPLAY_CCY==='INR');
+  if(row)row.style.display='';
+  if(pre)pre.textContent=rupees?'Rate':'1 '+DISPLAY_CCY+' =';
+  if(inp){
+    inp.disabled=rupees;
+    if(document.activeElement!==inp){
+      var m=FX.manual?FX.manual[DISPLAY_CCY]:0;
+      inp.value=(!rupees&&m>0)?String(+(1/m).toFixed(4)):'';
+    }
   }
   var hint=el('fx-manual-hint');
   if(hint){
-    hint.textContent=(FX.manual&&FX.manual[DISPLAY_CCY]>0)
-      ? 'Your rate is being used instead of the fetched one. Clear the box to go back.'
-      : 'Set the rate yourself — for a contracted rate, or when offline.';
+    hint.textContent=rupees
+      ? 'Pick a currency above first, then set its rate here — for a contracted rate, or when offline.'
+      : ((FX.manual&&FX.manual[DISPLAY_CCY]>0)
+          ? 'Your rate is being used instead of the fetched one. Clear the box to go back.'
+          : 'Set the rate yourself — for a contracted rate, or when offline.');
   }
 }
 /**

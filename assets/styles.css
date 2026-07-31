@@ -761,7 +761,10 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 @keyframes valueBump{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}
 
 /* ── TOAST ── */
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--surface);padding:10px 16px;border-radius:22px;font-size:12.5px;font-family:var(--font-body);box-shadow:0 6px 24px rgba(0,0,0,0.25);z-index:400;opacity:0;transition:transform var(--dur-slow) var(--ease-spring),opacity var(--dur);pointer-events:none;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px)}
+/* Above .modal-overlay (600). A toast confirming something you did inside a
+   dialog — "Rates updated" from Settings, "Saved" from the preset dialog — was
+   rendering underneath it, dimmed by the scrim and softened by its blur. */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--surface);padding:10px 16px;border-radius:22px;font-size:12.5px;font-family:var(--font-body);box-shadow:0 6px 24px rgba(0,0,0,0.25);z-index:700;opacity:0;transition:transform var(--dur-slow) var(--ease-spring),opacity var(--dur);pointer-events:none;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px)}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
 .toast-undo{background:none;border:none;color:var(--amber);font-weight:600;font-size:12.5px;cursor:pointer;font-family:var(--font-body);padding:0;white-space:nowrap}
 /* On mobile the toast shares the bottom edge with the FAB, so it stops short of
