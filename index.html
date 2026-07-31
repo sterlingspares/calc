@@ -666,7 +666,44 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--surface);padding:10px 16px;border-radius:22px;font-size:12.5px;font-family:var(--font-body);box-shadow:0 6px 24px rgba(0,0,0,0.25);z-index:400;opacity:0;transition:transform .25s cubic-bezier(.2,.9,.3,1),opacity .25s;pointer-events:none;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px)}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
 .toast-undo{background:none;border:none;color:var(--amber);font-weight:600;font-size:12.5px;cursor:pointer;font-family:var(--font-body);padding:0;white-space:nowrap}
-@media(max-width:800px){.toast{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}
+/* On mobile the toast shares the bottom edge with the FAB, so it stops short of
+   the right-hand corner rather than being centred underneath it. */
+@media(max-width:800px){
+  .toast{left:12px;right:80px;bottom:calc(72px + env(safe-area-inset-bottom,0px));max-width:none;transform:translateY(80px)}
+  .toast.show{transform:translateY(0)}
+  .mini-result.show ~ .toast{bottom:calc(118px + env(safe-area-inset-bottom,0px))}
+}
+
+/* ── FLOATING ACTION BUTTON (mobile) ──
+   Share / Save / Copy / PDF live in the top header, which is the hardest place
+   to reach one-handed on a large phone. This puts them in the thumb zone.
+   Default mode only: Quick mode keeps its own flow, and the actions here read
+   LAST_CP/LAST_SP from the main calculator. */
+.fab-wrap{display:none;position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(70px + env(safe-area-inset-bottom,0px));z-index:520;flex-direction:column;align-items:flex-end;gap:10px}
+@media(max-width:800px){.fab-wrap.show{display:flex}}
+/* Lift clear of the sticky result bar when it is visible */
+.mini-result.show ~ .fab-wrap{bottom:calc(116px + env(safe-area-inset-bottom,0px))}
+/* Above .bottom-nav (500), or the nav stays lit and tappable through the scrim
+   while the menu is open. Still below .modal-overlay (600). */
+.fab-scrim{display:none;position:fixed;inset:0;background:rgba(10,10,8,0.4);z-index:510;backdrop-filter:blur(1.5px)}
+.fab-scrim.show{display:block}
+.fab-menu{display:flex;flex-direction:column;align-items:flex-end;gap:9px;pointer-events:none}
+.fab-wrap.open .fab-menu{pointer-events:auto}
+.fab-item{display:flex;align-items:center;gap:10px;background:var(--surface);color:var(--text);border:1px solid var(--border2);border-radius:24px;padding:10px 16px;font-size:12.5px;font-weight:500;font-family:var(--font-body);cursor:pointer;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,0.16);opacity:0;transform:translateY(12px) scale(.92);transition:opacity .18s,transform .18s cubic-bezier(.2,.9,.3,1)}
+.fab-item svg{flex-shrink:0;color:var(--accent)}
+.fab-wrap.open .fab-item{opacity:1;transform:none}
+/* Stagger so the stack unfurls rather than appearing all at once */
+.fab-wrap.open .fab-item:nth-child(6){transition-delay:0s}
+.fab-wrap.open .fab-item:nth-child(5){transition-delay:.03s}
+.fab-wrap.open .fab-item:nth-child(4){transition-delay:.06s}
+.fab-wrap.open .fab-item:nth-child(3){transition-delay:.09s}
+.fab-wrap.open .fab-item:nth-child(2){transition-delay:.12s}
+.fab-wrap.open .fab-item:nth-child(1){transition-delay:.15s}
+.fab-item:active{transform:scale(.95)}
+.fab-btn{width:56px;height:56px;min-width:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.28);transition:transform .22s cubic-bezier(.2,.9,.3,1);align-self:flex-end}
+.fab-btn svg{transition:transform .22s cubic-bezier(.2,.9,.3,1)}
+.fab-wrap.open .fab-btn svg{transform:rotate(135deg)}
+.fab-btn:active{transform:scale(.92)}
 
 /* ── CONFIRM MODAL ── */
 .confirm-modal{max-width:400px}
@@ -1656,6 +1693,40 @@ button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
   <div class="mini-item"><span class="mini-lbl">Margin %</span><span class="mini-val" id="mini-mg">—</span></div>
 </div>
 
+<!-- ═══ FLOATING ACTION BUTTON (mobile, Default mode only) ═══ -->
+<div class="fab-scrim" id="fab-scrim" onclick="closeFab()" aria-hidden="true"></div>
+<div class="fab-wrap" id="fab-wrap">
+  <div class="fab-menu" id="fab-menu" role="menu" aria-labelledby="fab-btn">
+    <button class="fab-item" role="menuitem" onclick="fabRun(saveToHistory)">
+      <svg width="15" height="15" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 9v1.5a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Save to history
+    </button>
+    <button class="fab-item" role="menuitem" onclick="fabRun(copyToClipboard)">
+      <svg width="15" height="15" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="4" y="1" width="7" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M1 3.5V10a1 1 0 001 1h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Copy summary
+    </button>
+    <button class="fab-item" role="menuitem" onclick="fabRun(sendWhatsApp)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      WhatsApp
+    </button>
+    <button class="fab-item" role="menuitem" onclick="fabRun(shareLink)">
+      <svg width="15" height="15" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="9.5" cy="2.5" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="9.5" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="2.5" cy="6" r="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.7l4 2M4 5.3l4-2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Share link
+    </button>
+    <button class="fab-item" role="menuitem" onclick="fabRun(sendEmail)">
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 4l6 4 6-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Email summary
+    </button>
+    <button class="fab-item" role="menuitem" onclick="fabRun(exportPDF)">
+      <svg width="15" height="15" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="1.5" y="1" width="9" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Export PDF
+    </button>
+  </div>
+  <button class="fab-btn" id="fab-btn" onclick="toggleFab()" aria-label="Quick actions" aria-expanded="false" aria-haspopup="true" aria-controls="fab-menu">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+  </button>
+</div>
+
 <!-- ═══ TOAST ═══ -->
 <div class="toast" id="toast" role="status" aria-live="polite">
   <span id="toast-msg"></span>
@@ -1938,6 +2009,7 @@ function relTime(ts){
 /* ── Modal ── */
 function openModal(id){
   var o=el('overlay-'+id);
+  closeFab();
   if(o){o.classList.add('open');document.body.style.overflow='hidden'}
   if(id==='whatif')renderWhatIf(LAST_CP);
   if(id==='quote')qtRender();
@@ -1956,7 +2028,7 @@ function closeModal(id){
  * @param {string} id overlay suffix
  */
 function overlayClick(e,id){if(e.target===el('overlay-'+id))closeModal(id)}
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('settings');closeModal('whatif');closeModal('quote');closeConfirm()}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('settings');closeModal('whatif');closeModal('quote');closeConfirm();closeFab()}});
 
 /**
  * Handler for the custom GST box. Rejects anything outside 0–100 and says so,
@@ -1973,6 +2045,58 @@ function onCustomGST(inp){
     return;
   }
   setGST(p);
+}
+
+/* ── Floating action button (mobile) ── */
+var FAB_OPEN=false;
+
+/**
+ * Show or hide the FAB itself (not its menu).
+ * Visible only in Default mode — Quick mode has its own flow, and these actions
+ * read LAST_CP/LAST_SP from the main calculator, which Quick mode doesn't set.
+ * The CSS keeps it off desktop entirely.
+ */
+function updateFabVisibility(){
+  var wrap=el('fab-wrap');
+  if(!wrap)return;
+  var wz=el('wizard-mode');
+  var inWizard=wz&&wz.style.display==='block';
+  var show=(APP_MODE==='default'&&!inWizard);
+  if(!show)closeFab();
+  wrap.className='fab-wrap'+(show?' show':'')+(show&&FAB_OPEN?' open':'');
+}
+/** Expand or collapse the action menu. */
+function toggleFab(){
+  FAB_OPEN=!FAB_OPEN;
+  haptic('light');
+  var wrap=el('fab-wrap'),scrim=el('fab-scrim'),btn=el('fab-btn');
+  if(wrap)wrap.className='fab-wrap show'+(FAB_OPEN?' open':'');
+  if(scrim)scrim.className='fab-scrim'+(FAB_OPEN?' show':'');
+  if(btn)btn.setAttribute('aria-expanded',String(FAB_OPEN));
+  if(FAB_OPEN){
+    // Move focus to the first action so keyboard and screen-reader users land
+    // inside the menu rather than behind it.
+    var first=el('fab-menu')&&el('fab-menu').querySelector('.fab-item');
+    if(first)setTimeout(function(){first.focus()},60);
+  }
+}
+/** Collapse the action menu if open. Safe to call unconditionally. */
+function closeFab(){
+  if(!FAB_OPEN)return;
+  FAB_OPEN=false;
+  var wrap=el('fab-wrap'),scrim=el('fab-scrim'),btn=el('fab-btn');
+  if(wrap)wrap.className=wrap.className.replace(' open','');
+  if(scrim)scrim.className='fab-scrim';
+  if(btn)btn.setAttribute('aria-expanded','false');
+}
+/**
+ * Run a FAB action and collapse the menu.
+ * @param {Function} fn action to invoke
+ */
+function fabRun(fn){
+  closeFab();
+  // Let the collapse animation start before a blocking dialog or share sheet.
+  setTimeout(function(){guard('FAB action',fn)},80);
 }
 
 /* ── Quantity ── */
@@ -3975,6 +4099,7 @@ function bnavGo(id){
     el('quick-mode').style.display='none';
     el('wizard-mode').style.display='block';
     document.querySelector('.footer').style.display='none';
+    updateFabVisibility();
   } else {
     // Hide wizard
     el('wizard-mode').style.display='none';
@@ -4055,8 +4180,9 @@ function setMode(m){
   document.querySelector('.page').style.display = (m==='default') ? '' : 'none';
   document.querySelector('.footer').style.display = (m==='default') ? '' : 'none';
   if(el('wizard-mode'))el('wizard-mode').style.display='none';
-  // The sticky result bar belongs to Default mode only; Quick has its own card
+  // The sticky result bar and FAB belong to Default mode only
   if(m!=='default'){var mb=el('mini-result');if(mb)mb.className='mini-result'}
+  updateFabVisibility();
   if(m==='quick'){
     FC_STEP=0;
     // Phase 1: restore FC_* vars before building cards (FC_T drives card layout)
@@ -5811,6 +5937,7 @@ if(!restoreFromUrl()){
 }
 updateGSTLabels();
 updateUndoBtns();
+updateFabVisibility();
 registerSW();
 // Show onboarding on first visit
 setTimeout(function(){

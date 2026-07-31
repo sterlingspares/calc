@@ -239,6 +239,7 @@ Lines use the calculator's current GST rate and rounding setting. Incentives are
 The layout adapts below 800px:
 
 - **Sticky result bar** — Profit, GP % and Margin % stay pinned above the bottom nav in Default mode, so you can watch them move while editing discounts instead of scrolling to the summary and back. Values below your floor limits turn amber; losses turn red.
+- **Floating action button** — a thumb-reachable ⊕ above the bottom-right corner opens the six primary actions (Save to history, Copy summary, WhatsApp, Share link, Email, Export PDF), which otherwise live in the top header. Tap the scrim or press Escape to dismiss. Default mode only.
 - **Bottom nav** — Calc · Incentives · Summary · History · Quote
 - **Quote builder** — card layout per line, pinned action bar
 - **Dialogs** — every modal is constrained to the viewport with a scrolling body, so its buttons are always reachable
