@@ -172,9 +172,10 @@ async function launchChromium(chromium) {
   ok('app functions are defined', await page.evaluate(() => typeof window.calc === 'function'));
   ok('JS-rendered incentive rows exist',
      await page.evaluate(() => document.querySelectorAll('#cp-inc-grid .inc-row').length) === 5);
-  // Initialisation reads the DOM; if defer timing were wrong this would be empty
-  ok('initialisation populated the summary',
-     (await page.textContent('#s-mrp')).includes('100'), await page.textContent('#s-mrp'));
+  // Initialisation reads the DOM; if defer timing were wrong this would be empty.
+  // #mx is the MRP-excl readout — the summary no longer repeats MRP.
+  ok('initialisation populated the derived figures',
+     (await page.textContent('#mx')).includes('84'), await page.textContent('#mx'));
 
   /* ── 4. End-to-end calculation through the UI ─────────────────────── */
   R.section('\n=== 4. Calculation through the real UI ===');
@@ -184,8 +185,10 @@ async function launchChromium(chromium) {
   await page.waitForTimeout(150);
   ok('profit is 150', (await page.textContent('#pvv')).includes('150'),
      await page.textContent('#pvv'));
-  ok('CP excl is 600', (await page.textContent('#s-cp')).includes('600'),
-     await page.textContent('#s-cp'));
+  // CP excl lives in the cost card now; the summary carries only what the cards
+  // do not, so it no longer repeats this.
+  ok('CP excl is 600', (await page.textContent('#cve')).includes('600'),
+     await page.textContent('#cve'));
   ok('GP is 20%', (await page.textContent('#s-gp')).includes('20.00'),
      await page.textContent('#s-gp'));
 

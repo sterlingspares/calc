@@ -131,8 +131,10 @@ ok('profit still 150 at 12% GST', Math.abs(num('pvv') - 150) < 0.05, 'got ' + nu
 ok('CP incl uses 12% GST (672)', Math.abs(w.LAST_CP.i - 672) < 0.05, 'got ' + w.LAST_CP.i);
 ok('SP incl uses 12% GST (840)', Math.abs(w.LAST_SP.i - 840) < 0.05, 'got ' + w.LAST_SP.i);
 ok('GST labels updated to 12%',
-   d.getElementById('s-lbl-cp').textContent.indexOf('12%') !== -1,
-   'got ' + d.getElementById('s-lbl-cp').textContent);
+   d.getElementById('lbl-cve').textContent.indexOf('12%') !== -1 &&
+   d.getElementById('s-lbl-ecp').textContent.indexOf('12%') !== -1,
+   'got ' + d.getElementById('lbl-cve').textContent + ' / ' +
+   d.getElementById('s-lbl-ecp').textContent);
 
 console.log('\n=== 11. Switch back to preset clears custom box ===');
 w.setGST(18);
@@ -1385,8 +1387,10 @@ ok('recalculates on load', Math.abs(num('pvv') - 168) < 0.05, 'got ' + num('pvv'
 w.PRESETS = {};
 w.loadPresets();
 ok('reloads from storage', !!w.PRESETS['Dealer A']);
-ok('dropdown lists it',
-   d.getElementById('preset-select').innerHTML.indexOf('Dealer A') !== -1);
+w.renderPresetManager();
+ok('the manager lists it',
+   d.getElementById('pm-list').innerHTML.indexOf('Dealer A') !== -1,
+   d.getElementById('pm-list').innerHTML.slice(0, 90));
 ok('a preset with a malformed key is sanitised', (() => {
   w.applyPreset({ cpKeys: ['cd', '"><img src=x>'], spKeys: ['cd'], labels: {}, cp: {}, sp: {} });
   return w.INC_KEYS.indexOf('"><img src=x>') === -1;
@@ -1803,8 +1807,9 @@ w.runPrompt();
 ok('the preset is saved', Object.keys(w.PRESETS).length === 1 && 'Bosch Q3' in w.PRESETS,
    JSON.stringify(Object.keys(w.PRESETS)));
 ok('and the dialog closes', overlayOpen('prompt') === false);
-ok('the dropdown selects it', d.getElementById('preset-select').value === 'Bosch Q3',
-   d.getElementById('preset-select').value);
+w.renderPresetManager();
+ok('the manager shows it', d.getElementById('pm-list').textContent.indexOf('Bosch Q3') !== -1,
+   d.getElementById('pm-list').textContent.slice(0, 80));
 
 // ── A clash warns rather than silently overwriting ────────────────────────
 w.savePresetAs();
@@ -1837,8 +1842,11 @@ ok('the preset is renamed', 'Bosch Q4' in w.PRESETS && !('Bosch Q3' in w.PRESETS
 ok('its contents survive the rename',
    w.PRESETS['Bosch Q4'] && w.PRESETS['Bosch Q4'].cp && w.PRESETS['Bosch Q4'].cp.eb.on === true,
    JSON.stringify(w.PRESETS['Bosch Q4'] && w.PRESETS['Bosch Q4'].cp));
-ok('and the dropdown follows it', d.getElementById('preset-select').value === 'Bosch Q4',
-   d.getElementById('preset-select').value);
+w.renderPresetManager();
+ok('and the manager follows it',
+   d.getElementById('pm-list').textContent.indexOf('Bosch Q4') !== -1 &&
+   d.getElementById('pm-list').textContent.indexOf('Bosch Q3') === -1,
+   d.getElementById('pm-list').textContent.slice(0, 80));
 
 // Renaming onto another preset's name warns before replacing it.
 w.PRESETS['Other'] = w.capturePreset();
@@ -2115,8 +2123,8 @@ ok('amounts convert', Math.abs(w.toDisplay(1000) - 10.45) < 1e-9, 'got ' + w.toD
 ok('and back again', Math.abs(w.fromDisplay(10.45, 'sale') - 1000) < 1e-6,
    'got ' + w.fromDisplay(10.45, 'sale'));
 ok('the summary converts too',
-   d.getElementById('s-cp').textContent.trim() === '$6.27',
-   d.getElementById('s-cp').textContent);
+   d.getElementById('cve').textContent.trim() === '$6.27',
+   d.getElementById('cve').textContent);
 // 600 INR x 0.01045 = 6.27; the underlying calculation is untouched
 ok('while the calculation stays in rupees', Math.abs(w.LAST_CP.e - 600) < 0.01,
    'got ' + w.LAST_CP.e);
@@ -2316,12 +2324,12 @@ runFetchCases().then(() => {
 
   // ── Cost only ───────────────────────────────────────────────────────────
   w.setDisplayCcy('USD', 'cost');
-  ok('cost scope: CP shows the foreign symbol', startsUsd(cell('s-cp')), cell('s-cp'));
+  ok('cost scope: CP shows the foreign symbol', startsUsd(cell('cve')), cell('cve'));
   ok('cost scope: effective CP too', startsUsd(cell('s-ecp')), cell('s-ecp'));
   ok('cost scope: CP incentives too', startsUsd(cell('s-inc')), cell('s-inc'));
   ok('cost scope: the CP incentive label agrees', sym('sym-s-inc') === '$', sym('sym-s-inc'));
   ok('cost scope: inbound landed cost too', sym('sym-landed') === '+$', sym('sym-landed'));
-  ok('cost scope: SP stays in rupees', startsRs(cell('s-sp')), cell('s-sp'));
+  ok('cost scope: SP stays in rupees', startsRs(cell('sve')), cell('sve'));
   ok('cost scope: profit stays in rupees', startsRs(cell('s-pr')), cell('s-pr'));
   ok('cost scope: outbound landed cost stays in rupees',
      sym('sym-sp-landed') === '−₹', sym('sym-sp-landed'));
@@ -2329,14 +2337,14 @@ runFetchCases().then(() => {
 
   // ── Sale only ───────────────────────────────────────────────────────────
   w.setDisplayCcy('USD', 'sale');
-  ok('sale scope: SP shows the foreign symbol', startsUsd(cell('s-sp')), cell('s-sp'));
+  ok('sale scope: SP shows the foreign symbol', startsUsd(cell('sve')), cell('sve'));
   ok('sale scope: effective SP too', startsUsd(cell('s-esp')), cell('s-esp'));
   ok('sale scope: profit follows the sale side', startsUsd(cell('s-pr')), cell('s-pr'));
   ok('sale scope: the profit label agrees', sym('sym-s-pr') === '$', sym('sym-s-pr'));
   ok('sale scope: break-even too', startsUsd(cell('s-be')), cell('s-be'));
   ok('sale scope: SP incentive label too', sym('sym-sp-inc-tot') === '$', sym('sym-sp-inc-tot'));
   ok('sale scope: outbound landed cost too', sym('sym-sp-landed') === '−$', sym('sym-sp-landed'));
-  ok('sale scope: CP stays in rupees', startsRs(cell('s-cp')), cell('s-cp'));
+  ok('sale scope: CP stays in rupees', startsRs(cell('cve')), cell('cve'));
   ok('sale scope: CP incentives stay in rupees', startsRs(cell('s-inc')), cell('s-inc'));
   ok('sale scope: inbound landed cost stays in rupees',
      sym('sym-landed') === '+₹', sym('sym-landed'));
@@ -2344,15 +2352,15 @@ runFetchCases().then(() => {
   // ── Both ────────────────────────────────────────────────────────────────
   w.setDisplayCcy('USD', 'both');
   ok('both: every side converts',
-     ['s-cp', 's-ecp', 's-inc', 's-sp', 's-esp', 's-pr', 's-be'].every(i => startsUsd(cell(i))),
-     ['s-cp', 's-ecp', 's-inc', 's-sp', 's-esp', 's-pr', 's-be'].map(i => cell(i)).join(' '));
+     ['cve', 's-ecp', 's-inc', 'sve', 's-esp', 's-pr', 's-be'].every(i => startsUsd(cell(i))),
+     ['cve', 's-ecp', 's-inc', 'sve', 's-esp', 's-pr', 's-be'].map(i => cell(i)).join(' '));
 
   // ── MRP is never converted ──────────────────────────────────────────────
   // There is no dollar MRP: it is a rupee price fixed by law, and converting it
   // would let a rate update restate the one figure that cannot move.
   ['cost', 'sale', 'both'].forEach(scope => {
     w.setDisplayCcy('USD', scope);
-    ok(scope + ': MRP stays in rupees', startsRs(cell('s-mrp')), cell('s-mrp'));
+    ok(scope + ': MRP stays in rupees', startsRs(cell('mx')), cell('mx'));
     ok(scope + ': and so does its input prefix', sym('sym-mrp') === '₹', sym('sym-mrp'));
   });
 
@@ -2577,7 +2585,74 @@ runFetchCases().then(() => {
   ok('an unknown scope leaves the current one alone',
      (w.setDisplayCcy('USD', 'nonsense'), w.FX_SCOPE === 'both'), w.FX_SCOPE);
 
-  R.section('\n=== 31. Settings is grouped into tabs ===');
+  R.section('\n=== 30a. The default view stays uncluttered ===');
+// The main screen had grown to a control bar of 13, five derived rows per price
+// card, and a 17-cell summary in which five cells repeated numbers shown in the
+// cards directly above them.
+ok('the control bar is one row of essentials',
+   d.querySelectorAll('.control-bar button, .control-bar select, .control-bar input').length <= 8,
+   'got ' + d.querySelectorAll('.control-bar button, .control-bar select, .control-bar input').length);
+ok('only GST and Calculate remain grouped there',
+   [...d.querySelectorAll('.control-bar .ctrl-label')].map(e => e.textContent).join() === 'GST,Calculate',
+   [...d.querySelectorAll('.control-bar .ctrl-label')].map(e => e.textContent).join(' '));
+ok('Reset is still on that row', d.querySelector('.control-bar .btn-reset') !== null);
+ok('presets moved to the header menu', d.getElementById('hmenu-presets') !== null);
+ok('the currency control moved into Settings',
+   d.getElementById('fx-scope').closest('#overlay-settings') !== null);
+
+// Each price card shows the two prices and folds its derivation away.
+['cp', 'sp'].forEach(side => {
+  const card = d.getElementById(side === 'cp' ? 'cpc' : 'spc');
+  ok(side + ' card shows two prices up front',
+     card.querySelectorAll('.rows-primary .row').length === 2,
+     'got ' + card.querySelectorAll('.rows-primary .row').length);
+  ok(side + ' card folds the rest away',
+     card.querySelectorAll('.acc-body .row').length === 3,
+     'got ' + card.querySelectorAll('.acc-body .row').length);
+  ok(side + ' details start collapsed',
+     !d.getElementById('acc-body-' + side).classList.contains('open'));
+  ok(side + ' details can be opened', (() => {
+    w.toggleAcc(side);
+    const open = d.getElementById('acc-body-' + side).classList.contains('open');
+    w.toggleAcc(side);
+    return open;
+  })());
+});
+ok('the details toggle is available on desktop too',
+   /\.acc-toggle\{display:block/.test(readAsset('assets/styles.css')),
+   'still mobile-only');
+
+// The summary carries only what the cards do not.
+const sumLabels = [...d.querySelectorAll('.summary .sum-lbl')].map(e => e.textContent.trim());
+ok('the summary is down to a dozen cells',
+   d.querySelectorAll('.summary .sum-item').length === 12,
+   'got ' + d.querySelectorAll('.summary .sum-item').length);
+['MRP', 'CP excl', 'SP excl', 'CP Discount', 'SP Discount'].forEach(dup => {
+  ok('the summary no longer repeats ' + dup,
+     !sumLabels.some(l => l.indexOf(dup) === 0), sumLabels.join(' · '));
+});
+ok('but still carries what only it shows',
+   ['Effective CP', 'Effective SP', 'Profit', 'GP %', 'Margin %', 'Break-even']
+     .every(k => sumLabels.some(l => l.indexOf(k) === 0)),
+   sumLabels.join(' · '));
+
+R.section('\n=== 30b. Dialogs are siblings, not nested ===');
+// Restructuring the settings markup once dropped a closing tag, and every
+// dialog after it became a child of the settings overlay — so opening the
+// preset manager rendered it inside a display:none parent. Nothing threw; it
+// simply had zero height. Cheap to assert, hard to spot by eye.
+['overlay-settings', 'overlay-presets', 'overlay-prompt', 'overlay-confirm',
+ 'overlay-quote', 'overlay-whatif', 'overlay-shortcuts', 'overlay-compare'].forEach(id => {
+  const e = d.getElementById(id);
+  ok(id + ' is a top-level dialog', !!e && e.parentElement === d.body,
+     e ? 'inside ' + (e.parentElement.id || e.parentElement.tagName) : 'missing');
+});
+ok('no dialog contains another',
+   [...d.querySelectorAll('.modal-overlay')].every(o => o.querySelector('.modal-overlay') === null),
+   [...d.querySelectorAll('.modal-overlay')].filter(o => o.querySelector('.modal-overlay'))
+     .map(o => o.id).join(','));
+
+R.section('\n=== 31. Settings is grouped into tabs ===');
 
   // Eight stacked sections had become a long scroll. They are four panes now,
   // and exactly one is ever on screen.

@@ -1149,7 +1149,7 @@ function featOn(k){ return FEATURES[k]!==false }
 
 var FEATURE_DEFS=[
   {k:'presets',name:'Presets',hint:'Save and reuse incentive setups.',
-   els:['grp-preset','div-preset','sec-set-presets'],
+   els:['hmenu-presets','sec-set-presets'],
    values:function(){ var n=Object.keys(PRESETS).length; return n?[n+' saved preset'+(n===1?'':'s')]:[] },
    clear:function(){ PRESETS={}; savePresets(); renderPresetList(); renderPresetManager(); }},
 
@@ -1171,7 +1171,7 @@ var FEATURE_DEFS=[
    }},
 
   {k:'forex',name:'Currency conversion',hint:'Show either side of the deal in another currency.',
-   els:['grp-forex','div-forex','sec-set-forex'],
+   els:['sec-set-forex'],
    values:function(){
      var out=[];
      if(DISPLAY_CCY!=='INR')out.push('showing '+DISPLAY_CCY);
@@ -2757,22 +2757,11 @@ function applyPreset(p){
 
 /** Repaint the preset dropdown from PRESETS. */
 function renderPresetList(){
-  var sel=el('preset-select');
-  if(!sel)return;
-  var names=Object.keys(PRESETS).sort();
-  var cur=sel.value;
-  sel.innerHTML='<option value="">Presets…</option>'+
-    names.map(function(n){return '<option value="'+escHtml(n)+'">'+escHtml(n)+'</option>'}).join('');
-  if(names.indexOf(cur)!==-1)sel.value=cur;
+  // Kept as the single "the preset list changed" hook. The control-bar dropdown
+  // it used to fill is gone — the manager lists each preset with its own Load
+  // button, so a second way to apply one was redundant.
+  renderPresetManager();
 }
-
-/** Load whichever preset the dropdown selects. */
-function onPresetPick(){
-  var sel=el('preset-select');
-  if(!sel||!sel.value)return renderPresetList();
-  loadPreset(sel.value);
-}
-
 /**
  * Apply a saved preset by name.
  * @param {string} name
@@ -2786,7 +2775,6 @@ function loadPreset(name){
   }
   pushUndo('load preset');
   applyPreset(PRESETS[name]);
-  var sel=el('preset-select');if(sel)sel.value=name;
   renderPresetList();
   toast('Loaded "'+name+'"',true);
 }
@@ -2808,12 +2796,11 @@ function validatePresetName(raw,self){
 
 /** Save the incentives currently on screen under a name. */
 function savePresetAs(){
-  var sel=el('preset-select');
   askPrompt({
     title:'Save preset',
     message:'Stores both incentive panels as they are now, to bring back later.',
     label:'Preset name',
-    value:(sel&&sel.value)||'',
+    value:'',
     placeholder:'e.g. Bosch — Q3 terms',
     okLabel:'Save',
     validate:function(v){return validatePresetName(v)},
@@ -2821,11 +2808,7 @@ function savePresetAs(){
       var overwriting=Object.prototype.hasOwnProperty.call(PRESETS,name);
       pushUndo(overwriting?'overwrite preset':'save preset');
       PRESETS[name]=capturePreset();
-      savePresets();
-      renderPresetList();renderPresetManager();
-      // After the options exist — assigning a value with no matching option
-      // is silently ignored, which left the dropdown blank.
-      var s2=el('preset-select');if(s2)s2.value=name;
+      savePresets();renderPresetList();
       toast(overwriting?'Updated "'+name+'"':'Saved "'+name+'"',true);
     }
   });
@@ -2850,11 +2833,7 @@ function renamePreset(name){
       var body=PRESETS[name];
       delete PRESETS[name];
       PRESETS[next]=body;
-      savePresets();
-      var sel=el('preset-select');
-      var wasSelected=!!sel&&sel.value===name;
-      renderPresetList();renderPresetManager();
-      if(wasSelected&&sel)sel.value=next;
+      savePresets();renderPresetList();
       toast('Renamed to "'+next+'"',true);
     }
   });
@@ -2870,7 +2849,7 @@ function updatePreset(name){
     'The saved version is discarded. This can be undone.','Update',function(){
       pushUndo('update preset');
       PRESETS[name]=capturePreset();
-      savePresets();renderPresetList();renderPresetManager();
+      savePresets();renderPresetList();
       toast('Updated "'+name+'"',true);
     });
 }
@@ -2886,8 +2865,6 @@ function deletePreset(name){
       pushUndo('delete preset');
       delete PRESETS[name];
       savePresets();
-      var sel=el('preset-select');
-      if(sel&&sel.value===name)sel.value='';
       renderPresetList();renderPresetManager();
       toast('Deleted "'+name+'"',true);
     });
@@ -3027,7 +3004,6 @@ function renderSolver(){
     +(r.gpNow!==null?'. Currently '+PCT(r.gpNow)+'.':'.');
 }
 
-ACT.presetPick = function(){ onPresetPick(); };
 ACT.presetSave = function(){ savePresetAs(); };
 ACT.solve      = function(){ renderSolver(); };
 
@@ -3331,9 +3307,10 @@ function sumSet(id,val,cls){var e=el(id);if(!e)return;e.textContent=val;e.classN
  * @param {{e:number,i:number}|null} sp
  */
 function fillSummary(cp,sp){
-  ['s-mrp','s-cp','s-ecp','s-sp','s-esp','s-inc','s-spinc','s-pr','s-gp','s-mg','s-dcp','s-dsp'].forEach(function(id){sumSet(id,'—','dim')});
-  var mrpV=parseMRP();
-  if(mrpV&&mrpV>0)sumSet('s-mrp',INR(mrpV),'');
+  // MRP, CP excl, SP excl and the two discount percentages used to be repeated
+  // here; they sit in the cards directly above, so the summary now carries only
+  // what the cards do not.
+  ['s-ecp','s-esp','s-inc','s-spinc','s-pr','s-gp','s-mg'].forEach(function(id){sumSet(id,'—','dim')});
   if(!cp||!sp){
     ['s-be-sep','s-item-be','s-item-bef','s-order-sep','s-item-qty','s-item-order','s-item-tpr']
       .forEach(function(id){var e=el(id);if(e)e.style.display='none'});
@@ -3346,8 +3323,8 @@ function fillSummary(cp,sp){
   var spInc=getSPIncentiveInr(sp),effSP=effectiveSP(sp);
   var pr=effSP-eff,gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
   var dcp=discFromPrice(cp.e),dsp=discFromPrice(sp.e);
-  sumSet('s-cp',CINR(cp.e),'');sumSet('s-ecp',CINR(eff),cpInc>0?'amber':'');
-  sumSet('s-sp',SINR(sp.e),'');sumSet('s-esp',SINR(effSP),spInc>0?'pos':'');
+  sumSet('s-ecp',CINR(eff),cpInc>0?'amber':'');
+  sumSet('s-esp',SINR(effSP),spInc>0?'pos':'');
   sumSet('s-inc',cpInc>0?CINR(cpInc):'—',cpInc>0?'amber':'dim');
   sumSet('s-spinc',spInc>0?SINR(spInc):'—',spInc>0?'pos':'dim');
   // Headline figures ease toward their new value; the class still updates now
@@ -3360,7 +3337,6 @@ function fillSummary(cp,sp){
   animateValue('s-pr',pr,SINR,{minDelta:1});
   animateValue('s-gp',gp,PCT,{minDelta:0.5});
   animateValue('s-mg',mg,PCT,{minDelta:0.5});
-  sumSet('s-dcp',PCT(dcp.de),'');sumSet('s-dsp',PCT(dsp.de),'');
   // Order-level totals — only shown once qty > 1, so single-unit use is unchanged
   var q=getQty(),multi=q>1;
   ['s-order-sep','s-item-qty','s-item-order','s-item-tpr'].forEach(function(id){
