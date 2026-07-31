@@ -1,8 +1,11 @@
 # Tests
 
-491 assertions across five suites. They load the real `index.html` into
+508 assertions across five suites. They load the real `index.html`,
+`assets/styles.css` and `assets/app.js` into
 [jsdom](https://github.com/jsdom/jsdom) and drive the actual application
 functions — no application code is mocked.
+
+**Requires Node 22 or newer** (jsdom 30 depends on whatwg-url 17, which does).
 
 ```bash
 npm install     # jsdom, dev-only; the app itself has no dependencies
@@ -26,7 +29,7 @@ The runner exits non-zero if anything fails, so CI catches it.
 
 | File | Assertions | Covers |
 |---|---|---|
-| `features.test.js` | 259 | GST (presets, custom, decimal), incentive edit mode, add/delete/rename, %/₹ modes, quantity and order totals, rounding, undo/redo, quote maths, history search/filter/tags, share-state round trips |
+| `features.test.js` | 276 | GST (presets, custom, decimal), incentive edit mode, add/delete/rename, %/₹ modes, quantity and order totals, rounding, undo/redo, quote maths, history search/filter/tags, share-state round trips |
 | `errors.test.js` | 33 | every failure path logs; a clean run logs nothing; storage-quota and corrupt-payload recovery; global handlers |
 | `mobile.test.js` | 68 | modal layering vs the bottom nav, touch-target sizes, viewport zoom policy, type scale, sticky result bar states, quote table vs card layouts |
 | `fab.test.js` | 50 | FAB visibility rules, open/close and dismissal, ARIA state, deferred dispatch, error containment, z-index ordering |
@@ -39,6 +42,18 @@ axe only evaluates visible elements, so auditing the closed page reports
 nothing. It also asserts the things axe marks "incomplete" under jsdom
 (contrast, headings, landmarks) directly, since that is where the real
 failures were.
+
+`readSource()` inlines `assets/styles.css` and `assets/app.js` into the markup
+before handing it to jsdom. jsdom only fetches subresources with
+`resources: 'usable'`, which needs a `file://` URL, and that yields an opaque
+origin where `localStorage` throws — and the suite exercises storage heavily.
+The content under test is identical to what ships; only the packaging differs.
+`readMarkup()` and `readAsset()` return the files untouched, for assertions
+about the split itself.
+
+Because the harness inlines the assets, it cannot prove that the `href` and
+`src` in `index.html` are correct. That is covered by assertions in
+`features.test.js` §49 and was verified in a real browser.
 
 `harness.js` provides the shared pieces:
 

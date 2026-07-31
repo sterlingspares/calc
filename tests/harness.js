@@ -1,10 +1,10 @@
 /**
  * Shared test harness.
  *
- * The app is a single HTML file with no build step, so the suites load
- * index.html into jsdom and drive the real functions and DOM. There is no
- * mocking of application code — only of browser APIs jsdom cannot provide
- * (clipboard, quota-exceeded storage).
+ * The app ships as index.html plus assets/styles.css and assets/app.js, with no
+ * build step. The suites load those real files into jsdom and drive the actual
+ * functions and DOM. There is no mocking of application code — only of browser
+ * APIs jsdom cannot provide (clipboard, quota-exceeded storage).
  *
  * jsdom does not do layout, so anything positional (sizes, z-index, media
  * queries) is asserted against the stylesheet text via cssRule/mobileRule
@@ -16,12 +16,44 @@ const fs = require('fs');
 const path = require('path');
 const { JSDOM, VirtualConsole } = require('jsdom');
 
-const APP_PATH = path.join(__dirname, '..', 'index.html');
+const ROOT = path.join(__dirname, '..');
+const APP_PATH = path.join(ROOT, 'index.html');
 const APP_URL = 'https://calc.sterlingspares.com/';
 
-/** @returns {string} the raw index.html source */
+/**
+ * The app is split across index.html, assets/styles.css and assets/app.js.
+ * jsdom does not fetch subresources unless `resources: 'usable'` is set, and
+ * that needs a file:// URL — which gives an opaque origin and breaks
+ * localStorage, which the suite exercises heavily.
+ *
+ * So the harness reads the three real files and assembles them into one
+ * document. The contents under test are exactly what ships; only the
+ * packaging differs. Assertions that scan the stylesheet text (see cssRule)
+ * keep working unchanged.
+ *
+ * @returns {string} index.html with its local CSS and JS inlined
+ */
 function readSource() {
+  const html = fs.readFileSync(APP_PATH, 'utf8');
+  return html
+    .replace(/<link\s+rel="stylesheet"\s+href="(assets\/[^"]+)"\s*\/?>/g, (m, href) =>
+      '<style>\n' + fs.readFileSync(path.join(ROOT, href), 'utf8') + '\n</style>')
+    .replace(/<script\s+src="(assets\/[^"]+)"[^>]*><\/script>/g, (m, src) =>
+      '<script>\n' + fs.readFileSync(path.join(ROOT, src), 'utf8') + '\n</script>');
+}
+
+/** @returns {string} index.html exactly as it ships, without inlining */
+function readMarkup() {
   return fs.readFileSync(APP_PATH, 'utf8');
+}
+
+/**
+ * Read one of the split asset files verbatim.
+ * @param {string} rel path relative to the repo root, e.g. 'assets/app.js'
+ * @returns {string}
+ */
+function readAsset(rel) {
+  return fs.readFileSync(path.join(ROOT, rel), 'utf8');
 }
 
 /**
@@ -166,9 +198,12 @@ class Reporter {
 }
 
 module.exports = {
+  ROOT,
   APP_PATH,
   APP_URL,
   readSource,
+  readMarkup,
+  readAsset,
   loadApp,
   cssRule,
   mobileBlock,

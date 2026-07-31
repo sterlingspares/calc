@@ -1,10 +1,19 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-491%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-508%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
-A single-file, offline-first web app for MRP-based pricing and profit calculations in automotive parts distribution. No build step, no dependencies — open `index.html` in any browser.
+An offline-first web app for MRP-based pricing and profit calculations in automotive parts distribution. No build step, no runtime dependencies, no framework — open `index.html` in any browser.
+
+```
+index.html            markup only
+assets/styles.css     all styling
+assets/app.js         all behaviour (plain ES5-compatible browser JS)
+sw.js                 service worker, precaches the three files above
+manifest.json         PWA manifest
+tests/                test suite (dev-only)
+```
 
 ---
 
@@ -318,7 +327,7 @@ Checked with axe-core (WCAG 2.0/2.1 A + AA + best practice) across the default v
 
 ## 🧪 Tests
 
-491 assertions across five suites. They load the real `index.html` into jsdom and drive the actual application functions — no application code is mocked.
+508 assertions across five suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
 
 ```bash
 npm install   # jsdom, dev-only
@@ -327,7 +336,7 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 259 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
+| `features` | 276 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 68 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
@@ -341,8 +350,10 @@ Every push and pull request runs them via GitHub Actions. See [`tests/README.md`
 
 ## 🛠️ Technical Notes
 
-- Single HTML file — all CSS and JS embedded, no external dependencies beyond Google Fonts
-- `package.json` exists only for the test suite; the app ships as `index.html` and needs no build step or install
+- Three static files — `index.html`, `assets/styles.css`, `assets/app.js`. No bundler, transpiler or minifier; what is in the repo is what the browser runs
+- `app.js` is loaded with `defer`, so the DOM is parsed before its initialisation block runs
+- Plain ES5-compatible browser JavaScript. Functions are global by design so the inline handlers in the markup can call them
+- No runtime dependencies beyond Google Fonts. `package.json` exists only for the test suite
 - Vanilla JS (ES5-compatible), no frameworks
 - Google Fonts: Syne (headings), DM Sans (UI), JetBrains Mono (numbers)
 - MIT Licence

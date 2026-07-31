@@ -6,7 +6,9 @@
  */
 'use strict';
 
-const { loadApp, numOf, Reporter } = require('./harness');
+const fs = require('fs');
+const path = require('path');
+const { ROOT, loadApp, numOf, readMarkup, readAsset, Reporter } = require('./harness');
 
 const R = new Reporter('Feature suite');
 const ok = R.ok.bind(R);
@@ -736,6 +738,46 @@ w.setRounding('off');
 w.applyShareState(st48);
 ok('restored from share state', w.ROUND_MODE === '20', 'got ' + w.ROUND_MODE);
 w.setRounding('off');
+
+R.section('\n=== 49. Asset split is wired correctly ===');
+const markup = readMarkup();
+ok('index.html has no inline <style>', markup.indexOf('<style>') === -1);
+ok('index.html has no inline <script> block',
+   !/<script>[\s\S]/.test(markup), 'found an inline script block');
+ok('links the external stylesheet',
+   markup.indexOf('<link rel="stylesheet" href="assets/styles.css">') !== -1);
+ok('loads the external script',
+   markup.indexOf('<script src="assets/app.js" defer></script>') !== -1);
+ok('script is deferred so the DOM is parsed first',
+   /<script src="assets\/app\.js"[^>]*\bdefer\b/.test(markup));
+
+ok('assets/styles.css exists', fs.existsSync(path.join(ROOT, 'assets/styles.css')));
+ok('assets/app.js exists', fs.existsSync(path.join(ROOT, 'assets/app.js')));
+
+const appJs = readAsset('assets/app.js');
+const cssTxt = readAsset('assets/styles.css');
+ok('app.js carries no stray HTML tags', appJs.indexOf('</script>') === -1);
+ok('styles.css carries no stray HTML tags', cssTxt.indexOf('</style>') === -1);
+ok('app.js is substantial', appJs.length > 100000, appJs.length + ' bytes');
+ok('styles.css is substantial', cssTxt.length > 40000, cssTxt.length + ' bytes');
+
+// The service worker must precache the new files or offline mode breaks
+const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+ok('service worker precaches the stylesheet', sw.indexOf('/assets/styles.css') !== -1);
+ok('service worker precaches the script', sw.indexOf('/assets/app.js') !== -1);
+ok('service worker cache name was bumped', /const CACHE = 'pc-v(?!1')/.test(sw),
+   (sw.match(/const CACHE = '[^']+'/) || [])[0]);
+
+R.section('\n=== 50. Split app still boots and calculates ===');
+const fresh = loadApp();
+ok('functions are defined on window', typeof fresh.w.calc === 'function');
+ok('stylesheet was applied', !!fresh.d.querySelector('style, link[rel="stylesheet"]'));
+fresh.d.getElementById('mrp').value = '1000';
+fresh.w.setCM('excl'); fresh.d.getElementById('cpd').value = '40';
+fresh.w.setSM('excl'); fresh.d.getElementById('spd').value = '25';
+fresh.w.calc();
+ok('calculates after the split', Math.abs(numOf(fresh.d, 'pvv') - 150) < 0.05,
+   'got ' + numOf(fresh.d, 'pvv'));
 
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

@@ -1,6 +1,13 @@
 /* Sterling Spares Pricing Calculator — Service Worker */
-const CACHE = 'pc-v1';
-const PRECACHE = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'pc-v2';
+// Bumped when the precache list changes, so old entries are evicted on activate.
+const PRECACHE = [
+  '/',
+  '/index.html',
+  '/assets/styles.css',
+  '/assets/app.js',
+  '/manifest.json'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(
