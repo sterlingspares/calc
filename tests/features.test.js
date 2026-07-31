@@ -1080,5 +1080,53 @@ const hdrs = fs.readFileSync(path.join(ROOT, '_headers'), 'utf8');
 ok('_headers denies framing',
    hdrs.indexOf('X-Frame-Options: DENY') !== -1 && hdrs.indexOf("frame-ancestors 'none'") !== -1);
 
+R.section('\n=== 63. History pagination ===');
+freshCalc(1000, 40, 25);
+w.HISTORY.length = 0;
+for (let i = 0; i < 45; i++) w.saveToHistory();
+w.HIST_SHOWN = w.HIST_PAGE;
+w.renderHistory();
+ok('only the first page renders',
+   d.querySelectorAll('#hist-content .hist-entry').length === w.HIST_PAGE,
+   'got ' + d.querySelectorAll('#hist-content .hist-entry').length);
+ok('a show-more control is offered', !!d.querySelector('.hist-more'));
+ok('it reports the remaining count',
+   d.querySelector('.hist-more').textContent.indexOf('of 45') !== -1,
+   d.querySelector('.hist-more').textContent);
+w.histShowMore();
+ok('show more reveals another page',
+   d.querySelectorAll('#hist-content .hist-entry').length === w.HIST_PAGE * 2);
+w.HIST_SHOWN = 100; w.renderHistory();
+ok('no control once everything is shown', !d.querySelector('.hist-more'));
+w.setHistQuery('zzz'); w.setHistQuery('');
+ok('searching resets to the first page', w.HIST_SHOWN === w.HIST_PAGE, 'got ' + w.HIST_SHOWN);
+w.HISTORY.length = 0; w.renderHistory();
+
+R.section('\n=== 64. Deferred bundle is split correctly ===');
+const coreJs = readAsset('assets/app.js');
+const extraJs = readAsset('assets/app-extra.js');
+ok('app-extra.js exists', extraJs.length > 10000, extraJs.length + ' bytes');
+ok('core shrank below 160KB', coreJs.length < 160 * 1024, (coreJs.length/1024).toFixed(1) + 'KB');
+ok('quick mode moved out', /^function fcBuildCards\(/m.test(extraJs) && !/^function fcBuildCards\(/m.test(coreJs));
+ok('wizard moved out', /^function wzCalc\(/m.test(extraJs) && !/^function wzCalc\(/m.test(coreJs));
+ok('quote rendering moved out', /^function qtRender\(/m.test(extraJs) && !/^function qtRender\(/m.test(coreJs));
+// These are read by init, undo and the GST label updater before the bundle lands
+ok('saveQuote stayed in core', /^function saveQuote\(/m.test(coreJs));
+ok('loadQuote stayed in core', /^function loadQuote\(/m.test(coreJs));
+ok('history search stayed in core', /^function histMatches\(/m.test(coreJs));
+ok('history delete stayed in core', /^function deleteHistEntry\(/m.test(coreJs));
+ok('loader is defined in core', /^function loadExtras\(/m.test(coreJs));
+ok('markup prefetches the bundle', mk.indexOf('assets/app-extra.js') !== -1);
+ok('service worker precaches it',
+   fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').indexOf('/assets/app-extra.js') !== -1);
+
+R.section('\n=== 65. Currency formatter is cached ===');
+ok('formatter is memoised', coreJs.indexOf('_inrFmt') !== -1);
+ok('no per-call toLocaleString with options',
+   coreJs.indexOf("toLocaleString('en-IN',{minimumFractionDigits") === -1);
+ok('formats Indian grouping', w.INR(1234567.891) === '₹12,34,567.89', w.INR(1234567.891));
+ok('handles zero and negatives', w.INR(0) === '₹0.00' && w.INR(-500.5) === '₹-500.50');
+ok('still returns the dash for NaN', w.INR(NaN) === '—');
+
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

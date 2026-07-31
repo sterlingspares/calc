@@ -349,6 +349,64 @@ async function launchChromium(chromium) {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(120);
 
+  /* ── 7e. Deferred bundle loads on demand ──────────────────────────── */
+  R.section('\n=== 7e. Deferred feature bundle ===');
+  {
+    // A fresh page: assert app-extra.js is NOT part of the initial critical path,
+    // then that using a deferred feature pulls it in and works.
+    const p2 = await browser.newPage();
+    const loaded = [];
+    const errs2 = [];
+    p2.on('response', r => loaded.push(r.url().replace(origin, '')));
+    p2.on('pageerror', e => errs2.push(String(e)));
+    p2.on('console', m => { if (m.type() === 'error') errs2.push(m.text()); });
+    await p2.addInitScript(() => { try { localStorage.setItem('ob-done', '1'); } catch (e) {} });
+    await p2.goto(origin + '/', { waitUntil: 'load' });
+    await p2.waitForFunction(() => typeof window.calc === 'function');
+
+    ok('core bundle is on the critical path', loaded.indexOf('/assets/app.js') !== -1);
+    ok('deferred features are not defined at first paint',
+       await p2.evaluate(() => typeof window.qtRender === 'undefined'));
+    ok('no error from the missing bundle', errs2.length === 0, errs2.slice(0, 2).join(' | '));
+
+    // Opening the quote builder must fetch the bundle and then render
+    await p2.evaluate(() => window.openModal('quote'));
+    await p2.waitForFunction(() => typeof window.qtRender === 'function', null, { timeout: 8000 });
+    ok('opening quote loads the bundle', loaded.indexOf('/assets/app-extra.js') !== -1);
+    ok('quote renders after the load',
+       await p2.evaluate(() => !!document.getElementById('qt-table') ||
+                               !!document.getElementById('qt-cards')));
+    await p2.evaluate(() => window.qtAddLine());
+    ok('deferred function is callable', await p2.evaluate(() => window.QUOTE.length) === 1);
+    await p2.evaluate(() => window.closeModal('quote'));
+
+    // Quick mode is the other entry point
+    await p2.evaluate(() => window.setMode('quick'));
+    await p2.waitForTimeout(300);
+    ok('quick mode activates through the deferred path',
+       await p2.evaluate(() => window.APP_MODE === 'quick'));
+    ok('quick mode cards were built',
+       await p2.evaluate(() => document.querySelectorAll('#fc-stack .fc-card').length > 0) ||
+       await p2.evaluate(() => !!document.getElementById('fc-mrp')));
+    await p2.evaluate(() => window.setMode('default'));
+
+    ok('still no page errors after using deferred features',
+       errs2.length === 0, errs2.slice(0, 2).join(' | '));
+
+    // The resize listener lives in core and must tolerate the bundle's absence
+    const p3 = await browser.newPage();
+    const errs3 = [];
+    p3.on('pageerror', e => errs3.push(String(e)));
+    await p3.addInitScript(() => { try { localStorage.setItem('ob-done', '1'); } catch (e) {} });
+    await p3.goto(origin + '/', { waitUntil: 'load' });
+    await p3.setViewportSize({ width: 400, height: 800 });
+    await p3.waitForTimeout(400);
+    ok('resizing before the bundle loads does not throw', errs3.length === 0,
+       errs3.slice(0, 2).join(' | '));
+    await p3.close();
+    await p2.close();
+  }
+
   /* ── 8. Mobile viewport ───────────────────────────────────────────── */
   R.section('\n=== 8. Mobile viewport ===');
   await page.setViewportSize({ width: 390, height: 780 });
