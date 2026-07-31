@@ -83,7 +83,7 @@ Tapping **Edit** puts that panel into edit mode:
 
 Tap **Done** to leave edit mode.
 
-- **New incentives** are plain percentage deductions on the base price excl GST, and count toward the totals and profit as soon as you switch them on.
+- **New incentives** get the same **% / ₹ Absolute** choice the Scheme row has — pick *percentage* to deduct a share of the base price excl GST, or *fixed amount* to deduct a flat rupee value. They default to percentage, and the unit beside the input flips between `%` and `₹` to match. Each added incentive keeps its own setting, and CP and SP are independent.
 - **Deleting** an incentive removes it from the calculation immediately. The built-in five can be deleted too — including CD and Scheme, along with their extra option rows.
 - Toggle states and entered values are preserved when entering or leaving edit mode.
 - Your incentive list and custom names **persist across sessions** (`pc-labels` in `localStorage`).

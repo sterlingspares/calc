@@ -1415,6 +1415,11 @@ var SCM='pct'; // scheme mode: 'pct' | 'abs'
 var SP_INC_KEYS=['cd','eb','qt','an','sc'];
 var SSCM='pct'; // SP scheme mode: 'pct' | 'abs'
 var SCDM='before'; // SP CD mode: 'before' | 'after'
+/* User-added incentives: per-key 'pct' | 'abs', same choice the Scheme row offers */
+var BUILTIN_INC=['cd','eb','qt','an','sc'];
+var INC_MODE={},SP_INC_MODE={};
+function isCustomInc(k){return BUILTIN_INC.indexOf(k)===-1}
+function incModeOf(panel,k){var m=(panel==='cp'?INC_MODE:SP_INC_MODE)[k];return m==='abs'?'abs':'pct'}
 var HISTORY=[];
 var MAX_HIST=50;
 var WI_SCENES=[
@@ -1641,17 +1646,19 @@ function _incRowHTML(k,panel,editMode){
   var syncFn=isCP?'syncToggle':'syncSpToggle';
   var defVal=(k==='sc')?'':(k==='cd'||k==='qt')?'2':'1';
   var placeholder=(k==='sc')?'0':'';
-  var maxAttr=(k==='sc')?'':' max="100"';
+  var custom=isCustomInc(k),cMode=custom?incModeOf(panel,k):null,cAbs=(cMode==='abs');
+  var maxAttr=(k==='sc'||cAbs)?'':' max="100"';
 
   var delBtn=editMode?'<button class="inc-del-btn" onclick="deleteInc(\''+panel+'\',\''+k+'\')" title="Delete" aria-label="Delete">&#x2212;</button>':'';
   var labelHtml=editMode
     ?'<input class="inc-label-edit" id="'+lblId+'" value="'+lbl+'" oninput="INC_LABELS[\''+k+'\']=this.value.trim()||INC_LABELS_DEFAULT[\''+k+'\'];saveLabels()" maxlength="30" autocomplete="off" spellcheck="false">'
     :'<span class="inc-name" id="'+lblId+'">'+lbl+'</span>';
 
-  var unitId=(k==='sc')?' id="'+(isCP?'sc':'ssc')+'-unit"':'';
+  var unitId=(k==='sc')?' id="'+(isCP?'sc':'ssc')+'-unit"':(custom?' id="unit-'+panel+'-'+k+'"':'');
+  var unitTxt=cAbs?'&#x20B9;':'%';
   var pctWrapId=(k==='sc'&&isCP)?' id="sc-pct-wrap"':'';
 
-  var mainRow='<div class="inc-row-main">'+delBtn+'<label class="toggle"><input type="checkbox" id="'+cbId+'" onchange="'+syncFn+'(\''+k+'\');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>'+labelHtml+'<div class="inc-pct-wrap"'+pctWrapId+'><input type="number" inputmode="decimal" id="'+inpId+'" value="'+defVal+'" placeholder="'+placeholder+'" min="0"'+maxAttr+' step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym"'+unitId+'>%</span></div></div>';
+  var mainRow='<div class="inc-row-main">'+delBtn+'<label class="toggle"><input type="checkbox" id="'+cbId+'" onchange="'+syncFn+'(\''+k+'\');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>'+labelHtml+'<div class="inc-pct-wrap"'+pctWrapId+'><input type="number" inputmode="decimal" id="'+inpId+'" value="'+defVal+'" placeholder="'+placeholder+'" min="0"'+maxAttr+' step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym"'+unitId+'>'+unitTxt+'</span></div></div>';
 
   var subRow='';
   var gPct=Math.round(G*100);
@@ -1668,8 +1675,39 @@ function _incRowHTML(k,panel,editMode){
     var ssub=isCP?' id="sc-sub"':'';
     var pp=isCP?'CP':'SP';
     subRow='<div class="inc-row-sub"'+ssub+'><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div><div class="sub-tabs" style="width:100%"><button class="stab on" id="'+sp1+'" onclick="'+fn3+'" style="padding:6px 8px;line-height:1.3"><span id="'+lsp+'">% of '+pp+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab" id="'+sp2+'" onclick="'+fn4+'" style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
+  } else if(custom){
+    var m1='im-'+panel+'-'+k+'-pct',m2='im-'+panel+'-'+k+'-abs';
+    var lm='lbl-im-'+panel+'-'+k;
+    var cp2=isCP?'CP':'SP';
+    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Incentive type:</div><div class="sub-tabs" style="width:100%"><button class="stab'+(cAbs?'':' on')+'" id="'+m1+'" onclick="setIncMode(\''+panel+'\',\''+k+'\',\'pct\')" style="padding:6px 8px;line-height:1.3"><span id="'+lm+'">% of '+cp2+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab'+(cAbs?' on':'')+'" id="'+m2+'" onclick="setIncMode(\''+panel+'\',\''+k+'\',\'abs\')" style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
   }
   return '<div class="inc-row" id="'+rowId+'">'+mainRow+subRow+'</div>';
+}
+
+/* Paint a user-added incentive's %/₹ state onto its row without side effects */
+function applyIncModeVisuals(panel,k){
+  var m=incModeOf(panel,k);
+  var b1=document.getElementById('im-'+panel+'-'+k+'-pct'),b2=document.getElementById('im-'+panel+'-'+k+'-abs');
+  if(b1)b1.className=(m==='pct')?'stab on':'stab';
+  if(b2)b2.className=(m==='abs')?'stab on':'stab';
+  var u=document.getElementById('unit-'+panel+'-'+k);
+  if(u)u.textContent=(m==='abs')?'₹':'%';
+  var iv=document.getElementById((panel==='cp'?'iv-':'siv-')+k);
+  if(iv){iv.placeholder=(m==='abs')?'0.00':'0';if(m==='abs'){iv.removeAttribute('max')}else{iv.max='100'}}
+}
+
+function setIncMode(panel,k,m){
+  haptic('select');
+  (panel==='cp'?INC_MODE:SP_INC_MODE)[k]=m;
+  var b1=el('im-'+panel+'-'+k+'-pct'),b2=el('im-'+panel+'-'+k+'-abs');
+  if(b1)b1.className=(m==='pct')?'stab on':'stab';
+  if(b2)b2.className=(m==='abs')?'stab on':'stab';
+  var u=el('unit-'+panel+'-'+k);
+  if(u)u.textContent=(m==='abs')?'₹':'%';
+  var iv=el((panel==='cp'?'iv-':'siv-')+k);
+  if(iv){iv.placeholder=(m==='abs')?'0.00':'0';if(m==='abs'){iv.removeAttribute('max')}else{iv.max='100'}}
+  saveLabels();
+  calc();
 }
 
 function _snapshotInc(panel){
@@ -1695,6 +1733,8 @@ function _restoreInc(panel,snap){
     if(inp&&snap[k].value!=='')inp.value=snap[k].value;
     if(row)row.className='inc-row'+(snap[k].checked?(isCP?' active':' sp-active'):'');
   });
+  // Re-apply per-key %/₹ state for user-added incentives
+  keys.forEach(function(k){if(isCustomInc(k))applyIncModeVisuals(panel,k)});
   // Re-apply sub-row active states
   if(isCP){
     var cb=document.getElementById('cdm-before');if(cb)cb.className=(CDM==='before')?'stab on':'stab';
@@ -1757,6 +1797,7 @@ function addInc(panel){
   var k='c'+i;
   INC_LABELS[k]='Incentive '+i;
   INC_LABELS_DEFAULT[k]='Incentive '+i;
+  (panel==='cp'?INC_MODE:SP_INC_MODE)[k]='pct';
   keys.push(k);
   saveLabels();
   var snap=_snapshotInc(panel);
@@ -1765,8 +1806,9 @@ function addInc(panel){
   elClearCache();
   calc();
   haptic('light');
+  // Only an input in edit mode — outside it the label renders as a span.
   var lblEl=document.getElementById('lbl-'+(panel==='cp'?'cp':'sp')+'-'+k);
-  if(lblEl){lblEl.focus();lblEl.select();}
+  if(lblEl&&typeof lblEl.select==='function'){lblEl.focus();lblEl.select();}
 }
 
 function deleteInc(panel,key){
@@ -1776,6 +1818,7 @@ function deleteInc(panel,key){
   var snap=_snapshotInc(panel);
   keys.splice(idx,1);
   delete snap[key];
+  delete (panel==='cp'?INC_MODE:SP_INC_MODE)[key];
   saveLabels();
   if(panel==='cp')renderCPIncRows();else renderSPIncRows();
   _restoreInc(panel,snap);
@@ -1785,7 +1828,7 @@ function deleteInc(panel,key){
 }
 
 function saveLabels(){
-  try{localStorage.setItem('pc-labels',JSON.stringify({labels:INC_LABELS,cpKeys:INC_KEYS,spKeys:SP_INC_KEYS}));}catch(e){}
+  try{localStorage.setItem('pc-labels',JSON.stringify({labels:INC_LABELS,cpKeys:INC_KEYS,spKeys:SP_INC_KEYS,cpModes:INC_MODE,spModes:SP_INC_MODE}));}catch(e){}
 }
 function loadLabels(){
   try{
@@ -1796,6 +1839,8 @@ function loadLabels(){
     Object.keys(labels).forEach(function(k){INC_LABELS[k]=labels[k];if(!INC_LABELS_DEFAULT[k])INC_LABELS_DEFAULT[k]=labels[k];});
     if(parsed.cpKeys&&Array.isArray(parsed.cpKeys))INC_KEYS=parsed.cpKeys;
     if(parsed.spKeys&&Array.isArray(parsed.spKeys))SP_INC_KEYS=parsed.spKeys;
+    if(parsed.cpModes)INC_MODE=parsed.cpModes;
+    if(parsed.spModes)SP_INC_MODE=parsed.spModes;
   }catch(e){}
 }
 
@@ -1812,6 +1857,8 @@ function getIncentiveInr(cp){
     if(isNaN(v)||v<=0)return;
     if(k==='sc'){
       t+=(SCM==='abs')?v:(cp.e*v/100);
+    } else if(isCustomInc(k)){
+      t+=(incModeOf('cp',k)==='abs')?v:(cp.e*v/100);
     } else {
       t+=(k==='cd'&&CDM==='after')?(cp.i*v/100):(cp.e*v/100);
     }
@@ -1827,11 +1874,11 @@ function updateIncSummaryTag(){
     var inp=document.getElementById('iv-'+k);
     var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
-    if(k==='sc'&&SCM==='abs'){hasAbsSc=true;absScVal=v;}
+    if((k==='sc'&&SCM==='abs')||(isCustomInc(k)&&incModeOf('cp',k)==='abs')){hasAbsSc=true;absScVal+=v;}
     else nom+=v;
   });
   var _itcd=document.getElementById('it-cd');var note=(_itcd&&_itcd.checked&&CDM==='after')?' (CD on +GST)':'';
-  var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' scheme':'';
+  var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' fixed':'';
   el('inc-summary-tag').textContent=(active===0?'All off':active+' active')+' — '+nom.toFixed(2)+'%'+scNote+note;
 }
 function computeK(){
@@ -1846,6 +1893,7 @@ function computeK(){
     var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
     if(k==='sc'&&SCM==='abs')return; // abs scheme handled separately
+    if(isCustomInc(k)&&incModeOf('cp',k)==='abs')return; // ditto for ₹ user-added incentives
     K-=(k==='cd'&&CDM==='after')?(v/100)*(1+G):(v/100);
   });
   return K;
@@ -1863,6 +1911,8 @@ function getSPIncentiveInr(sp){
     if(isNaN(v)||v<=0)return;
     if(k==='sc'){
       t+=(SSCM==='abs')?v:(sp.e*v/100);
+    } else if(isCustomInc(k)){
+      t+=(incModeOf('sp',k)==='abs')?v:(sp.e*v/100);
     } else {
       t+=(k==='cd'&&SCDM==='after')?(sp.i*v/100):(sp.e*v/100);
     }
@@ -1878,11 +1928,11 @@ function updateSpIncSummaryTag(){
     var inp=document.getElementById('siv-'+k);
     var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
-    if(k==='sc'&&SSCM==='abs'){hasAbsSc=true;absScVal=v;}
+    if((k==='sc'&&SSCM==='abs')||(isCustomInc(k)&&incModeOf('sp',k)==='abs')){hasAbsSc=true;absScVal+=v;}
     else nom+=v;
   });
   var _sitcd=document.getElementById('sit-cd');var note=(_sitcd&&_sitcd.checked&&SCDM==='after')?' (CD on +GST)':'';
-  var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' scheme':'';
+  var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' fixed':'';
   el('sp-inc-summary-tag').textContent=(active===0?'All off':active+' active')+' — '+nom.toFixed(2)+'%'+scNote+note;
 }
 function syncSpToggle(k){
@@ -3801,7 +3851,7 @@ function getShareState(){
     cm:CM,cpms:CPMS,cpd:el('cpd').value,cpv:el('cpv').value,
     sm:SM,spms:SPMS,spd:el('spd').value,spv:el('spv').value,
     pm:PM,pri:el('pri').value,
-    cdm:CDM,scm:SCM,scdm:SCDM,sscm:SSCM,
+    cdm:CDM,scm:SCM,scdm:SCDM,sscm:SSCM,incm:INC_MODE,spincm:SP_INC_MODE,
     fgp:el('floor-gp').value,fmg:el('floor-mg').value,
     inc:inc,spinc:spinc
   };
@@ -3845,6 +3895,8 @@ function applyShareState(s){
     }
     if(s.scdm)setSCDMode(s.scdm);
     if(s.sscm)setSpSchemeMode(s.sscm);
+    if(s.incm){INC_MODE=s.incm;INC_KEYS.forEach(function(k){if(isCustomInc(k))applyIncModeVisuals('cp',k)});}
+    if(s.spincm){SP_INC_MODE=s.spincm;SP_INC_KEYS.forEach(function(k){if(isCustomInc(k))applyIncModeVisuals('sp',k)});}
     if(s.t)setT(s.t);
     calc();
   }catch(e){console.warn('share state restore failed',e)}
