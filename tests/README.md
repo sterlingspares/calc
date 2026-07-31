@@ -35,7 +35,7 @@ The runner exits non-zero if anything fails, so CI catches it.
 |---|---|---|
 | `features.test.js` | 495 | GST (presets, custom, decimal), incentive edit mode, add/delete/rename, %/₹ modes, quantity and order totals, rounding, undo/redo, quote maths, history search/filter/tags, share-state round trips |
 | `errors.test.js` | 33 | every failure path logs; a clean run logs nothing; storage-quota and corrupt-payload recovery; global handlers |
-| `mobile.test.js` | 68 | modal layering vs the bottom nav, touch-target sizes, viewport zoom policy, type scale, sticky result bar states, quote table vs card layouts |
+| `mobile.test.js` | 69 | modal layering vs the bottom nav, touch-target sizes, viewport zoom policy, type scale, sticky result bar states, quote table vs card layouts |
 | `fab.test.js` | 50 | FAB visibility rules, open/close and dismissal, ARIA state, deferred dispatch, error containment, z-index ordering |
 | `browser.test.js` | 61 | serves the repo over HTTP and drives real Chromium: asset loading, CSS cascade and media queries, `defer` timing, clicks, dialog focus, mobile viewport and z-index layering |
 | `modes.test.js` | 85 | price maths, the three solve modes, input and profit modes, what-if scenarios, comparison, Quick mode, wizard, share-link URL round trip, summary text, theming, auto-save, floor limits |
