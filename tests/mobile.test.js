@@ -152,9 +152,14 @@ ok('desktop refresh works via ids', dd.getElementById('qtd-pr-0').textContent.in
 
 console.log('\n=== 14. Quote reachable from the bottom nav ===');
 ok('Quote nav item exists', !!dmm.getElementById('bnav-quote'));
-ok('nav item opens the modal',
-   dmm.getElementById('bnav-quote').getAttribute('onclick').indexOf("openModal('quote')")!==-1);
-dmm.getElementById('bnav-quote').getAttribute('onclick');
+// Handlers are delegated now, so assert the wiring and the behaviour rather
+// than an inline attribute.
+ok('nav item carries a delegated action',
+   !!dmm.getElementById('bnav-quote').getAttribute('data-click'));
+dmm.getElementById('bnav-quote').dispatchEvent(new wm.MouseEvent('click',{bubbles:true}));
+ok('clicking the nav item opens the modal',
+   dmm.getElementById('overlay-quote').classList.contains('open'));
+wm.closeModal('quote');
 wm.openModal('quote');
 ok('modal opens from nav', dmm.getElementById('overlay-quote').classList.contains('open'));
 wm.closeModal('quote');

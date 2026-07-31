@@ -1,11 +1,20 @@
 /* Sterling Spares Pricing Calculator — Service Worker */
-const CACHE = 'pc-v2';
+const CACHE = 'pc-v5';
 // Bumped when the precache list changes, so old entries are evicted on activate.
 const PRECACHE = [
   '/',
   '/index.html',
   '/assets/styles.css',
   '/assets/app.js',
+  '/assets/app-extra.js',
+  '/assets/fonts.css',
+  '/assets/fonts/DMSans.woff2',
+  '/assets/fonts/JetBrainsMono.woff2',
+  '/assets/fonts/Syne.woff2',
+  '/assets/icon.svg',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
   '/manifest.json'
 ];
 

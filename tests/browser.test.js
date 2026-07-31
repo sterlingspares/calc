@@ -227,12 +227,21 @@ async function launchChromium(chromium) {
   await page.keyboard.press('Tab');
   const firstFocus = await page.evaluate(() => document.activeElement.className);
   ok('first Tab reaches the skip link', firstFocus.includes('skip-link'), firstFocus);
-  // .skip-link animates in via `transition: top .15s`, so let it settle before
-  // measuring — otherwise this races the animation and reads a negative offset.
-  await page.waitForTimeout(250);
-  const skipTop = await page.evaluate(() =>
-    document.querySelector('.skip-link').getBoundingClientRect().top);
-  ok('skip link slides into view when focused', skipTop >= 0, 'top ' + skipTop);
+  // .skip-link animates in via `transition: top .15s`. A fixed wait sat right on
+  // the boundary once font loading shifted the timing, so poll until it lands.
+  let skipTop = null;
+  try {
+    await page.waitForFunction(
+      () => document.querySelector('.skip-link').getBoundingClientRect().top >= 0,
+      null, { timeout: 3000, polling: 50 });
+    skipTop = await page.evaluate(() =>
+      document.querySelector('.skip-link').getBoundingClientRect().top);
+  } catch (e) {
+    skipTop = await page.evaluate(() =>
+      document.querySelector('.skip-link').getBoundingClientRect().top);
+  }
+  ok('skip link slides into view when focused', skipTop !== null && skipTop >= 0,
+     'top ' + skipTop);
 
   /* ── 7b. Focus ring renders grey, not black ───────────────────────── */
   R.section('\n=== 7b. Focus ring colour (computed) ===');
@@ -269,6 +278,138 @@ async function launchChromium(chromium) {
   ok('button reads Edit again',
      (await page.textContent('#cp-inc-edit-btn')).trim() === 'Edit',
      await page.textContent('#cp-inc-edit-btn'));
+
+  /* ── 7d. Custom rounding chip highlight (computed) ────────────────── */
+  R.section('\n=== 7d. Rounding chip highlight ===');
+  await page.evaluate(() => window.openModal('settings'));
+  await page.waitForTimeout(150);
+
+  // The chip animates via `transition: background .15s`. Sampling the computed
+  // value against that transition made this section flaky, so run the whole
+  // comparison under reduced motion — the app collapses transition-duration to
+  // ~0 there, making every read deterministic. It also exercises that CSS.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+
+  const chipStyle = () => page.evaluate(() => {
+    const w = document.getElementById('rnd-custom-wrap');
+    const i = document.getElementById('rnd-custom');
+    const s = getComputedStyle(w);
+    return {
+      on: w.classList.contains('on'),
+      bg: s.backgroundColor,
+      border: s.borderTopColor,
+      fg: getComputedStyle(i).color,
+    };
+  });
+
+  await page.evaluate(() => window.setRounding('off'));
+  const offStyle = await chipStyle();
+  await page.evaluate(() => window.setRounding('20'));
+  const onStyle = await chipStyle();
+
+  ok('chip is marked active only for a custom step',
+     offStyle.on === false && onStyle.on === true,
+     `off=${offStyle.on} on=${onStyle.on}`);
+
+  ok('chip background changes when active', onStyle.bg !== offStyle.bg,
+     offStyle.bg + ' -> ' + onStyle.bg);
+  ok('chip border changes when active', onStyle.border !== offStyle.border,
+     offStyle.border + ' -> ' + onStyle.border);
+  ok('chip text colour changes when active', onStyle.fg !== offStyle.fg,
+     offStyle.fg + ' -> ' + onStyle.fg);
+
+  // The value itself is the non-colour cue, so the state is not colour-only
+  ok('chip shows the step as a non-colour cue',
+     await page.inputValue('#rnd-custom') === '20');
+
+  // Highlighted text must stay legible on the new background
+  const chipContrast = await page.evaluate(() => {
+    const parse = c => (c.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+    const lum = ([r, g, b]) => {
+      const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
+    const w = document.getElementById('rnd-custom-wrap');
+    const i = document.getElementById('rnd-custom');
+    const [la, lb] = [lum(parse(getComputedStyle(i).color)), lum(parse(getComputedStyle(w).backgroundColor))];
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  });
+  ok('highlighted value meets 4.5:1 on the chip', chipContrast >= 4.5,
+     chipContrast.toFixed(2) + ':1');
+
+  // Only one control in the row may read as selected
+  const selected = await page.evaluate(() =>
+    ['rnd-off', 'rnd-1', 'rnd-5'].filter(id =>
+      document.getElementById(id).className.includes('on')).length +
+    (document.getElementById('rnd-custom-wrap').className.includes('on') ? 1 : 0));
+  ok('exactly one rounding control reads as selected', selected === 1, 'got ' + selected);
+
+  await page.evaluate(() => window.setRounding('off'));
+  await page.emulateMedia({ reducedMotion: null });
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(120);
+
+  /* ── 7e. Deferred bundle loads on demand ──────────────────────────── */
+  R.section('\n=== 7e. Deferred feature bundle ===');
+  {
+    // A fresh page: assert app-extra.js is NOT part of the initial critical path,
+    // then that using a deferred feature pulls it in and works.
+    const p2 = await browser.newPage();
+    const loaded = [];
+    const errs2 = [];
+    p2.on('response', r => loaded.push(r.url().replace(origin, '')));
+    p2.on('pageerror', e => errs2.push(String(e)));
+    p2.on('console', m => { if (m.type() === 'error') errs2.push(m.text()); });
+    await p2.addInitScript(() => { try { localStorage.setItem('ob-done', '1'); } catch (e) {} });
+    await p2.goto(origin + '/', { waitUntil: 'load' });
+    await p2.waitForFunction(() => typeof window.calc === 'function');
+
+    ok('core bundle is on the critical path', loaded.indexOf('/assets/app.js') !== -1);
+    // The bundle is warmed on idle, so "undefined right now" is racy. What
+    // matters is that it is never a blocking script in the markup.
+    ok('deferred bundle is not a blocking script',
+       !/<script[^>]+src="assets\/app-extra\.js"/.test(fs.readFileSync(path.join(ROOT,'index.html'),'utf8')));
+    ok('core works without waiting for it',
+       await p2.evaluate(() => typeof window.calc === 'function'));
+    ok('no error from the deferred bundle', errs2.length === 0, errs2.slice(0, 2).join(' | '));
+
+    // Opening the quote builder must fetch the bundle and then render
+    await p2.evaluate(() => window.openModal('quote'));
+    await p2.waitForFunction(() => typeof window.qtRender === 'function', null, { timeout: 8000 });
+    ok('opening quote loads the bundle', loaded.indexOf('/assets/app-extra.js') !== -1);
+    ok('quote renders after the load',
+       await p2.evaluate(() => !!document.getElementById('qt-table') ||
+                               !!document.getElementById('qt-cards')));
+    await p2.evaluate(() => window.qtAddLine());
+    ok('deferred function is callable', await p2.evaluate(() => window.QUOTE.length) === 1);
+    await p2.evaluate(() => window.closeModal('quote'));
+
+    // Quick mode is the other entry point
+    await p2.evaluate(() => window.setMode('quick'));
+    await p2.waitForFunction(() => window.APP_MODE === 'quick', null, { timeout: 5000 });
+    ok('quick mode activates through the deferred path',
+       await p2.evaluate(() => window.APP_MODE === 'quick'));
+    ok('quick mode cards were built',
+       await p2.evaluate(() => document.querySelectorAll('#fc-stack .fc-card').length > 0) ||
+       await p2.evaluate(() => !!document.getElementById('fc-mrp')));
+    await p2.evaluate(() => window.setMode('default'));
+
+    ok('still no page errors after using deferred features',
+       errs2.length === 0, errs2.slice(0, 2).join(' | '));
+
+    // The resize listener lives in core and must tolerate the bundle's absence
+    const p3 = await browser.newPage();
+    const errs3 = [];
+    p3.on('pageerror', e => errs3.push(String(e)));
+    await p3.addInitScript(() => { try { localStorage.setItem('ob-done', '1'); } catch (e) {} });
+    await p3.goto(origin + '/', { waitUntil: 'load' });
+    await p3.setViewportSize({ width: 400, height: 800 });
+    await p3.waitForTimeout(400);
+    ok('resizing before the bundle loads does not throw', errs3.length === 0,
+       errs3.slice(0, 2).join(' | '));
+    await p3.close();
+    await p2.close();
+  }
 
   /* ── 8. Mobile viewport ───────────────────────────────────────────── */
   R.section('\n=== 8. Mobile viewport ===');

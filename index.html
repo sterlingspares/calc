@@ -2,6 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Content Security Policy.
+     script-src is 'self' with NO 'unsafe-inline': every handler is delegated
+     through the ACT registry in app.js, so injected script elements or on* attributes
+     will not execute. style-src still needs 'unsafe-inline' for the ~93 style
+     attributes in this file.
+     frame-ancestors and X-Frame-Options cannot be set from a meta tag; they are
+     supplied as response headers — see _headers. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';
+  font-src 'self';
+  img-src 'self' data:;
+  connect-src 'self';
+  manifest-src 'self';
+  worker-src 'self';
+  object-src 'none';
+  base-uri 'self';
+  form-action 'none';
+">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+
 <!-- Pinch-zoom stays available (WCAG 1.4.4). Accidental double-tap zoom is
      suppressed per-control with `touch-action:manipulation` instead of by
      disabling zoom globally. -->
@@ -20,14 +43,18 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Pricing Calc">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" href="https://sterlingspares.com/favicon.png">
-<link rel="apple-touch-icon" href="https://sterlingspares.com/favicon.png">
+<!-- Local icons: the previous ones were fetched from sterlingspares.com, which
+     made an offline-first PWA depend on a third origin at load and violated the
+     img-src policy. -->
+<link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Price Calc — Sterling Spares</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Non-blocking font load — page renders immediately with system fonts -->
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"></noscript>
+<!-- Self-hosted fonts: no third-party origin on the critical path, and
+     typography now works offline. Preloaded because they are render-blocking-ish
+     via font-display:swap and we want the swap to happen fast. -->
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/DMSans.woff2" crossorigin>
+<link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
@@ -47,93 +74,93 @@
   <div class="header-actions">
     <!-- Mode toggle -->
     <div style="display:flex;background:rgba(255,255,255,0.1);border-radius:20px;padding:2px;gap:1px">
-      <button id="mode-default" class="mode-pill mode-pill-on" onclick="setMode('default')">Default</button>
-      <button id="mode-quick"   class="mode-pill"              onclick="setMode('quick')">Quick</button>
+      <button id="mode-default" class="mode-pill mode-pill-on" data-click="a0">Default</button>
+      <button id="mode-quick"   class="mode-pill"              data-click="a1">Quick</button>
     </div>
     <div class="hdivider"></div>
     <!-- Desktop actions -->
     <div class="hactions-desktop">
-      <button class="hbtn" id="share-btn" onclick="shareLink()">
+      <button class="hbtn" id="share-btn" data-click="a2">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="9.5" cy="2.5" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="9.5" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="2.5" cy="6" r="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.7l4 2M4 5.3l4-2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         Share
       </button>
-      <button class="hbtn" onclick="saveToHistory()">
+      <button class="hbtn" data-click="a3">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 9v1.5a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
         Save
       </button>
-      <button class="hbtn" id="copy-btn" onclick="copyToClipboard()">
+      <button class="hbtn" id="copy-btn" data-click="a4">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="4" y="1" width="7" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M1 3.5V10a1 1 0 001 1h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         Copy
       </button>
-      <button class="hbtn" onclick="exportPDF()">
+      <button class="hbtn" data-click="a5">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1" width="9" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         PDF
       </button>
-      <button class="hbtn" onclick="openModal('quote')" title="Multi-line quote builder (M)">
+      <button class="hbtn" data-click="a6" title="Multi-line quote builder (M)">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1.5" width="9" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         Quote
       </button>
       <div class="hdivider"></div>
-      <button class="hbtn hbtn-icon" id="undo-btn" onclick="undo()" title="Undo (⌘Z)" aria-label="Undo" disabled>
+      <button class="hbtn hbtn-icon" id="undo-btn" data-click="a7" title="Undo (⌘Z)" aria-label="Undo" disabled>
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3 6h5.5a3 3 0 010 6H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 3.5L2.5 6 5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <button class="hbtn hbtn-icon" id="redo-btn" onclick="redo()" title="Redo (⌘⇧Z)" aria-label="Redo" disabled>
+      <button class="hbtn hbtn-icon" id="redo-btn" data-click="a8" title="Redo (⌘⇧Z)" aria-label="Redo" disabled>
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 6H5.5a3 3 0 000 6H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 3.5L11.5 6 9 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <button class="hbtn hbtn-icon" onclick="openModal('shortcuts')" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">
+      <button class="hbtn hbtn-icon" data-click="a9" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 6.2C6.5 5.3 7.1 4.7 8 4.7c.9 0 1.5.6 1.5 1.4 0 .7-.4 1.1-1 1.5C7.8 8 7.5 8.4 7.5 9v.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="7.5" cy="11" r=".7" fill="currentColor"/></svg>
       </button>
-      <button class="hbtn hbtn-icon" onclick="openModal('settings')" title="Settings" aria-label="Settings">
+      <button class="hbtn hbtn-icon" data-click="a10" title="Settings" aria-label="Settings">
         <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M4 5h12M4 10h12M4 15h12"/><circle cx="7" cy="5" r="1.8" fill="rgba(255,255,255,0.15)" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="10" r="1.8" fill="rgba(255,255,255,0.15)" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="15" r="1.8" fill="rgba(255,255,255,0.15)" stroke="currentColor" stroke-width="1.4"/></svg>
       </button>
     </div>
 
     <!-- Mobile hamburger -->
     <div class="hactions-mobile">
-      <button class="hmenu-btn" onclick="toggleHMenu()" id="hmenu-btn" aria-label="Menu">
+      <button class="hmenu-btn" data-click="a11" id="hmenu-btn" aria-label="Menu">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
       </button>
       <div class="hmenu-dropdown" id="hmenu-dropdown">
-        <button class="hmenu-item" onclick="shareLink();closeHMenu()">
+        <button class="hmenu-item" data-click="a12">
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><circle cx="9.5" cy="2.5" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="9.5" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="2.5" cy="6" r="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.7l4 2M4 5.3l4-2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
           Share link
         </button>
-        <button class="hmenu-item" onclick="saveToHistory();closeHMenu()">
+        <button class="hmenu-item" data-click="a13">
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 9v1.5a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           Save to history
         </button>
-        <button class="hmenu-item" id="copy-btn" onclick="copyToClipboard();closeHMenu()">
+        <button class="hmenu-item" id="copy-btn" data-click="a14">
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><rect x="4" y="1" width="7" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M1 3.5V10a1 1 0 001 1h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
           Copy summary
         </button>
-        <button class="hmenu-item" onclick="exportPDF();closeHMenu()">
+        <button class="hmenu-item" data-click="a15">
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1" width="9" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
           Export PDF
         </button>
-        <button class="hmenu-item" onclick="openModal('quote');closeHMenu()">
+        <button class="hmenu-item" data-click="a16">
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1.5" width="9" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
           Quote builder
         </button>
         <div class="hmenu-sep"></div>
-        <button class="hmenu-item" id="hmenu-undo" onclick="undo();closeHMenu()">
+        <button class="hmenu-item" id="hmenu-undo" data-click="a17">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 6h5.5a3 3 0 010 6H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 3.5L2.5 6 5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Undo
         </button>
         <div class="hmenu-sep"></div>
-        <button class="hmenu-item" onclick="sendWhatsApp();closeHMenu()">
+        <button class="hmenu-item" data-click="a18">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
           WhatsApp summary
         </button>
-        <button class="hmenu-item" onclick="sendEmail();closeHMenu()">
+        <button class="hmenu-item" data-click="a19">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 4l6 4 6-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Email summary
         </button>
         <div class="hmenu-sep"></div>
-        <button class="hmenu-item" onclick="openModal('settings');closeHMenu()">
+        <button class="hmenu-item" data-click="a20">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M13.3 8c0-.27-.02-.53-.06-.78l1.4-1.1a.33.33 0 00.08-.43l-1.33-2.3a.33.33 0 00-.4-.14l-1.65.66a5.8 5.8 0 00-1.35-.78L9.74 1.37A.32.32 0 009.4 1.1H6.6a.32.32 0 00-.33.27L6.02 3.13a5.8 5.8 0 00-1.35.78l-1.65-.66a.33.33 0 00-.4.14L1.29 5.7a.32.32 0 00.08.43l1.4 1.1A5.45 5.45 0 002.7 8c0 .27.02.53.06.78l-1.4 1.1a.33.33 0 00-.08.43l1.33 2.3c.08.15.26.2.4.14l1.65-.66c.42.3.87.56 1.35.78l.25 1.76c.02.16.16.27.33.27h2.8c.17 0 .31-.11.33-.27l.25-1.76a5.8 5.8 0 001.35-.78l1.65.66c.14.06.32.01.4-.14l1.33-2.3a.32.32 0 00-.08-.43l-1.4-1.1c.04-.25.06-.51.06-.78z" stroke="currentColor" stroke-width="1.3"/></svg>
           Settings
         </button>
-        <button class="hmenu-item" onclick="localStorage.removeItem('ob-done');closeHMenu();setTimeout(obShow,200)">
+        <button class="hmenu-item" data-click="a21">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2C4.24 2 2 4.24 2 7s2.24 5 5 5 5-2.24 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 1.5l2 1.2-2 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Restart tour
         </button>
@@ -151,22 +178,22 @@
     <div class="ctrl-group">
       <span class="ctrl-label">GST</span>
       <div class="pill-group">
-        <button class="pill on" id="g18" onclick="setGST(18)">18%</button>
-        <button class="pill"    id="g5"  onclick="setGST(5)">5%</button>
-        <div class="gst-custom-wrap"><input type="number" id="gst-custom" value="" placeholder="Other" min="0" max="100" step="0.5" inputmode="decimal" onchange="onCustomGST(this)" autocomplete="off" aria-label="Custom GST rate"><span>%</span></div>
+        <button class="pill on" id="g18" data-click="a22">18%</button>
+        <button class="pill"    id="g5"  data-click="a23">5%</button>
+        <div class="gst-custom-wrap"><input type="number" id="gst-custom" value="" placeholder="Other" min="0" max="100" step="0.5" inputmode="decimal" data-change="a24" autocomplete="off" aria-label="Custom GST rate"><span>%</span></div>
       </div>
     </div>
     <div class="divider"></div>
     <div class="ctrl-group">
       <span class="ctrl-label">Calculate</span>
       <div class="pill-group">
-        <button class="pill on" id="tprofit" onclick="setT('profit')">Profit</button>
-        <button class="pill"    id="tsp"     onclick="setT('sp')">Selling Price</button>
-        <button class="pill"    id="tcp"     onclick="setT('cp')">Cost Price</button>
+        <button class="pill on" id="tprofit" data-click="a25">Profit</button>
+        <button class="pill"    id="tsp"     data-click="a26">Selling Price</button>
+        <button class="pill"    id="tcp"     data-click="a27">Cost Price</button>
       </div>
     </div>
     <div class="sep"></div>
-    <button class="btn-reset" onclick="resetAll()">
+    <button class="btn-reset" data-click="a28">
       <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2C4.24 2 2 4.24 2 7s2.24 5 5 5 5-2.24 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 1.5l2 1.2-2 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Reset
     </button>
@@ -178,8 +205,8 @@
       <span class="mrp-label">MRP (incl. GST)</span>
       <div class="big-input">
         <span class="sym">₹</span>
-        <input type="text" inputmode="decimal" id="mrp" value="100" autocomplete="off" oninput="onMrpInput(this)" placeholder="0" style="font-variant-numeric:tabular-nums" aria-label="Maximum Retail Price, inclusive of GST">
-        <button class="big-input-next" onclick="nextFrom('mrp')" title="Next" aria-label="Go to the next field after MRP" tabindex="-1">
+        <input type="text" inputmode="decimal" id="mrp" value="100" autocomplete="off" data-input="a29" placeholder="0" style="font-variant-numeric:tabular-nums" aria-label="Maximum Retail Price, inclusive of GST">
+        <button class="big-input-next" data-click="a30" title="Next" aria-label="Go to the next field after MRP" tabindex="-1">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
@@ -189,12 +216,16 @@
       <div class="mrp-stat"><span class="mrp-stat-lbl">GST Amount</span><span class="mrp-stat-val" id="mg">—</span></div>
       <div class="mrp-stat"><span class="mrp-stat-lbl">GST Rate</span><span class="mrp-stat-val" id="grate">18%</span></div>
       <div class="mrp-stat">
+        <span class="mrp-stat-lbl" title="Freight, insurance, handling — added to effective CP">Landed ₹/unit</span>
+        <span class="landed-wrap"><span>₹</span><input type="number" id="landed" value="" placeholder="0" min="0" step="0.01" inputmode="decimal" data-input="calc" data-change="saveState" autocomplete="off" aria-label="Landed cost per unit in rupees, excluding GST"></span>
+      </div>
+      <div class="mrp-stat">
         <span class="mrp-stat-lbl">Quantity</span>
         <span class="qty-wrap">
           <span class="qty-box">
-            <button type="button" onclick="stepQty(-1)" aria-label="Decrease quantity" tabindex="-1">−</button>
-            <input type="number" id="qty" value="1" min="1" step="1" inputmode="numeric" oninput="calc();debouncedSaveCalcState()" autocomplete="off" aria-label="Quantity">
-            <button type="button" onclick="stepQty(1)" aria-label="Increase quantity" tabindex="-1">+</button>
+            <button type="button" data-click="a31" aria-label="Decrease quantity" tabindex="-1">−</button>
+            <input type="number" id="qty" value="1" min="1" step="1" inputmode="numeric" data-input="a32" autocomplete="off" aria-label="Quantity">
+            <button type="button" data-click="a33" aria-label="Increase quantity" tabindex="-1">+</button>
           </span>
         </span>
       </div>
@@ -208,28 +239,28 @@
     <div class="card" id="cpc">
       <div class="card-head"><h2 class="card-title">Cost Price</h2><span class="badge b-input" id="cpb">Input</span></div>
       <div class="mode-tabs" id="cp-mode-tabs">
-        <button class="mtab on" id="cme"  onclick="setCM('excl')">Discount<br>+ GST</button>
-        <button class="mtab"    id="cmi"  onclick="setCM('incl')">Nett<br>Discount %</button>
-        <button class="mtab"    id="cmm"  onclick="setCM('manual')">Enter ₹<br>directly</button>
+        <button class="mtab on" id="cme"  data-click="a34">Discount<br>+ GST</button>
+        <button class="mtab"    id="cmi"  data-click="a35">Nett<br>Discount %</button>
+        <button class="mtab"    id="cmm"  data-click="a36">Enter ₹<br>directly</button>
       </div>
       <div class="field" id="cpf-disc">
         <span class="sym">Disc</span>
-        <input type="number" inputmode="decimal" id="cpd" placeholder="e.g. 30" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off" aria-label="Cost price discount percentage">
+        <input type="number" inputmode="decimal" id="cpd" placeholder="e.g. 30" min="0" max="100" step="0.01" data-input="a37" autocomplete="off" aria-label="Cost price discount percentage">
         <span class="field-suf" id="cpd-suf">% + 18% GST</span>
-        <button class="field-next" onclick="nextFrom('cpd')" title="Next" aria-label="Go to the next field after cost price discount" tabindex="-1">
+        <button class="field-next" data-click="a38" title="Next" aria-label="Go to the next field after cost price discount" tabindex="-1">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
       <div id="cpf-manual" style="display:none;flex-direction:column;gap:8px">
         <div class="sub-tabs">
-          <button class="stab on" id="cpm-incl" onclick="setCPManual('incl')">CP incl 18% GST</button>
-          <button class="stab"    id="cpm-excl" onclick="setCPManual('excl')">CP excl 18% GST</button>
+          <button class="stab on" id="cpm-incl" data-click="a39">CP incl 18% GST</button>
+          <button class="stab"    id="cpm-excl" data-click="a40">CP excl 18% GST</button>
         </div>
-        <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="cpv" placeholder="e.g. 77.88" oninput="onAmtInput(this)" autocomplete="off" aria-label="Cost price amount in rupees">
-          <button class="field-next" onclick="nextFrom('cpv')" title="Next" aria-label="Go to the next field after cost price amount" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="cpv" placeholder="e.g. 77.88" data-input="a41" autocomplete="off" aria-label="Cost price amount in rupees">
+          <button class="field-next" data-click="a42" title="Next" aria-label="Go to the next field after cost price amount" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
       </div>
-      <button class="acc-toggle" onclick="toggleAcc('cp')" id="acc-btn-cp" aria-expanded="false" aria-controls="acc-body-cp">
+      <button class="acc-toggle" data-click="a43" id="acc-btn-cp" aria-expanded="false" aria-controls="acc-body-cp">
         <div class="acc-bar">
           <span class="acc-lbl">Show details</span>
           <svg class="acc-chevron" id="acc-chev-cp" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -252,28 +283,28 @@
     <div class="card" id="spc">
       <div class="card-head"><h2 class="card-title">Selling Price</h2><span class="badge b-input" id="spb">Input</span></div>
       <div class="mode-tabs" id="sp-mode-tabs">
-        <button class="mtab on" id="sme" onclick="setSM('excl')">Discount<br>+ GST</button>
-        <button class="mtab"    id="smi" onclick="setSM('incl')">Nett<br>Discount %</button>
-        <button class="mtab"    id="smm" onclick="setSM('manual')">Enter ₹<br>directly</button>
+        <button class="mtab on" id="sme" data-click="a44">Discount<br>+ GST</button>
+        <button class="mtab"    id="smi" data-click="a45">Nett<br>Discount %</button>
+        <button class="mtab"    id="smm" data-click="a46">Enter ₹<br>directly</button>
       </div>
       <div class="field" id="spf-disc">
         <span class="sym">Disc</span>
-        <input type="number" inputmode="decimal" id="spd" placeholder="e.g. 20" min="0" max="100" step="0.01" oninput="calc()" autocomplete="off" aria-label="Selling price discount percentage">
+        <input type="number" inputmode="decimal" id="spd" placeholder="e.g. 20" min="0" max="100" step="0.01" data-input="a37" autocomplete="off" aria-label="Selling price discount percentage">
         <span class="field-suf" id="spd-suf">% + 18% GST</span>
-        <button class="field-next" onclick="nextFrom('spd')" title="Next" aria-label="Go to the next field after selling price discount" tabindex="-1">
+        <button class="field-next" data-click="a47" title="Next" aria-label="Go to the next field after selling price discount" tabindex="-1">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
       <div id="spf-manual" style="display:none;flex-direction:column;gap:8px">
         <div class="sub-tabs">
-          <button class="stab on" id="spm-incl" onclick="setSPManual('incl')">SP incl 18% GST</button>
-          <button class="stab"    id="spm-excl" onclick="setSPManual('excl')">SP excl 18% GST</button>
+          <button class="stab on" id="spm-incl" data-click="a48">SP incl 18% GST</button>
+          <button class="stab"    id="spm-excl" data-click="a49">SP excl 18% GST</button>
         </div>
-        <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="spv" placeholder="e.g. 90.00" oninput="onAmtInput(this)" autocomplete="off" aria-label="Selling price amount in rupees">
-          <button class="field-next" onclick="nextFrom('spv')" title="Next" aria-label="Go to the next field after selling price amount" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="spv" placeholder="e.g. 90.00" data-input="a41" autocomplete="off" aria-label="Selling price amount in rupees">
+          <button class="field-next" data-click="a50" title="Next" aria-label="Go to the next field after selling price amount" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
       </div>
-      <button class="acc-toggle" onclick="toggleAcc('sp')" id="acc-btn-sp" aria-expanded="false" aria-controls="acc-body-sp">
+      <button class="acc-toggle" data-click="a51" id="acc-btn-sp" aria-expanded="false" aria-controls="acc-body-sp">
         <div class="acc-bar">
           <span class="acc-lbl">Show details</span>
           <svg class="acc-chevron" id="acc-chev-sp" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -294,13 +325,13 @@
     <div class="card computed" id="prc">
       <div class="card-head"><h2 class="card-title">Profit</h2><span class="badge b-calc" id="prb">Calculated</span></div>
       <div class="mode-tabs" id="pmt" style="display:none">
-        <button class="mtab on" id="pmv" onclick="setPM('val')">₹ Value</button>
-        <button class="mtab"    id="pmg" onclick="setPM('gp')">GP %</button>
-        <button class="mtab"    id="pmm" onclick="setPM('margin')">Margin %</button>
+        <button class="mtab on" id="pmv" data-click="a52">₹ Value</button>
+        <button class="mtab"    id="pmg" data-click="a53">GP %</button>
+        <button class="mtab"    id="pmm" data-click="a54">Margin %</button>
       </div>
       <div class="field" id="prf" style="display:none">
         <span class="sym" id="pru">₹</span>
-        <input type="text" inputmode="decimal" id="pri" placeholder="0.00" oninput="onAmtInput(this)" autocomplete="off" aria-label="Target profit">
+        <input type="text" inputmode="decimal" id="pri" placeholder="0.00" data-input="a41" autocomplete="off" aria-label="Target profit">
       </div>
       <div class="rows">
         <div class="row"><span class="row-lbl">Profit (excl GST basis)</span><span class="row-val big" id="pvv">—</span></div>
@@ -317,24 +348,39 @@
     <div class="panel-header">
       <!-- Stretched button: the whole header stays clickable and is now a real
            keyboard control, without nesting the Edit button inside it. -->
-      <button class="panel-hdr-btn" id="phdr-inc" aria-expanded="false" aria-controls="body-inc" aria-labelledby="ttl-inc" onclick="togglePanel('inc')"></button>
+      <button class="panel-hdr-btn" id="phdr-inc" aria-expanded="false" aria-controls="body-inc" aria-labelledby="ttl-inc" data-click="a55"></button>
       <div class="panel-header-left">
         <h2 class="panel-title" id="ttl-inc">Incentives on CP</h2>
         <span class="panel-tag" id="inc-summary-tag">All off — 0.00%</span>
       </div>
       <div class="panel-hdr-actions">
-        <button class="panel-edit-btn" id="cp-inc-edit-btn" onclick="toggleIncEditMode('cp')">Edit</button>
+        <button class="panel-edit-btn" id="cp-inc-edit-btn" data-click="a56">Edit</button>
         <svg class="panel-chevron" id="chev-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
     </div>
     <div class="panel-body" id="body-inc">
+      <div class="preset-bar">
+        <label class="sr-only" for="preset-select">Incentive preset</label>
+        <select id="preset-select" class="preset-select" data-change="presetPick">
+          <option value="">Presets…</option>
+        </select>
+        <button class="preset-btn" data-click="presetSave" title="Save the current incentives as a preset">Save as…</button>
+        <button class="preset-btn danger" id="preset-del" data-click="presetDel" title="Delete the selected preset" disabled>Delete</button>
+      </div>
       <div class="inc-grid" id="cp-inc-grid"></div>
-      <button class="inc-add-btn" id="cp-inc-add-btn" onclick="addInc('cp')">+ Add incentive</button>
+      <button class="inc-add-btn" id="cp-inc-add-btn" data-click="a57">+ Add incentive</button>
       <div class="inc-footer">
         <div class="inc-total-item"><span class="inc-total-lbl">Total incentive ₹</span><span class="inc-total-val" id="inc-total-inr">—</span></div>
         <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on CP</span><span class="inc-total-val" id="inc-total-pct">0.00%</span></div>
         <div class="inc-total-item"><span class="inc-total-lbl" id="lbl-inc-eff-cp">Effective CP excl 18% GST</span><span class="inc-total-val" id="inc-eff-cp">—</span></div>
         <p class="inc-note">CD can be on CP excl or incl GST.<br>Scheme can be % or fixed ₹. All others on CP excl GST.</p>
+      </div>
+      <div class="solver">
+        <div class="solver-row">
+          <label class="solver-lbl" for="solver-gp">Target GP %</label>
+          <span class="solver-input"><input type="number" id="solver-gp" placeholder="12" min="0" max="99.9" step="0.1" inputmode="decimal" data-input="solve" autocomplete="off" aria-describedby="solver-out"></span>
+        </div>
+        <p class="solver-out" id="solver-out" role="status" aria-live="polite">Enter a target GP % to see what it needs.</p>
       </div>
     </div>
   </div>
@@ -344,20 +390,20 @@
   <!-- SP INCENTIVES PANEL -->
   <div class="panel panel-green" id="sec-sp-inc">
     <div class="panel-header">
-      <button class="panel-hdr-btn" id="phdr-sp-inc" aria-expanded="false" aria-controls="body-sp-inc" aria-labelledby="ttl-sp-inc" onclick="togglePanel('sp-inc')"></button>
+      <button class="panel-hdr-btn" id="phdr-sp-inc" aria-expanded="false" aria-controls="body-sp-inc" aria-labelledby="ttl-sp-inc" data-click="a58"></button>
       <div class="panel-header-left">
         <h2 class="panel-title" id="ttl-sp-inc">Incentives on SP</h2>
         <span class="panel-tag" id="sp-inc-summary-tag">All off — 0.00%</span>
       </div>
       <div class="panel-hdr-actions">
-        <button class="panel-edit-btn" id="sp-inc-edit-btn" onclick="toggleIncEditMode('sp')">Edit</button>
+        <button class="panel-edit-btn" id="sp-inc-edit-btn" data-click="a59">Edit</button>
         <svg class="panel-chevron" id="chev-sp-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
     </div>
     <div class="panel-body" id="body-sp-inc">
       <p style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5">Optional discounts to customer that reduce effective selling price. Profit = Eff. SP − Eff. CP.</p>
       <div class="inc-grid" id="sp-inc-grid"></div>
-      <button class="inc-add-btn" id="sp-inc-add-btn" onclick="addInc('sp')">+ Add incentive</button>
+      <button class="inc-add-btn" id="sp-inc-add-btn" data-click="a60">+ Add incentive</button>
       <div class="inc-footer">
         <div class="inc-total-item"><span class="inc-total-lbl">Total SP incentive ₹</span><span class="inc-total-val" id="sp-inc-total-inr">—</span></div>
         <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on SP</span><span class="inc-total-val" id="sp-inc-total-pct">0.00%</span></div>
@@ -372,7 +418,7 @@
     <div class="summary">
       <div class="summary-title-row">
         <h2 class="summary-title">Summary</h2>
-        <button class="btn-whatif" onclick="openModal('whatif')">
+        <button class="btn-whatif" data-click="a61">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="4" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="7" y="4" width="4" height="7" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
           What-if scenarios
         </button>
@@ -390,6 +436,9 @@
         <div class="sum-item"><div class="sum-lbl">Margin %</div><div class="sum-val dim" id="s-mg">—</div></div>
         <div class="sum-item"><div class="sum-lbl">CP Discount + GST %</div><div class="sum-val dim" id="s-dcp">—</div></div>
         <div class="sum-item"><div class="sum-lbl">SP Discount + GST %</div><div class="sum-val dim" id="s-dsp">—</div></div>
+        <div class="sum-order-sep" id="s-be-sep" style="display:none"></div>
+        <div class="sum-item sum-order" id="s-item-be" style="display:none"><div class="sum-lbl" title="SP incl GST at which profit reaches zero">Break-even SP</div><div class="sum-val dim" id="s-be">—</div></div>
+        <div class="sum-item sum-order" id="s-item-bef" style="display:none"><div class="sum-lbl" title="SP incl GST at which GP% reaches your floor">SP at GP floor</div><div class="sum-val dim" id="s-bef">—</div></div>
         <div class="sum-order-sep" id="s-order-sep" style="display:none"></div>
         <div class="sum-item sum-order" id="s-item-qty" style="display:none"><div class="sum-lbl">Quantity</div><div class="sum-val dim" id="s-qty">—</div></div>
         <div class="sum-item sum-order" id="s-item-order" style="display:none"><div class="sum-lbl">Order Value (incl GST)</div><div class="sum-val dim" id="s-order">—</div></div>
@@ -401,7 +450,7 @@
   <!-- HISTORY PANEL -->
   <div class="panel panel-gray" id="sec-hist">
     <div class="panel-header">
-      <button class="panel-hdr-btn" id="phdr-hist" aria-expanded="false" aria-controls="body-hist" aria-labelledby="ttl-hist" onclick="togglePanel('hist')"></button>
+      <button class="panel-hdr-btn" id="phdr-hist" aria-expanded="false" aria-controls="body-hist" aria-labelledby="ttl-hist" data-click="a62"></button>
       <div class="panel-header-left">
         <h2 class="panel-title" id="ttl-hist">History</h2>
         <span class="panel-tag" id="hist-tag">0 entries</span>
@@ -414,29 +463,29 @@
       <div class="hist-tools" id="hist-tools" style="display:none">
         <span class="hist-search-wrap">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><path d="M7.7 7.7L10.5 10.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-          <input type="text" id="hist-search" placeholder="Search tags, GST, values…" oninput="setHistQuery(this.value)" autocomplete="off" aria-label="Search history">
+          <input type="text" id="hist-search" placeholder="Search tags, GST, values…" data-input="a63" autocomplete="off" aria-label="Search history">
         </span>
         <span class="hist-filters">
-          <button class="hist-fpill on" id="hf-all"   onclick="setHistFilter('all')">All</button>
-          <button class="hist-fpill"    id="hf-pos"   onclick="setHistFilter('pos')">Profit +</button>
-          <button class="hist-fpill"    id="hf-neg"   onclick="setHistFilter('neg')">Loss</button>
-          <button class="hist-fpill"    id="hf-below" onclick="setHistFilter('below')">Below floor</button>
-          <button class="hist-fpill"    id="hf-tagged" onclick="setHistFilter('tagged')">Tagged</button>
+          <button class="hist-fpill on" id="hf-all"   data-click="a64">All</button>
+          <button class="hist-fpill"    id="hf-pos"   data-click="a65">Profit +</button>
+          <button class="hist-fpill"    id="hf-neg"   data-click="a66">Loss</button>
+          <button class="hist-fpill"    id="hf-below" data-click="a67">Below floor</button>
+          <button class="hist-fpill"    id="hf-tagged" data-click="a68">Tagged</button>
         </span>
       </div>
       <div class="hist-table-wrap"><div id="hist-content" role="list" aria-label="Calculation history"><div class="hist-empty" role="status">No entries yet — save a calculation to start.</div></div></div>
       <div class="hist-actions">
         <label class="hist-autosave" title="Auto-save every completed calculation">
           <span class="toggle" style="width:28px;height:16px">
-            <input type="checkbox" id="autosave-toggle" checked onchange="syncAutosave(this)" aria-label="Auto-save calculations to history">
+            <input type="checkbox" id="autosave-toggle" checked data-change="a69" aria-label="Auto-save calculations to history">
             <span class="toggle-track"></span>
             <span class="toggle-thumb" style="width:10px;height:10px;top:3px;left:3px"></span>
           </span>
           <span>Auto-save</span>
         </label>
-        <button class="hist-btn save" onclick="saveToHistory()">Save current</button>
-        <button class="hist-btn export" onclick="exportHistoryCSV()">Export CSV</button>
-        <button class="hist-btn" onclick="clearHistory()">Clear all</button>
+        <button class="hist-btn save" data-click="a3">Save current</button>
+        <button class="hist-btn export" data-click="a70">Export CSV</button>
+        <button class="hist-btn" data-click="a71">Clear all</button>
       </div>
     </div>
   </div>
@@ -453,21 +502,21 @@
       <span class="wz-lbl">MRP (incl. GST)</span>
       <div class="wz-field">
         <span class="wz-sym">₹</span>
-        <input class="wz-input" type="text" inputmode="decimal" id="wz-mrp" placeholder="e.g. 1,000" oninput="onMrpInput(this);wzCalc()" autocomplete="off" aria-label="Wizard: Maximum Retail Price">
+        <input class="wz-input" type="text" inputmode="decimal" id="wz-mrp" placeholder="e.g. 1,000" data-input="a72" autocomplete="off" aria-label="Wizard: Maximum Retail Price">
       </div>
     </div>
     <div class="wz-row">
       <span class="wz-lbl">GST Rate</span>
       <div style="display:flex;gap:6px">
-        <button class="stab on" id="wzg18" onclick="wzSetGST(18)" style="padding:5px 14px">18%</button>
-        <button class="stab"    id="wzg5"  onclick="wzSetGST(5)"  style="padding:5px 14px">5%</button>
+        <button class="stab on" id="wzg18" data-click="a73" style="padding:5px 14px">18%</button>
+        <button class="stab"    id="wzg5"  data-click="a74"  style="padding:5px 14px">5%</button>
       </div>
     </div>
     <div class="wz-row">
       <span class="wz-lbl">Calculate for</span>
       <div style="display:flex;gap:6px">
-        <button class="stab on" id="wz-t-cp" onclick="wzSetT('cp')" style="padding:5px 14px">Cost Price</button>
-        <button class="stab"    id="wz-t-sp" onclick="wzSetT('sp')" style="padding:5px 14px">Selling Price</button>
+        <button class="stab on" id="wz-t-cp" data-click="a75" style="padding:5px 14px">Cost Price</button>
+        <button class="stab"    id="wz-t-sp" data-click="a76" style="padding:5px 14px">Selling Price</button>
       </div>
     </div>
   </div>
@@ -476,25 +525,25 @@
   <div class="wz-section">
     <div class="wz-section-title" id="wz-price-title">Cost Price Input</div>
     <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
-      <button class="stab on" id="wz-cm-excl"   onclick="wzSetCM('excl')"   style="padding:5px 10px">Discount + GST %</button>
-      <button class="stab"    id="wz-cm-incl"   onclick="wzSetCM('incl')"   style="padding:5px 10px">Nett Discount %</button>
-      <button class="stab"    id="wz-cm-manual" onclick="wzSetCM('manual')" style="padding:5px 10px">Enter ₹ directly</button>
+      <button class="stab on" id="wz-cm-excl"   data-click="a77"   style="padding:5px 10px">Discount + GST %</button>
+      <button class="stab"    id="wz-cm-incl"   data-click="a78"   style="padding:5px 10px">Nett Discount %</button>
+      <button class="stab"    id="wz-cm-manual" data-click="a79" style="padding:5px 10px">Enter ₹ directly</button>
     </div>
     <div id="wz-disc-wrap">
       <div class="wz-field">
         <span class="wz-sym">Disc</span>
-        <input class="wz-input" type="number" inputmode="decimal" id="wz-disc" placeholder="e.g. 34" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off" aria-label="Wizard: discount percentage">
+        <input class="wz-input" type="number" inputmode="decimal" id="wz-disc" placeholder="e.g. 34" min="0" max="100" step="0.01" data-input="a80" autocomplete="off" aria-label="Wizard: discount percentage">
         <span class="wz-suf" id="wz-disc-suf">% + 18% GST</span>
       </div>
     </div>
     <div id="wz-manual-wrap" style="display:none;flex-direction:column;gap:8px">
       <div style="display:flex;gap:6px">
-        <button class="stab on" id="wz-ms-incl" onclick="wzSetMS('incl')" style="padding:4px 10px"><span id="wz-ms-incl-lbl">CP incl GST</span></button>
-        <button class="stab"    id="wz-ms-excl" onclick="wzSetMS('excl')" style="padding:4px 10px"><span id="wz-ms-excl-lbl">CP excl GST</span></button>
+        <button class="stab on" id="wz-ms-incl" data-click="a81" style="padding:4px 10px"><span id="wz-ms-incl-lbl">CP incl GST</span></button>
+        <button class="stab"    id="wz-ms-excl" data-click="a82" style="padding:4px 10px"><span id="wz-ms-excl-lbl">CP excl GST</span></button>
       </div>
       <div class="wz-field">
         <span class="wz-sym">₹</span>
-        <input class="wz-input" type="text" inputmode="decimal" id="wz-manual" placeholder="e.g. 77.88" oninput="wzFmtAmt(this);wzCalc()" autocomplete="off" aria-label="Wizard: price amount in rupees">
+        <input class="wz-input" type="text" inputmode="decimal" id="wz-manual" placeholder="e.g. 77.88" data-input="a83" autocomplete="off" aria-label="Wizard: price amount in rupees">
       </div>
     </div>
   </div>
@@ -504,32 +553,32 @@
     <div class="wz-section-title">Incentives <span style="font-size:9px;color:var(--text3);font-family:var(--font-body);letter-spacing:0;text-transform:none;font-weight:400">(optional)</span></div>
 
     <div class="wz-inc-row">
-      <label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-cd" onchange="wzSyncCD()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+      <label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-cd" data-change="a84"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
       <span class="wz-inc-lbl">Cash Discount</span>
-      <div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-cd" value="2" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off" aria-label="Wizard: cash discount percentage"><span class="wz-inc-sym">%</span></div>
+      <div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-cd" value="2" min="0" max="100" step="0.01" data-input="a80" autocomplete="off" aria-label="Wizard: cash discount percentage"><span class="wz-inc-sym">%</span></div>
     </div>
     <div id="wz-cdm-sub" style="padding:6px 0 8px 32px;display:none">
       <div style="font-size:10.5px;color:var(--text3);margin-bottom:5px">CD calculated on:</div>
       <div style="display:flex;gap:6px">
-        <button class="stab on" id="wz-cdm-before" onclick="wzSetCDMode('before')" style="padding:4px 10px;font-size:11px"><span id="wz-cdm-before-lbl">CP excl GST</span></button>
-        <button class="stab"    id="wz-cdm-after"  onclick="wzSetCDMode('after')"  style="padding:4px 10px;font-size:11px"><span id="wz-cdm-after-lbl">CP incl GST</span></button>
+        <button class="stab on" id="wz-cdm-before" data-click="a85" style="padding:4px 10px;font-size:11px"><span id="wz-cdm-before-lbl">CP excl GST</span></button>
+        <button class="stab"    id="wz-cdm-after"  data-click="a86"  style="padding:4px 10px;font-size:11px"><span id="wz-cdm-after-lbl">CP incl GST</span></button>
       </div>
     </div>
 
-    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-eb" onchange="wzCalc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Early Bird</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-eb" value="1" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off" aria-label="Wizard: early bird discount percentage"><span class="wz-inc-sym">%</span></div></div>
-    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-qt" onchange="wzCalc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Quarterly</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-qt" value="2" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off" aria-label="Wizard: quarterly discount percentage"><span class="wz-inc-sym">%</span></div></div>
-    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-an" onchange="wzCalc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Annual</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-an" value="1" min="0" max="100" step="0.01" oninput="wzCalc()" autocomplete="off" aria-label="Wizard: annual discount percentage"><span class="wz-inc-sym">%</span></div></div>
+    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-eb" data-change="a80"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Early Bird</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-eb" value="1" min="0" max="100" step="0.01" data-input="a80" autocomplete="off" aria-label="Wizard: early bird discount percentage"><span class="wz-inc-sym">%</span></div></div>
+    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-qt" data-change="a80"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Quarterly</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-qt" value="2" min="0" max="100" step="0.01" data-input="a80" autocomplete="off" aria-label="Wizard: quarterly discount percentage"><span class="wz-inc-sym">%</span></div></div>
+    <div class="wz-inc-row"><label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-an" data-change="a80"><span class="toggle-track"></span><span class="toggle-thumb"></span></label><span class="wz-inc-lbl">Annual</span><div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-an" value="1" min="0" max="100" step="0.01" data-input="a80" autocomplete="off" aria-label="Wizard: annual discount percentage"><span class="wz-inc-sym">%</span></div></div>
 
     <div class="wz-inc-row">
-      <label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-sc" onchange="wzSyncSc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+      <label class="toggle" style="margin-right:2px"><input type="checkbox" id="wz-it-sc" data-change="a87"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
       <span class="wz-inc-lbl">Scheme</span>
-      <div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-sc" placeholder="0" min="0" step="0.01" oninput="wzCalc()" autocomplete="off" aria-label="Wizard: scheme value"><span class="wz-inc-sym" id="wz-sc-unit">%</span></div>
+      <div class="wz-inc-field"><input class="wz-inc-input" type="number" inputmode="decimal" id="wz-iv-sc" placeholder="0" min="0" step="0.01" data-input="a80" autocomplete="off" aria-label="Wizard: scheme value"><span class="wz-inc-sym" id="wz-sc-unit">%</span></div>
     </div>
     <div id="wz-scm-sub" style="padding:6px 0 8px 32px;display:none">
       <div style="font-size:10.5px;color:var(--text3);margin-bottom:5px">Scheme type:</div>
       <div style="display:flex;gap:6px">
-        <button class="stab on" id="wz-scm-pct" onclick="wzSetScMode('pct')" style="padding:4px 10px;font-size:11px"><span id="wz-scm-pct-lbl">% of price excl GST</span></button>
-        <button class="stab"    id="wz-scm-abs" onclick="wzSetScMode('abs')" style="padding:4px 10px;font-size:11px">₹ Absolute</button>
+        <button class="stab on" id="wz-scm-pct" data-click="a88" style="padding:4px 10px;font-size:11px"><span id="wz-scm-pct-lbl">% of price excl GST</span></button>
+        <button class="stab"    id="wz-scm-abs" data-click="a89" style="padding:4px 10px;font-size:11px">₹ Absolute</button>
       </div>
     </div>
   </div>
@@ -553,11 +602,11 @@
   </div>
 
   <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;padding-bottom:8px">
-    <button class="btn-reset" onclick="wzReset()">
+    <button class="btn-reset" data-click="a90">
       <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2C4.24 2 2 4.24 2 7s2.24 5 5 5 5-2.24 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 1.5l2 1.2-2 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Reset
     </button>
-    <button class="btn-reset" style="border-color:var(--blue);color:var(--blue)" onclick="wzToDefault()">Open in Default →</button>
+    <button class="btn-reset" style="border-color:var(--blue);color:var(--blue)" data-click="a91">Open in Default →</button>
   </div>
 </div>
 
@@ -595,15 +644,15 @@
       <div>
         <div style="font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:7px">Calculate</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="fc-tab on" id="fc-t-profit" onclick="fcSetT('profit')">Profit</button>
-          <button class="fc-tab"    id="fc-t-sp"     onclick="fcSetT('sp')">Selling Price</button>
-          <button class="fc-tab"    id="fc-t-cp"     onclick="fcSetT('cp')">Cost Price</button>
+          <button class="fc-tab on" id="fc-t-profit" data-click="a92">Profit</button>
+          <button class="fc-tab"    id="fc-t-sp"     data-click="a93">Selling Price</button>
+          <button class="fc-tab"    id="fc-t-cp"     data-click="a94">Cost Price</button>
         </div>
       </div>
       <div>
         <div class="fc-input-wrap">
           <span class="fc-input-sym">₹</span>
-          <input class="fc-input" type="text" inputmode="decimal" id="fc-mrp" aria-label="Maximum Retail Price, inclusive of GST" placeholder="e.g. 1,000" autocomplete="off" oninput="onMrpInput(this);fcCalc()" style="font-variant-numeric:tabular-nums">
+          <input class="fc-input" type="text" inputmode="decimal" id="fc-mrp" aria-label="Maximum Retail Price, inclusive of GST" placeholder="e.g. 1,000" autocomplete="off" data-input="a95" style="font-variant-numeric:tabular-nums">
         </div>
         <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap">
           <div id="fc-mx-wrap" style="display:none;flex:1;min-width:100px">
@@ -616,8 +665,8 @@
           </div>
           <div style="display:flex;align-items:center;gap:4px;margin-left:auto">
             <span style="font-size:11px;color:var(--text3)">GST</span>
-            <button class="fc-tab on" id="fcg18" onclick="fcSetGST(18)" style="padding:4px 10px;font-size:11px">18%</button>
-            <button class="fc-tab"    id="fcg5"  onclick="fcSetGST(5)"  style="padding:4px 10px;font-size:11px">5%</button>
+            <button class="fc-tab on" id="fcg18" data-click="a96" style="padding:4px 10px;font-size:11px">18%</button>
+            <button class="fc-tab"    id="fcg5"  data-click="a97"  style="padding:4px 10px;font-size:11px">5%</button>
           </div>
         </div>
       </div>
@@ -626,7 +675,7 @@
           <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M8 3l-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Swipe or tap next
         </span>
-        <button class="fc-btn fc-btn-next" onclick="fcNext()">
+        <button class="fc-btn fc-btn-next" data-click="a98">
           Next
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -644,25 +693,25 @@
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottom-nav">
   <div class="bnav-items">
-    <button class="bnav-item active" id="bnav-calc" onclick="bnavGo('calc')">
+    <button class="bnav-item active" id="bnav-calc" data-click="a99">
       <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 7h2M11 7h2M7 10h2M11 10h2M7 13h2M11 13h2"/></svg>
       Calc
     </button>
-    <button class="bnav-item" id="bnav-inc" onclick="bnavGo('inc')">
+    <button class="bnav-item" id="bnav-inc" data-click="a100">
       <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg>
       Incentives
     </button>
-    <button class="bnav-item" id="bnav-summary" onclick="bnavGo('summary')">
+    <button class="bnav-item" id="bnav-summary" data-click="a101">
       <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 10h6M7 14h4"/><path d="M7 6h2.5a1.5 1.5 0 010 3H7"/></svg>
       Summary
     </button>
-    <button class="bnav-item" id="bnav-hist" onclick="bnavGo('hist')">
+    <button class="bnav-item" id="bnav-hist" data-click="a102">
       <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h12M4 10h8M4 15h10"/></svg>
       History
     </button>
     <!-- Action rather than a scroll anchor: the quote builder was otherwise
          two taps deep in the hamburger on mobile. -->
-    <button class="bnav-item" id="bnav-quote" onclick="openModal('quote')">
+    <button class="bnav-item" id="bnav-quote" data-click="a6">
       <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2.5" width="14" height="15" rx="2"/><path d="M6.5 7h7M6.5 10h7M6.5 13h4"/></svg>
       Quote
     </button>
@@ -682,11 +731,11 @@
 </footer>
 
 <!-- ═══ SETTINGS MODAL ═══ -->
-<div class="modal-overlay" id="overlay-settings" onclick="overlayClick(event,'settings')" role="presentation">
+<div class="modal-overlay" id="overlay-settings" data-click="a103" role="presentation">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-settings">
     <div class="modal-header">
       <h2 class="modal-title" id="modal-title-settings">Settings</h2>
-      <button class="modal-close" onclick="closeModal('settings')" aria-label="Close settings">×</button>
+      <button class="modal-close" data-click="a104" aria-label="Close settings">×</button>
     </div>
     <div class="modal-body">
 
@@ -699,7 +748,7 @@
           </div>
           <div class="settings-control">
             <label class="toggle" style="width:36px;height:20px">
-              <input type="checkbox" id="darkmode-toggle" onchange="toggleDarkMode(this.checked)" aria-label="Dark mode">
+              <input type="checkbox" id="darkmode-toggle" data-change="a105" aria-label="Dark mode">
               <span class="toggle-track"></span>
               <span class="toggle-thumb" style="width:14px;height:14px;top:3px;left:3px"></span>
             </label>
@@ -713,14 +762,14 @@
           <div style="display:flex;align-items:center;gap:6px;flex:1">
             <span style="font-size:12px;color:var(--text2);white-space:nowrap">Min GP %</span>
             <div class="floor-input-wrap" style="flex:1">
-              <input type="number" inputmode="decimal" id="floor-gp" value="5" placeholder="—" min="0" max="100" step="0.1" oninput="calc();saveCalcState()" aria-label="Minimum GP percentage floor">
+              <input type="number" inputmode="decimal" id="floor-gp" value="5" placeholder="—" min="0" max="100" step="0.1" data-input="a106" aria-label="Minimum GP percentage floor">
               <span>%</span>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex:1">
             <span style="font-size:12px;color:var(--text2);white-space:nowrap">Min Margin %</span>
             <div class="floor-input-wrap" style="flex:1">
-              <input type="number" inputmode="decimal" id="floor-mg" value="" placeholder="—" min="0" max="100" step="0.1" oninput="calc();saveCalcState()" aria-label="Minimum Margin percentage floor">
+              <input type="number" inputmode="decimal" id="floor-mg" value="" placeholder="—" min="0" max="100" step="0.1" data-input="a106" aria-label="Minimum Margin percentage floor">
               <span>%</span>
             </div>
           </div>
@@ -736,10 +785,10 @@
           </div>
           <div class="settings-control">
             <div class="pill-group">
-              <button class="pill on" id="rnd-off" onclick="setRounding('off')">Off</button>
-              <button class="pill"    id="rnd-1"   onclick="setRounding('1')">₹1</button>
-              <button class="pill"    id="rnd-5"   onclick="setRounding('5')">₹5</button>
-              <span class="rnd-custom-wrap"><span>₹</span><input type="number" id="rnd-custom" value="" placeholder="Other" min="0" step="0.5" inputmode="decimal" onchange="onCustomRounding(this)" autocomplete="off" aria-label="Custom rounding step in rupees"></span>
+              <button class="pill on" id="rnd-off" data-click="a107">Off</button>
+              <button class="pill"    id="rnd-1"   data-click="a108">₹1</button>
+              <button class="pill"    id="rnd-5"   data-click="a109">₹5</button>
+              <span class="rnd-custom-wrap" id="rnd-custom-wrap"><span>₹</span><input type="number" id="rnd-custom" value="" placeholder="Other" min="0" step="0.5" inputmode="decimal" data-change="a110" autocomplete="off" aria-label="Custom rounding step in rupees"></span>
             </div>
           </div>
         </div>
@@ -754,7 +803,7 @@
           </div>
           <div class="settings-control">
             <label class="toggle" style="width:36px;height:20px">
-              <input type="checkbox" id="autosave-toggle-settings" checked onchange="syncAutosave('settings')" aria-label="Auto-save calculations to history">
+              <input type="checkbox" id="autosave-toggle-settings" checked data-change="a111" aria-label="Auto-save calculations to history">
               <span class="toggle-track"></span>
               <span class="toggle-thumb" style="width:14px;height:14px;top:3px;left:3px"></span>
             </label>
@@ -770,7 +819,7 @@
             <small>Walk through the features again from the beginning.</small>
           </div>
           <div class="settings-control">
-            <button class="pill" onclick="localStorage.removeItem('ob-done');closeModal('settings');setTimeout(obShow,200)" style="font-size:11px;padding:5px 12px">Restart tour</button>
+            <button class="pill" data-click="a112" style="font-size:11px;padding:5px 12px">Restart tour</button>
           </div>
         </div>
         <div class="settings-row" id="settings-kb-row">
@@ -779,7 +828,7 @@
             <small>See all shortcuts. Press <kbd style="background:var(--surface2);border:1px solid var(--border2);border-radius:3px;padding:1px 5px;font-size:10px">?</kbd> anytime.</small>
           </div>
           <div class="settings-control">
-            <button class="pill" onclick="closeModal('settings');setTimeout(function(){openModal('shortcuts')},200)" style="font-size:11px;padding:5px 12px">View</button>
+            <button class="pill" data-click="a113" style="font-size:11px;padding:5px 12px">View</button>
           </div>
         </div>
       </div>
@@ -787,11 +836,11 @@
     </div>
   </div>
 </div>
-<div class="modal-overlay" id="overlay-whatif" onclick="overlayClick(event,'whatif')" role="presentation">
+<div class="modal-overlay" id="overlay-whatif" data-click="a114" role="presentation">
   <div class="modal wi-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-whatif">
     <div class="modal-header">
       <h2 class="modal-title" id="modal-title-whatif">What-if scenarios</h2>
-      <button class="modal-close" onclick="closeModal('whatif')" aria-label="Close what-if scenarios">×</button>
+      <button class="modal-close" data-click="a115" aria-label="Close what-if scenarios">×</button>
     </div>
     <div class="modal-body">
       <div class="wi-cp-info" id="wi-cp-info">Enter CP and incentives on the main screen first.</div>
@@ -802,11 +851,11 @@
 </div>
 
 <!-- ═══ COMPARISON MODAL ═══ -->
-<div class="modal-overlay" id="overlay-compare" onclick="overlayClick(event,'compare')" role="presentation">
+<div class="modal-overlay" id="overlay-compare" data-click="a116" role="presentation">
   <div class="modal cmp-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-compare">
     <div class="modal-header">
       <h2 class="modal-title" id="modal-title-compare">Comparison</h2>
-      <button class="modal-close" onclick="closeModal('compare')" aria-label="Close comparison">×</button>
+      <button class="modal-close" data-click="a117" aria-label="Close comparison">×</button>
     </div>
     <div class="modal-body">
       <div class="cmp-meta" id="cmp-meta"></div>
@@ -816,11 +865,11 @@
 </div>
 
 <!-- ═══ KEYBOARD SHORTCUTS MODAL ═══ -->
-<div class="modal-overlay" id="overlay-shortcuts" onclick="overlayClick(event,'shortcuts')" role="presentation">
+<div class="modal-overlay" id="overlay-shortcuts" data-click="a118" role="presentation">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-shortcuts" style="max-width:560px">
     <div class="modal-header">
       <h2 class="modal-title" id="modal-title-shortcuts">Keyboard Shortcuts</h2>
-      <button class="modal-close" onclick="closeModal('shortcuts')" aria-label="Close keyboard shortcuts">×</button>
+      <button class="modal-close" data-click="a119" aria-label="Close keyboard shortcuts">×</button>
     </div>
     <div class="modal-body">
       <div class="kb-grid">
@@ -851,22 +900,22 @@
 </div>
 
 <!-- ═══ QUOTE BUILDER MODAL ═══ -->
-<div class="modal-overlay" id="overlay-quote" onclick="overlayClick(event,'quote')" role="presentation">
+<div class="modal-overlay" id="overlay-quote" data-click="a120" role="presentation">
   <div class="modal quote-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-quote">
     <div class="modal-header">
       <h2 class="modal-title" id="modal-title-quote">Quote Builder</h2>
-      <button class="modal-close" onclick="closeModal('quote')" aria-label="Close quote builder">×</button>
+      <button class="modal-close" data-click="a121" aria-label="Close quote builder">×</button>
     </div>
     <div class="modal-body">
       <!-- Wide screens use the table; phones use the card list (see qtRender) -->
       <div class="qt-wrap"><table class="qt-table" id="qt-table"></table></div>
       <div class="qt-cards" id="qt-cards" style="display:none"></div>
       <div class="qt-actions">
-        <button class="hist-btn save" onclick="qtAddLine()">+ Add line</button>
-        <button class="hist-btn" onclick="qtAddFromCalc()">Add current calculation</button>
-        <button class="hist-btn export" onclick="qtExportCSV()">Export CSV</button>
-        <button class="hist-btn" onclick="qtCopy()">Copy quote</button>
-        <button class="hist-btn" onclick="qtClear()">Clear all</button>
+        <button class="hist-btn save" data-click="a122">+ Add line</button>
+        <button class="hist-btn" data-click="a123">Add current calculation</button>
+        <button class="hist-btn export" data-click="a124">Export CSV</button>
+        <button class="hist-btn" data-click="a125">Copy quote</button>
+        <button class="hist-btn" data-click="a126">Clear all</button>
       </div>
       <p class="qt-note">Each line uses the calculator's current GST rate and rounding setting. Discounts are on MRP, matching the "Discount excl GST" mode. Incentives are not applied per line — enter net discounts here.</p>
     </div>
@@ -874,18 +923,18 @@
 </div>
 
 <!-- ═══ CONFIRM MODAL ═══ -->
-<div class="modal-overlay" id="overlay-confirm" onclick="overlayClick(event,'confirm')" role="presentation">
+<div class="modal-overlay" id="overlay-confirm" data-click="a127" role="presentation">
   <div class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-msg">
     <div class="modal-header">
       <h2 class="modal-title" id="confirm-title">Confirm</h2>
-      <button class="modal-close" onclick="closeConfirm()" aria-label="Cancel">×</button>
+      <button class="modal-close" data-click="a128" aria-label="Cancel">×</button>
     </div>
     <div class="modal-body">
       <div class="confirm-msg" id="confirm-msg"></div>
       <div class="confirm-sub" id="confirm-sub"></div>
       <div class="confirm-actions">
-        <button class="confirm-btn" onclick="closeConfirm()">Cancel</button>
-        <button class="confirm-btn danger" id="confirm-yes" onclick="runConfirm()">Delete</button>
+        <button class="confirm-btn" data-click="a128">Cancel</button>
+        <button class="confirm-btn danger" id="confirm-yes" data-click="a129">Delete</button>
       </div>
     </div>
   </div>
@@ -901,35 +950,35 @@
 </div>
 
 <!-- ═══ FLOATING ACTION BUTTON (mobile, Default mode only) ═══ -->
-<div class="fab-scrim" id="fab-scrim" onclick="closeFab()" aria-hidden="true"></div>
+<div class="fab-scrim" id="fab-scrim" data-click="a130" aria-hidden="true"></div>
 <div class="fab-wrap" id="fab-wrap">
   <div class="fab-menu" id="fab-menu" role="menu" aria-labelledby="fab-btn">
-    <button class="fab-item" role="menuitem" onclick="fabRun(saveToHistory)">
+    <button class="fab-item" role="menuitem" data-click="a131">
       <svg width="15" height="15" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 9v1.5a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       Save to history
     </button>
-    <button class="fab-item" role="menuitem" onclick="fabRun(copyToClipboard)">
+    <button class="fab-item" role="menuitem" data-click="a132">
       <svg width="15" height="15" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="4" y="1" width="7" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M1 3.5V10a1 1 0 001 1h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Copy summary
     </button>
-    <button class="fab-item" role="menuitem" onclick="fabRun(sendWhatsApp)">
+    <button class="fab-item" role="menuitem" data-click="a133">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
       WhatsApp
     </button>
-    <button class="fab-item" role="menuitem" onclick="fabRun(shareLink)">
+    <button class="fab-item" role="menuitem" data-click="a134">
       <svg width="15" height="15" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="9.5" cy="2.5" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="9.5" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="2.5" cy="6" r="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.7l4 2M4 5.3l4-2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Share link
     </button>
-    <button class="fab-item" role="menuitem" onclick="fabRun(sendEmail)">
+    <button class="fab-item" role="menuitem" data-click="a135">
       <svg width="15" height="15" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 4l6 4 6-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Email summary
     </button>
-    <button class="fab-item" role="menuitem" onclick="fabRun(exportPDF)">
+    <button class="fab-item" role="menuitem" data-click="a136">
       <svg width="15" height="15" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="1.5" y="1" width="9" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Export PDF
     </button>
   </div>
-  <button class="fab-btn" id="fab-btn" onclick="toggleFab()" aria-label="Quick actions" aria-expanded="false" aria-haspopup="true" aria-controls="fab-menu">
+  <button class="fab-btn" id="fab-btn" data-click="a137" aria-label="Quick actions" aria-expanded="false" aria-haspopup="true" aria-controls="fab-menu">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
   </button>
 </div>
@@ -937,11 +986,11 @@
 <!-- ═══ TOAST ═══ -->
 <div class="toast" id="toast" role="status" aria-live="polite">
   <span id="toast-msg"></span>
-  <button class="toast-undo" id="toast-undo" onclick="undo()" style="display:none">Undo</button>
+  <button class="toast-undo" id="toast-undo" data-click="a7" style="display:none">Undo</button>
 </div>
 
 <!-- ═══ ONBOARDING OVERLAY ═══ -->
-<div class="ob-overlay" id="ob-overlay" onclick="function(e){if(e.target===this)obSkip()}.call(this,event)">
+<div class="ob-overlay" id="ob-overlay" data-click="a138">
   <div class="ob-card" id="ob-card">
     <div class="ob-step-dots" id="ob-dots"></div>
     <div class="ob-icon" id="ob-icon"></div>
@@ -949,12 +998,13 @@
     <div class="ob-body" id="ob-body"></div>
     <div class="ob-tip" id="ob-tip" style="display:none"></div>
     <div class="ob-actions">
-      <button class="ob-btn-skip" id="ob-skip" onclick="OB_STEP===0?obSkip():(OB_STEP--,obRender())">Skip tour</button>
-      <button class="ob-btn-next" id="ob-next" onclick="obNext()">Next →</button>
+      <button class="ob-btn-skip" id="ob-skip" data-click="a139">Skip tour</button>
+      <button class="ob-btn-next" id="ob-next" data-click="a140">Next →</button>
     </div>
   </div>
 </div>
 
 <script src="assets/app.js" defer></script>
+<link rel="prefetch" href="assets/app-extra.js" as="script">
 </body>
 </html>

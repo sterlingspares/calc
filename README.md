@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-578%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-766%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -37,8 +37,23 @@ Set a **Quantity** in the MRP bar. Per-unit figures are unaffected; once quantit
 
 Quantity is saved with history entries and included in the CSV export. Absolute (₹) incentives are per-unit, consistent with every other figure.
 
+### Landed Cost
+A **Landed ₹/unit** field in the MRP bar for freight, insurance and handling. Unlike incentives, which reduce cost, landed cost is *added* to effective CP — so profit, GP %, margin and break-even all account for it. Entered per unit, excl GST.
+
+### Break-even
+Once a calculation is complete the summary shows two thresholds, both quoted **incl GST** because that is what gets negotiated:
+
+| Row | Meaning |
+|---|---|
+| **Break-even SP** | Price at which profit reaches zero |
+| **SP at GP floor** | Price at which GP % hits your Settings floor |
+
+Both are stated *before* SP incentives — those reduce what you actually receive, so the quotable price is grossed back up accordingly.
+
 ### Rounding
 Settings → **Rounding**: **Off**, **₹1**, **₹5**, or any step you type into the **Other ₹** box (₹20, ₹0.50, ₹100 — anything above zero, decimals allowed).
+
+The active option is always highlighted — including the custom box, which fills with the accent colour when a custom step is what's live, so it is obvious at a glance that rounding is on. The step is shown in the field itself, so the state is never signalled by colour alone.
 
 Rounding is applied to the incl-GST (sticker) price, with excl-GST and profit derived from the rounded figure — so what you quote and what you bank stay consistent. It applies to the main calculator and every quote line, and persists in share links.
 
@@ -327,7 +342,7 @@ Checked with axe-core (WCAG 2.0/2.1 A + AA + best practice) across the default v
 
 ## 🧪 Tests
 
-578 assertions across six suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
+766 assertions across six suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
 
 ```bash
 npm install   # jsdom, dev-only
@@ -336,12 +351,12 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 299 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
+| `features` | 468 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 68 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
 | `a11y` | 90 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
-| `browser` | 38 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport |
+| `browser` | 56 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport |
 
 Individual suites: `npm run test:features`, `test:errors`, `test:mobile`, `test:fab`, `test:a11y`, `test:browser`. Full assertion output: `npm run test:verbose`.
 
@@ -352,6 +367,19 @@ npx playwright install chromium   # only needed for the browser suite
 ```
 
 Every push and pull request runs them via GitHub Actions — the jsdom suites on Node 22 and 24, and the browser suite in a dedicated job with `REQUIRE_BROWSER=1` so a missing browser fails rather than silently skips. See [`tests/README.md`](tests/README.md) for how the harness works and how to add a suite.
+
+---
+
+## 🔒 Security
+
+- **Content Security Policy** via meta tag — restricts script, style, font, image and connect sources, blocks plugins, and prevents `<base>` hijacking
+- **One escaping helper** (`escHtml`) for every value interpolated into markup, rather than escaping open-coded per call site
+- **Stored data is untrusted** — incentive keys from `localStorage` are validated against `/^[A-Za-z0-9_-]{1,24}$/` before being used in element ids or inline handlers, and malformed entries are dropped with a console warning
+- **No external origins at runtime** except Google Fonts; icons are served locally so the app works fully offline
+
+> `script-src` still needs `'unsafe-inline'` because the markup uses ~178 inline `on*` handlers. Moving those to `addEventListener` would allow a strict nonce or hash policy — the single biggest remaining security improvement.
+>
+> `frame-ancestors` / `X-Frame-Options` cannot be set from a meta tag. Add them as response headers at the host to prevent framing.
 
 ---
 

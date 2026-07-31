@@ -208,11 +208,37 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .gst-custom-wrap input::-webkit-outer-spin-button,.gst-custom-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .gst-custom-wrap span{font-size:11px;color:var(--text3)}
 /* Custom rounding step — same widget as the custom GST rate, prefix instead of suffix */
-.rnd-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:20px;padding:1px 2px 1px 8px;background:var(--surface)}
+.rnd-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:20px;padding:1px 2px 1px 8px;background:var(--surface);transition:background .15s,border-color .15s}
 .rnd-custom-wrap:focus-within{border-color:var(--accent)}
 .rnd-custom-wrap input{border:none;background:transparent;width:44px;font-size:12px;font-family:var(--font-body);text-align:center;outline:none;color:var(--text);padding:2px;-moz-appearance:textfield}
 .rnd-custom-wrap input::-webkit-outer-spin-button,.rnd-custom-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .rnd-custom-wrap span{font-size:11px;color:var(--text3)}
+/* Active state: a custom step is the live rounding mode. Matches .pill.on, so
+   exactly one control in the row reads as selected at any time. The value shown
+   in the field is the non-colour cue (WCAG 1.4.1). */
+.rnd-custom-wrap.on{background:var(--accent);border-color:var(--accent)}
+.rnd-custom-wrap.on input{color:var(--accent-fg);font-weight:600}
+.rnd-custom-wrap.on span{color:rgba(255,255,255,0.72)}
+
+/* ── PRESETS + SOLVER ── */
+.preset-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.preset-select{flex:1;min-width:120px;max-width:230px;padding:6px 10px;border:1.5px solid var(--border2);border-radius:20px;background:var(--surface);font-size:11.5px;font-family:var(--font-body);color:var(--text);cursor:pointer}
+.preset-select:focus-within,.preset-select:focus{border-color:var(--accent);outline:none}
+.preset-btn{padding:6px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);white-space:nowrap}
+.preset-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.preset-btn:disabled{opacity:.45;cursor:default}
+.preset-btn.danger:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+.solver{margin-top:12px;padding-top:10px;border-top:1px dashed var(--border2)}
+.solver-row{display:flex;align-items:center;gap:8px}
+.solver-lbl{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);font-weight:600;white-space:nowrap}
+.solver-input{display:inline-flex;align-items:center;border:1.5px solid var(--border2);border-radius:20px;padding:1px 8px;background:var(--surface)}
+.solver-input:focus-within{border-color:var(--accent)}
+.solver-input input{border:none;background:transparent;width:56px;text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--text);outline:none;padding:3px 0;-moz-appearance:textfield}
+.solver-input input::-webkit-outer-spin-button,.solver-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.solver-input::after{content:'%';font-size:11px;color:var(--text3);margin-left:3px}
+.solver-out{margin-top:7px;font-size:11.5px;line-height:1.5;color:var(--text2)}
+.solver-out.ok{color:var(--green)}
+.solver-out.bad{color:var(--red)}
 
 /* ── SUMMARY ── */
 .summary-wrap{margin-bottom:1.25rem}
@@ -304,8 +330,8 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
    mobile and can obstruct its buttons. */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,10,8,0.55);z-index:600;align-items:flex-start;justify-content:center;padding:clamp(1rem,3vw,2rem);overflow-y:auto;backdrop-filter:blur(2px)}
 .modal-overlay.open{display:flex}
-.modal{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-modal);width:100%;max-width:720px;margin:auto;animation:modalIn .2s ease}
-@keyframes modalIn{from{opacity:0;transform:translateY(-12px) scale(0.98)}to{opacity:1;transform:none}}
+.modal{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-modal);width:100%;max-width:720px;margin:auto;animation:modalIn var(--dur-slow) var(--ease-spring)}
+@keyframes modalIn{0%{opacity:0;transform:translateY(-14px) scale(.97)}60%{opacity:1}100%{opacity:1;transform:none}}
 .modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
 .modal-title{font-family:var(--font-heading);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text)}
 .modal-close{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text3);transition:all .15s;font-size:16px;font-family:sans-serif;line-height:1}
@@ -627,6 +653,11 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .lbl-input::placeholder{color:var(--text3)}
 
 /* ── QUANTITY ── */
+.landed-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:1px 4px 1px 7px;background:var(--surface);transition:border-color .15s}
+.landed-wrap:focus-within{border-color:var(--accent)}
+.landed-wrap>span{font-size:11px;color:var(--text3)}
+.landed-wrap input{border:none;background:transparent;width:62px;font-size:13px;font-family:var(--font-mono);font-weight:500;text-align:right;outline:none;color:var(--text);padding:3px 2px;-moz-appearance:textfield}
+.landed-wrap input::-webkit-outer-spin-button,.landed-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .qty-wrap{display:flex;align-items:center;gap:6px}
 .qty-box{display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface)}
 .qty-box button{width:26px;height:28px;border:none;background:transparent;color:var(--text2);font-size:15px;cursor:pointer;line-height:1;font-family:var(--font-body)}
@@ -650,8 +681,16 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .mini-sep{width:1px;align-self:stretch;background:rgba(255,255,255,0.22);flex:0 0 1px}
 @media(max-width:800px){.mini-result.show{display:flex}}
 
+/* ── COUNT-UP ──
+   Large jumps in the headline figures are animated so the eye can follow the
+   direction of change instead of the number simply teleporting. Small deltas
+   are set directly — see animateValue(). */
+.sum-val.counting,.row-val.counting{will-change:contents}
+.sum-val.bump{animation:valueBump var(--dur-slow) var(--ease-spring)}
+@keyframes valueBump{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}
+
 /* ── TOAST ── */
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--surface);padding:10px 16px;border-radius:22px;font-size:12.5px;font-family:var(--font-body);box-shadow:0 6px 24px rgba(0,0,0,0.25);z-index:400;opacity:0;transition:transform .25s cubic-bezier(.2,.9,.3,1),opacity .25s;pointer-events:none;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--surface);padding:10px 16px;border-radius:22px;font-size:12.5px;font-family:var(--font-body);box-shadow:0 6px 24px rgba(0,0,0,0.25);z-index:400;opacity:0;transition:transform var(--dur-slow) var(--ease-spring),opacity var(--dur);pointer-events:none;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px)}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
 .toast-undo{background:none;border:none;color:var(--amber);font-weight:600;font-size:12.5px;cursor:pointer;font-family:var(--font-body);padding:0;white-space:nowrap}
 /* On mobile the toast shares the bottom edge with the FAB, so it stops short of
@@ -677,7 +716,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .fab-scrim.show{display:block}
 .fab-menu{display:flex;flex-direction:column;align-items:flex-end;gap:9px;pointer-events:none}
 .fab-wrap.open .fab-menu{pointer-events:auto}
-.fab-item{display:flex;align-items:center;gap:10px;background:var(--surface);color:var(--text);border:1px solid var(--border2);border-radius:24px;padding:10px 16px;font-size:12.5px;font-weight:500;font-family:var(--font-body);cursor:pointer;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,0.16);opacity:0;transform:translateY(12px) scale(.92);transition:opacity .18s,transform .18s cubic-bezier(.2,.9,.3,1)}
+.fab-item{display:flex;align-items:center;gap:10px;background:var(--surface);color:var(--text);border:1px solid var(--border2);border-radius:24px;padding:10px 16px;font-size:12.5px;font-weight:500;font-family:var(--font-body);cursor:pointer;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,0.16);opacity:0;transform:translateY(12px) scale(.92);transition:opacity var(--dur-fast),transform var(--dur) var(--ease-spring)}
 .fab-item svg{flex-shrink:0;color:var(--accent)}
 .fab-wrap.open .fab-item{opacity:1;transform:none}
 /* Stagger so the stack unfurls rather than appearing all at once */
@@ -688,9 +727,10 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .fab-wrap.open .fab-item:nth-child(2){transition-delay:.12s}
 .fab-wrap.open .fab-item:nth-child(1){transition-delay:.15s}
 .fab-item:active{transform:scale(.95)}
-.fab-btn{width:56px;height:56px;min-width:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.28);transition:transform .22s cubic-bezier(.2,.9,.3,1);align-self:flex-end}
-.fab-btn svg{transition:transform .22s cubic-bezier(.2,.9,.3,1)}
+.fab-btn{width:56px;height:56px;min-width:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.28);transition:transform var(--dur) var(--ease-spring),box-shadow var(--dur);align-self:flex-end}
+.fab-btn svg{transition:transform var(--dur) var(--ease-spring)}
 .fab-wrap.open .fab-btn svg{transform:rotate(135deg)}
+.fab-wrap.open .fab-btn{box-shadow:0 6px 22px rgba(0,0,0,0.34)}
 .fab-btn:active{transform:scale(.92)}
 
 /* ── CONFIRM MODAL ── */
@@ -718,6 +758,9 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .hist-tag.empty{background:transparent;color:var(--text3);border:1px dashed var(--border2)}
 .hist-tag.empty:hover{color:var(--accent);border-color:var(--accent)}
 .hist-tag-input{font-size:10px;font-family:var(--font-body);border:1px solid var(--accent);border-radius:9px;padding:1px 6px;outline:none;background:var(--surface);color:var(--text);width:110px}
+.hist-more{display:block;width:100%;margin-top:8px;padding:10px;border:1px dashed var(--border2);border-radius:var(--radius-sm);background:transparent;color:var(--text2);font-size:12px;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:border-color .15s,color .15s}
+.hist-more:hover{border-color:var(--accent);color:var(--accent)}
+.hist-more span{color:var(--text3);font-weight:400}
 .hist-none{text-align:center;padding:22px;color:var(--text3);font-size:12px;font-style:italic}
 
 /* ── QUOTE (multi-line) ── */
@@ -806,6 +849,32 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
   .hist-v{font-size:12px}
   .inc-note,.qt-note{font-size:11.5px}
   .sum-lbl{font-size:10.5px}
+}
+
+/* ── MOTION ──
+   One easing scale so movement feels consistent. --ease-spring overshoots
+   slightly, which reads as physical on elements that travel (modals, toast,
+   FAB); --ease-out is for things that only fade or tint. Durations are short
+   enough to stay out of the way. All of it collapses under
+   prefers-reduced-motion, further down. */
+:root{
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --ease-out:cubic-bezier(.22,.61,.36,1);
+  --dur-fast:.14s;
+  --dur:.22s;
+  --dur-slow:.32s;
+}
+
+/* View Transitions: cross-fade the layout swap between Default and Quick.
+   The header and bottom nav are named so they persist across the transition
+   rather than fading with everything else. */
+@media(prefers-reduced-motion:no-preference){
+  ::view-transition-old(root),::view-transition-new(root){
+    animation-duration:var(--dur-slow);
+    animation-timing-function:var(--ease-out);
+  }
+  .header{view-transition-name:app-header}
+  .bottom-nav{view-transition-name:app-bottom-nav}
 }
 
 /* ── ACCESSIBILITY ── */

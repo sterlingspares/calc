@@ -603,9 +603,12 @@ w.setHistQuery('target');
 ok('filter shows only target', d.getElementById('hist-tag').textContent === '1 of 3',
    'got ' + d.getElementById('hist-tag').textContent);
 // The rendered delete button must carry the TRUE index (1), not the filtered index (0)
-const delHtml = d.getElementById('hist-content').innerHTML;
-ok('delete button uses true index', delHtml.indexOf('deleteHistEntry(1)') !== -1,
-   'markup did not contain deleteHistEntry(1)');
+// Handlers are delegated; the true index travels in data-p.
+const delBtn = d.querySelector('#hist-content .hist-del-btn');
+ok('delete button carries the true index',
+   delBtn && delBtn.getAttribute('data-click') === 'histDelete' &&
+   delBtn.getAttribute('data-p') === '1',
+   delBtn ? delBtn.getAttribute('data-click') + '/' + delBtn.getAttribute('data-p') : 'missing');
 w.deleteHistEntry(1);
 ok('correct entry deleted', w.HISTORY.length === 2);
 ok('target is gone', !w.HISTORY.some(h => h.tag === 'target'));
@@ -843,6 +846,493 @@ w.togglePanel('inc');
 ok('values survive the collapse-as-Done path', Math.abs(num('pvv') - beforeEdit) < 0.01,
    'got ' + num('pvv'));
 ok('checkbox still set', d.getElementById('it-eb').checked === true);
+
+R.section('\n=== 54. Custom rounding chip shows it is active ===');
+freshCalc(1000, 40, 25);
+const rndWrap = d.getElementById('rnd-custom-wrap');
+ok('chip wrapper exists', !!rndWrap);
+
+w.setRounding('off');
+ok('off: chip not highlighted', rndWrap.className === 'rnd-custom-wrap', rndWrap.className);
+ok('off: isCustomRounding is false', w.isCustomRounding() === false);
+ok('off: Off pill is the selected one', d.getElementById('rnd-off').className === 'pill on');
+
+w.setRounding('5');
+ok('preset: chip not highlighted', rndWrap.className === 'rnd-custom-wrap', rndWrap.className);
+ok('preset: isCustomRounding is false', w.isCustomRounding() === false);
+ok('preset: chip is emptied', d.getElementById('rnd-custom').value === '');
+
+w.setRounding('20');
+ok('custom: chip is highlighted', rndWrap.className.indexOf('on') !== -1, rndWrap.className);
+ok('custom: isCustomRounding is true', w.isCustomRounding() === true);
+ok('custom: chip shows the value', d.getElementById('rnd-custom').value === '20');
+ok('custom: no preset pill is selected',
+   ['off','1','5'].every(k => d.getElementById('rnd-' + k).className === 'pill'));
+
+// Exactly one control in the row should read as selected at any time
+const selectedCount = () =>
+  ['off','1','5'].filter(k => d.getElementById('rnd-' + k).className.indexOf('on') !== -1).length +
+  (rndWrap.className.indexOf('on') !== -1 ? 1 : 0);
+ok('custom: exactly one control selected', selectedCount() === 1, 'got ' + selectedCount());
+w.setRounding('1');
+ok('preset: exactly one control selected', selectedCount() === 1, 'got ' + selectedCount());
+w.setRounding('off');
+ok('off: exactly one control selected', selectedCount() === 1, 'got ' + selectedCount());
+
+// Fractional custom values count as custom too
+w.setRounding('0.5');
+ok('fractional step highlights the chip', rndWrap.className.indexOf('on') !== -1);
+w.setRounding('off');
+ok('returning to off clears the highlight', rndWrap.className === 'rnd-custom-wrap');
+
+// Highlight must survive a reload from saved state
+w.setRounding('25');
+const rndState = w.getShareState();
+w.setRounding('off');
+ok('highlight cleared before restore', rndWrap.className === 'rnd-custom-wrap');
+w.applyShareState(rndState);
+ok('restored state re-applies the highlight', rndWrap.className.indexOf('on') !== -1,
+   rndWrap.className);
+ok('restored chip shows the value', d.getElementById('rnd-custom').value === '25');
+w.setRounding('off');
+
+// Rejecting a bad entry must not leave a stale highlight
+const rndInput = d.getElementById('rnd-custom');
+rndInput.value = '-3';
+w.onCustomRounding(rndInput);
+ok('rejected input leaves rounding off', w.ROUND_MODE === 'off');
+ok('rejected input leaves the chip unhighlighted', rndWrap.className === 'rnd-custom-wrap',
+   rndWrap.className);
+
+R.section('\n=== 55. HTML escaping is centralised and complete ===');
+ok('escHtml is exposed', typeof w.escHtml === 'function');
+ok('escapes angle brackets', w.escHtml('<b>') === '&lt;b&gt;');
+ok('escapes quotes', w.escHtml('a"b\'c') === 'a&quot;b&#39;c');
+ok('escapes ampersand first', w.escHtml('&lt;') === '&amp;lt;');
+ok('null becomes empty', w.escHtml(null) === '' && w.escHtml(undefined) === '');
+ok('numbers pass through', w.escHtml(18) === '18');
+ok('no ad-hoc escape chains remain in the source',
+   readAsset('assets/app.js').indexOf("replace(/&/g,'&amp;')") === -1);
+
+R.section('\n=== 56. Untrusted stored data cannot inject markup ===');
+const EVIL = '"><img src=x onerror=window.__XSS__=1>';
+
+// Incentive label
+freshCalc(1000, 40, 25);
+w.INC_LABELS['eb'] = EVIL;
+w.renderCPIncRows();
+ok('label is escaped in the row', d.getElementById('cp-inc-grid').querySelector('img') === null);
+ok('label renders as text', d.getElementById('lbl-cp-eb').textContent === EVIL);
+w.INC_LABELS['eb'] = w.INC_LABELS_DEFAULT['eb'];
+w.renderCPIncRows();
+
+// History time / GST — these were interpolated unescaped
+w.HISTORY.length = 0;
+w.HISTORY.push({time: EVIL, ts: 0, mrp: 1, cpE: 1, cpI: 1, spE: 2, spI: 2, effCPE: 1,
+                effSPE: 2, incInr: 0, spIncInr: 0, pr: 1, gp: 5, mg: 5, gst: EVIL, tag: EVIL});
+w.renderHistory();
+// The meaningful test is that no element was created and the payload survives
+// as literal text. Scanning innerHTML for '<img' is NOT valid: a '<' inside an
+// attribute value serialises literally and is inert.
+ok('history injects no elements', d.getElementById('hist-content').querySelector('img') === null);
+// svg is excluded: the delete button legitimately contains its own icon.
+ok('history injects no scriptable node',
+   d.getElementById('hist-content').querySelectorAll('img,script,iframe,object,embed').length === 0);
+ok('the payload survives as literal text',
+   d.getElementById('htime-0').textContent === EVIL,
+   d.getElementById('htime-0').textContent);
+ok('tag renders as literal text too',
+   d.getElementById('tag-0').textContent === EVIL, d.getElementById('tag-0').textContent);
+w.HISTORY.length = 0;
+w.renderHistory();
+
+R.section('\n=== 57. Malformed incentive keys are rejected on load ===');
+ok('isValidIncKey accepts generated keys',
+   w.isValidIncKey('c1') && w.isValidIncKey('cd') && w.isValidIncKey('eb'));
+ok('rejects markup', !w.isValidIncKey('"><img src=x>'));
+ok('rejects quotes', !w.isValidIncKey('a"onclick="x'));
+ok('rejects empty and non-strings',
+   !w.isValidIncKey('') && !w.isValidIncKey(null) && !w.isValidIncKey(7));
+ok('rejects over-long keys', !w.isValidIncKey('a'.repeat(25)));
+
+w.localStorage.setItem('pc-labels', JSON.stringify({
+  labels: { cd: 'Cash', '"><img src=x>': 'evil' },
+  cpKeys: ['cd', '"><img src=x>'], spKeys: ['cd'], cpModes: {}, spModes: {}
+}));
+w.INC_KEYS.length = 0; ['cd'].forEach(k => w.INC_KEYS.push(k));
+w.loadLabels();
+ok('malformed key dropped from the list', w.INC_KEYS.indexOf('"><img src=x>') === -1,
+   w.INC_KEYS.join(','));
+ok('valid key retained', w.INC_KEYS.indexOf('cd') !== -1);
+ok('malformed label key ignored', !w.INC_LABELS['"><img src=x>']);
+w.localStorage.clear();
+
+R.section('\n=== 58. History timestamps refresh without a full rebuild ===');
+freshCalc(1000, 40, 25);
+w.HISTORY.length = 0;
+w.saveToHistory();
+w.commitTag(0, 'keepme');
+const timeNode = d.getElementById('htime-0');
+ok('timestamp has a stable id', !!timeNode);
+ok('refreshHistTimes exists', typeof w.refreshHistTimes === 'function');
+// Age the entry and refresh in place
+w.HISTORY[0].ts = Date.now() - 3 * 60 * 1000;
+w.refreshHistTimes();
+ok('timestamp text updated in place',
+   d.getElementById('htime-0').textContent.indexOf('min') !== -1,
+   d.getElementById('htime-0').textContent);
+ok('the same node was reused, not rebuilt', d.getElementById('htime-0') === timeNode);
+ok('tag survived the refresh', w.HISTORY[0].tag === 'keepme');
+
+R.section('\n=== 59. No inline handlers remain (enables strict CSP) ===');
+const mk = readMarkup(), js = readAsset('assets/app.js');
+ok('index.html has zero on* attributes',
+   !/\son(click|change|input|focus|blur|keydown|load|submit)\s*=/.test(mk));
+ok('generated markup has zero on* attributes',
+   !/\son(click|change|input|focus|blur|keydown)\s*=\s*["\\]/.test(js));
+ok('CSP omits unsafe-inline for scripts',
+   /script-src\s+'self'\s*;/.test(mk), 'script-src is not exactly self');
+ok('CSP still present', mk.indexOf('Content-Security-Policy') !== -1);
+ok('action registry exists', typeof w.ACT === 'object' && Object.keys(w.ACT).length > 100,
+   'got ' + Object.keys(w.ACT || {}).length);
+ok('delegate() is defined', typeof w.delegate === 'function');
+
+R.section('\n=== 60. Delegated handlers actually fire ===');
+freshCalc(1000, 40, 25);
+const gstPill = d.getElementById('g5');
+gstPill.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+ok('clicking a pill runs its action', Math.abs(w.G - 0.05) < 1e-9, 'G=' + w.G);
+d.getElementById('g18').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+ok('and back again', Math.abs(w.G - 0.18) < 1e-9);
+
+d.getElementById('phdr-inc').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+ok('panel toggle is delegated', w.isIncPanelOpen('cp'));
+d.getElementById('cp-inc-edit-btn').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+ok('nested Edit fires without toggling the panel',
+   w.CP_EDIT_MODE === true && w.isIncPanelOpen('cp'));
+d.getElementById('cp-inc-edit-btn').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+d.getElementById('phdr-inc').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+
+// Generated rows carry parameterised actions
+const ebRow = d.getElementById('it-eb');
+ok('generated checkbox has a delegated action',
+   ebRow.getAttribute('data-change') === 'incToggle' && ebRow.getAttribute('data-q') === 'eb');
+ebRow.checked = true;
+ebRow.dispatchEvent(new w.Event('change', { bubbles: true }));
+ok('generated handler recalculates', Math.abs(num('pvv') - 156) < 0.05, 'got ' + num('pvv'));
+ebRow.checked = false;
+ebRow.dispatchEvent(new w.Event('change', { bubbles: true }));
+
+ok('unknown action logs rather than throwing', (() => {
+  const btn = d.createElement('button');
+  btn.setAttribute('data-click', 'doesNotExist');
+  d.body.appendChild(btn);
+  let threw = false;
+  try { btn.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); } catch (e) { threw = true; }
+  d.body.removeChild(btn);
+  return !threw;
+})());
+
+R.section('\n=== 61. Share payloads are validated, not trusted ===');
+ok('validateShareState is defined', typeof w.validateShareState === 'function');
+ok('rejects non-objects',
+   w.validateShareState(null) === null && w.validateShareState('x') === null &&
+   w.validateShareState([1, 2]) === null);
+ok('rejects an empty object', w.validateShareState({}) === null);
+ok('drops unknown keys',
+   !('evil' in (w.validateShareState({ m: '100', evil: 'x' }) || {})));
+ok('clamps out-of-range GST',
+   w.validateShareState({ g: 500 }) === null || !('g' in w.validateShareState({ g: 500, m: '1' })));
+ok('accepts a valid GST', w.validateShareState({ g: 12 }).g === 12);
+ok('rejects non-numeric prices', !('cpd' in (w.validateShareState({ m: '1', cpd: 'abc' }) || {})));
+ok('rejects bad enums', !('t' in (w.validateShareState({ m: '1', t: 'evil' }) || {})));
+ok('accepts good enums', w.validateShareState({ t: 'cp' }).t === 'cp');
+ok('drops malformed incentive keys', (() => {
+  const r = w.validateShareState({ inc: { 'cd': { on: true, v: '2' }, '"><img>': { on: true, v: '2' } } });
+  return r && r.inc && r.inc.cd && !r.inc['"><img>'];
+})());
+ok('coerces incentive on-flags to booleans', (() => {
+  const r = w.validateShareState({ inc: { cd: { on: 'yes', v: '2' } } });
+  return r.inc.cd.on === true;
+})());
+ok('rejects a non-positive rounding step',
+   !('rnd' in (w.validateShareState({ m: '1', rnd: '-5' }) || {})));
+ok('accepts a valid rounding step', w.validateShareState({ rnd: '20' }).rnd === '20');
+ok('outgoing state carries a version', w.getShareState().v === w.SHARE_VERSION);
+
+R.section('\n=== 62. Fonts are self-hosted ===');
+ok('no Google Fonts origin in markup',
+   mk.indexOf('fonts.googleapis.com') === -1 && mk.indexOf('fonts.gstatic.com') === -1);
+ok('local fonts.css is linked', mk.indexOf('assets/fonts.css') !== -1);
+ok('CSP font-src is self-only', /font-src\s+'self'\s*;/.test(mk));
+const fontCss = readAsset('assets/fonts.css');
+ok('three families declared', (fontCss.match(/@font-face/g) || []).length === 3,
+   'got ' + (fontCss.match(/@font-face/g) || []).length);
+ok('uses weight ranges (one variable file per family)',
+   /font-weight:\s*\d+\s+\d+/.test(fontCss));
+['DMSans', 'JetBrainsMono', 'Syne'].forEach(f => {
+  ok(f + '.woff2 exists', fs.existsSync(path.join(ROOT, 'assets/fonts/' + f + '.woff2')));
+});
+const sw2 = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+ok('fonts are precached for offline', sw2.indexOf('/assets/fonts/DMSans.woff2') !== -1);
+ok('security headers file exists', fs.existsSync(path.join(ROOT, '_headers')));
+const hdrs = fs.readFileSync(path.join(ROOT, '_headers'), 'utf8');
+ok('_headers denies framing',
+   hdrs.indexOf('X-Frame-Options: DENY') !== -1 && hdrs.indexOf("frame-ancestors 'none'") !== -1);
+
+R.section('\n=== 63. History pagination ===');
+freshCalc(1000, 40, 25);
+w.HISTORY.length = 0;
+for (let i = 0; i < 45; i++) w.saveToHistory();
+w.HIST_SHOWN = w.HIST_PAGE;
+w.renderHistory();
+ok('only the first page renders',
+   d.querySelectorAll('#hist-content .hist-entry').length === w.HIST_PAGE,
+   'got ' + d.querySelectorAll('#hist-content .hist-entry').length);
+ok('a show-more control is offered', !!d.querySelector('.hist-more'));
+ok('it reports the remaining count',
+   d.querySelector('.hist-more').textContent.indexOf('of 45') !== -1,
+   d.querySelector('.hist-more').textContent);
+w.histShowMore();
+ok('show more reveals another page',
+   d.querySelectorAll('#hist-content .hist-entry').length === w.HIST_PAGE * 2);
+w.HIST_SHOWN = 100; w.renderHistory();
+ok('no control once everything is shown', !d.querySelector('.hist-more'));
+w.setHistQuery('zzz'); w.setHistQuery('');
+ok('searching resets to the first page', w.HIST_SHOWN === w.HIST_PAGE, 'got ' + w.HIST_SHOWN);
+w.HISTORY.length = 0; w.renderHistory();
+
+R.section('\n=== 64. Deferred bundle is split correctly ===');
+const coreJs = readAsset('assets/app.js');
+const extraJs = readAsset('assets/app-extra.js');
+ok('app-extra.js exists', extraJs.length > 10000, extraJs.length + ' bytes');
+ok('deferring moved a meaningful share out of the core',
+   extraJs.length > 40 * 1024 && extraJs.length / (coreJs.length + extraJs.length) > 0.2,
+   (100 * extraJs.length / (coreJs.length + extraJs.length)).toFixed(0) + '% deferred');
+ok('quick mode moved out', /^function fcBuildCards\(/m.test(extraJs) && !/^function fcBuildCards\(/m.test(coreJs));
+ok('wizard moved out', /^function wzCalc\(/m.test(extraJs) && !/^function wzCalc\(/m.test(coreJs));
+ok('quote rendering moved out', /^function qtRender\(/m.test(extraJs) && !/^function qtRender\(/m.test(coreJs));
+// These are read by init, undo and the GST label updater before the bundle lands
+ok('saveQuote stayed in core', /^function saveQuote\(/m.test(coreJs));
+ok('loadQuote stayed in core', /^function loadQuote\(/m.test(coreJs));
+ok('history search stayed in core', /^function histMatches\(/m.test(coreJs));
+ok('history delete stayed in core', /^function deleteHistEntry\(/m.test(coreJs));
+ok('loader is defined in core', /^function loadExtras\(/m.test(coreJs));
+ok('markup prefetches the bundle', mk.indexOf('assets/app-extra.js') !== -1);
+ok('service worker precaches it',
+   fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').indexOf('/assets/app-extra.js') !== -1);
+
+R.section('\n=== 65. Currency formatter is cached ===');
+ok('formatter is memoised', coreJs.indexOf('_inrFmt') !== -1);
+ok('no per-call toLocaleString with options',
+   coreJs.indexOf("toLocaleString('en-IN',{minimumFractionDigits") === -1);
+ok('formats Indian grouping', w.INR(1234567.891) === '₹12,34,567.89', w.INR(1234567.891));
+ok('handles zero and negatives', w.INR(0) === '₹0.00' && w.INR(-500.5) === '₹-500.50');
+ok('still returns the dash for NaN', w.INR(NaN) === '—');
+
+R.section('\n=== 66. Motion scale and spring easing ===');
+const cssTxt2 = readAsset('assets/styles.css');
+ok('easing tokens defined',
+   cssTxt2.indexOf('--ease-spring:') !== -1 && cssTxt2.indexOf('--ease-out:') !== -1);
+ok('duration tokens defined', /--dur:\s*\.?\d/.test(cssTxt2));
+ok('modal uses the spring', /animation:modalIn var\(--dur-slow\) var\(--ease-spring\)/.test(cssTxt2));
+ok('FAB uses the spring', /\.fab-btn\{[^}]*var\(--ease-spring\)/.test(cssTxt2));
+ok('toast uses the spring', /\.toast\{[^}]*var\(--ease-spring\)/.test(cssTxt2));
+ok('reduced motion still neutralises everything',
+   /prefers-reduced-motion[\s\S]{0,400}animation-duration:\s*\.001ms/.test(cssTxt2));
+
+R.section('\n=== 67. Count-up on headline figures ===');
+ok('animateValue is defined', typeof w.animateValue === 'function');
+ok('prefersReducedMotion is defined', typeof w.prefersReducedMotion === 'function');
+freshCalc(1000, 40, 25);
+ok('first paint sets the value directly (no animation from NaN)',
+   d.getElementById('s-pr').textContent.indexOf('150') !== -1,
+   d.getElementById('s-pr').textContent);
+// A tiny change must not animate
+d.getElementById('spd').value = '25.01';
+w.calc();
+ok('sub-threshold change applies immediately',
+   d.getElementById('s-pr').textContent !== '' &&
+   d.getElementById('s-pr').textContent.indexOf('—') === -1);
+ok('floor colouring is applied without waiting for the animation',
+   d.getElementById('s-gp').className.indexOf('sum-val') === 0);
+// Clearing inputs must not leave a stale animated value
+d.getElementById('mrp').value = '';
+w.calc();
+ok('empty state shows the dash', d.getElementById('s-pr').textContent === '—',
+   d.getElementById('s-pr').textContent);
+
+R.section('\n=== 68. View Transitions wrap the mode switch ===');
+ok('withViewTransition is defined', typeof w.withViewTransition === 'function');
+ok('setModeAnimated is defined', typeof w.setModeAnimated === 'function');
+ok('setMode itself stays synchronous', (() => {
+  freshCalc(1000, 40, 25);
+  w.setMode('quick');
+  const immediate = w.APP_MODE === 'quick';   // must be true before any frame
+  w.setMode('default');
+  return immediate;
+})(), 'setMode must remain synchronous for fcToDefault/wzToDefault');
+ok('falls back cleanly where the API is absent', (() => {
+  const had = d.startViewTransition;
+  delete d.startViewTransition;
+  let ran = false;
+  w.withViewTransition(() => { ran = true; });
+  if (had) d.startViewTransition = had;
+  return ran;   // must run synchronously, not silently drop
+})());
+ok('mode pills use the animated entry point',
+   readAsset('assets/app.js').indexOf('setModeAnimated(') !== -1);
+ok('view transition CSS is behind a no-preference query',
+   /prefers-reduced-motion:no-preference[\s\S]{0,300}view-transition/.test(cssTxt2));
+
+R.section('\n=== 69. Landed cost adds to effective CP ===');
+freshCalc(1000, 40, 25);
+d.getElementById('landed').value = '';
+w.calc();
+ok('no landed cost by default', w.getLandedCost() === 0);
+ok('effectiveCP is CP less incentives', w.effectiveCP(w.LAST_CP) === 600, 'got ' + w.effectiveCP(w.LAST_CP));
+ok('baseline profit 150', Math.abs(num('pvv') - 150) < 0.05);
+
+d.getElementById('landed').value = '50';
+w.calc();
+ok('landed cost is read', w.getLandedCost() === 50);
+ok('it is ADDED to effective CP', w.effectiveCP(w.LAST_CP) === 650, 'got ' + w.effectiveCP(w.LAST_CP));
+ok('profit falls by exactly the landed cost', Math.abs(num('pvv') - 100) < 0.05, 'got ' + num('pvv'));
+ok('margin uses the landed-inclusive cost',
+   Math.abs(num('s-mg') - (100 / 650 * 100)) < 0.05, 'got ' + num('s-mg'));
+
+// It must also flow through the incentive interaction
+d.getElementById('it-eb').checked = true; w.syncToggle('eb'); w.calc();
+ok('incentives and landed cost combine',
+   Math.abs(w.effectiveCP(w.LAST_CP) - (600 - 6 + 50)) < 0.01,
+   'got ' + w.effectiveCP(w.LAST_CP));
+d.getElementById('it-eb').checked = false; w.syncToggle('eb');
+
+ok('negative landed cost is ignored',
+   (() => { d.getElementById('landed').value = '-99'; return w.getLandedCost() === 0; })());
+d.getElementById('landed').value = '50';
+ok('landed cost round-trips through share state', (() => {
+  const st = w.getShareState();
+  d.getElementById('landed').value = '';
+  w.applyShareState(st);
+  return w.getLandedCost() === 50;
+})(), 'got ' + w.getLandedCost());
+d.getElementById('landed').value = '';
+w.calc();
+
+R.section('\n=== 70. Break-even thresholds ===');
+freshCalc(1000, 40, 25);
+d.getElementById('floor-gp').value = '5';
+w.calc();
+const be = w.breakEven(w.LAST_CP, w.LAST_SP);
+ok('break-even is computed', !!be);
+ok('zero-profit SP excl equals effective CP', Math.abs(be.zeroE - 600) < 0.01, 'got ' + be.zeroE);
+ok('quoted incl GST', Math.abs(be.zeroI - 708) < 0.01, 'got ' + be.zeroI);
+// GP 5% => effSP = 600/0.95 = 631.58
+ok('floor SP excl solves the GP equation',
+   Math.abs(be.floorE - 600 / 0.95) < 0.01, 'got ' + be.floorE);
+ok('shown in the summary', d.getElementById('s-item-be').style.display !== 'none');
+ok('summary value matches', Math.abs(num('s-be') - 708) < 0.5, 'got ' + num('s-be'));
+
+// SP incentives reduce what is received, so the quotable threshold rises
+d.getElementById('sit-eb').checked = true;
+d.getElementById('siv-eb').value = '10';
+w.syncSpToggle('eb'); w.calc();
+const be2 = w.breakEven(w.LAST_CP, w.LAST_SP);
+ok('SP incentives raise the break-even price', be2.zeroE > be.zeroE,
+   be.zeroE + ' -> ' + be2.zeroE);
+ok('grossed up by the incentive ratio',
+   Math.abs(be2.zeroE - 600 / 0.9) < 0.01, 'got ' + be2.zeroE);
+d.getElementById('sit-eb').checked = false; w.syncSpToggle('eb');
+
+ok('hidden when there is nothing to compute', (() => {
+  d.getElementById('mrp').value = ''; w.calc();
+  return d.getElementById('s-item-be').style.display === 'none';
+})());
+
+R.section('\n=== 71. Target-margin solver ===');
+freshCalc(1000, 40, 25);
+ok('solveForGp is defined', typeof w.solveForGp === 'function');
+const sv = w.solveForGp(30);
+ok('reports the current GP', Math.abs(sv.gpNow - 20) < 0.01, 'got ' + sv.gpNow);
+// 30% GP on SP excl 750 => eff CP 525 => 75 of incentive on a 600 CP = 12.5%
+ok('required effective CP', Math.abs(sv.needEffCP - 525) < 0.01, 'got ' + sv.needEffCP);
+ok('required incentive in rupees', Math.abs(sv.needIncInr - 75) < 0.01, 'got ' + sv.needIncInr);
+ok('required incentive as a percentage', Math.abs(sv.needIncPct - 12.5) < 0.01, 'got ' + sv.needIncPct);
+ok('marked reachable', sv.reachable === true);
+ok('an unreachable target is flagged', (() => {
+  // Landed cost cannot be discounted away, so a high target becomes impossible
+  d.getElementById('landed').value = '700'; w.calc();
+  const r = w.solveForGp(90);
+  d.getElementById('landed').value = ''; w.calc();
+  return r && r.reachable === false;
+})(), 'expected reachable=false');
+ok('rejects 100% and above', w.solveForGp(100) === null);
+ok('accounts for landed cost', (() => {
+  d.getElementById('landed').value = '50'; w.calc();
+  const r = w.solveForGp(30);
+  d.getElementById('landed').value = ''; w.calc();
+  // eff CP must still be 525, but 50 of that is landed, so incentive must find 125
+  return Math.abs(r.needIncInr - 125) < 0.01;
+})(), 'landed cost not reflected');
+ok('readout renders', (() => {
+  d.getElementById('solver-gp').value = '30';
+  w.renderSolver();
+  return d.getElementById('solver-out').textContent.indexOf('12.50%') !== -1;
+})(), d.getElementById('solver-out').textContent);
+ok('needs a calculation first', (() => {
+  d.getElementById('mrp').value = ''; w.calc();
+  w.renderSolver();
+  return d.getElementById('solver-out').textContent.indexOf('Enter MRP') !== -1;
+})());
+
+R.section('\n=== 72. Incentive presets ===');
+freshCalc(1000, 40, 25);
+w.PRESETS = {};
+// Rendering rebuilds rows from defaults, so set the label first, then values.
+w.INC_LABELS['eb'] = 'Dealer rebate';
+w.renderCPIncRows();
+d.getElementById('it-eb').checked = true;
+d.getElementById('iv-eb').value = '3';
+w.syncToggle('eb');
+w.calc();
+const snap = w.capturePreset();
+ok('snapshot captures the key lists', snap.cpKeys.length === 5 && snap.spKeys.length === 5);
+ok('snapshot captures values', snap.cp.eb.v === '3' && snap.cp.eb.on === true);
+ok('snapshot captures labels', snap.labels.eb === 'Dealer rebate');
+ok('snapshot captures sub-modes', snap.cdm === 'before' && snap.scm === 'pct');
+
+w.PRESETS['Dealer A'] = snap;
+w.savePresets();
+ok('persisted to storage', !!w.localStorage.getItem('pc-presets'));
+
+// Change everything, then restore
+w.INC_LABELS['eb'] = 'Something else';
+w.renderCPIncRows();
+d.getElementById('it-eb').checked = false;
+d.getElementById('iv-eb').value = '1';
+w.syncToggle('eb'); w.calc();
+w.applyPreset(w.PRESETS['Dealer A']);
+ok('restores the toggle', d.getElementById('it-eb').checked === true);
+ok('restores the value', d.getElementById('iv-eb').value === '3');
+ok('restores the label', d.getElementById('lbl-cp-eb').textContent === 'Dealer rebate');
+ok('recalculates on load', Math.abs(num('pvv') - 168) < 0.05, 'got ' + num('pvv'));
+
+w.PRESETS = {};
+w.loadPresets();
+ok('reloads from storage', !!w.PRESETS['Dealer A']);
+ok('dropdown lists it',
+   d.getElementById('preset-select').innerHTML.indexOf('Dealer A') !== -1);
+ok('a preset with a malformed key is sanitised', (() => {
+  w.applyPreset({ cpKeys: ['cd', '"><img src=x>'], spKeys: ['cd'], labels: {}, cp: {}, sp: {} });
+  return w.INC_KEYS.indexOf('"><img src=x>') === -1;
+})(), w.INC_KEYS.join(','));
+ok('an empty preset falls back to defaults', (() => {
+  w.applyPreset({ cpKeys: [], spKeys: [], labels: {}, cp: {}, sp: {} });
+  return w.INC_KEYS.length === 5;
+})());
+w.localStorage.clear();
+w.INC_LABELS['eb'] = w.INC_LABELS_DEFAULT['eb'];
 
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

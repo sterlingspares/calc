@@ -69,6 +69,248 @@ window.addEventListener('unhandledrejection',function(ev){
   logError('Unhandled promise rejection',ev.reason);
 });
 
+/* ── HTML escaping ──
+   Several renderers build markup as strings. Escaping was previously open-coded
+   at each site with slightly different character sets, and two of those sites
+   missed it entirely (incentive keys, and the history time/GST fields), which
+   was exploitable by anyone able to write to localStorage. One helper now covers
+   every case; use it for anything interpolated into markup, in text or attribute
+   position. */
+var _ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+/**
+ * Escape a value for safe interpolation into an HTML string.
+ * @param {*} v any value; null/undefined become ''
+ * @returns {string}
+ */
+function escHtml(v){
+  return String(v==null?'':v).replace(/[&<>"']/g,function(c){return _ESC_MAP[c]});
+}
+/**
+ * Whether an incentive key is safe to interpolate into element ids and inline
+ * handlers. Generated keys are 'c1', 'c2', …; anything else came from storage
+ * and is not trusted.
+ * @param {*} k
+ * @returns {boolean}
+ */
+function isValidIncKey(k){
+  return typeof k==='string'&&/^[A-Za-z0-9_-]{1,24}$/.test(k);
+}
+
+
+/* ── Delegated actions ──────────────────────────────────────────────────────
+   The markup used ~158 inline on* attributes. Those force
+   `script-src 'unsafe-inline'`, which defeats most of what a CSP can do: an
+   injected <script> or handler would run. Each one is now a `data-click`
+   (or data-input / data-change) naming an entry in this registry, dispatched
+   by the delegated listeners below.
+
+   Handlers receive (self, event): `self` is the element the attribute was on,
+   matching what `this` referred to before.
+
+   These bodies are mechanically converted from the original attributes, so
+   behaviour is unchanged.
+   ─────────────────────────────────────────────────────────────────────────── */
+var ACT = {};
+
+ACT.a0 = function(self, event){ setModeAnimated('default') };
+ACT.a1 = function(self, event){ setModeAnimated('quick') };
+ACT.a2 = function(self, event){ shareLink() };
+ACT.a3 = function(self, event){ saveToHistory() };
+ACT.a4 = function(self, event){ copyToClipboard() };
+ACT.a5 = function(self, event){ exportPDF() };
+ACT.a6 = function(self, event){ openModal('quote') };
+ACT.a7 = function(self, event){ undo() };
+ACT.a8 = function(self, event){ redo() };
+ACT.a9 = function(self, event){ openModal('shortcuts') };
+ACT.a10 = function(self, event){ openModal('settings') };
+ACT.a11 = function(self, event){ toggleHMenu() };
+ACT.a12 = function(self, event){ shareLink();closeHMenu() };
+ACT.a13 = function(self, event){ saveToHistory();closeHMenu() };
+ACT.a14 = function(self, event){ copyToClipboard();closeHMenu() };
+ACT.a15 = function(self, event){ exportPDF();closeHMenu() };
+ACT.a16 = function(self, event){ openModal('quote');closeHMenu() };
+ACT.a17 = function(self, event){ undo();closeHMenu() };
+ACT.a18 = function(self, event){ sendWhatsApp();closeHMenu() };
+ACT.a19 = function(self, event){ sendEmail();closeHMenu() };
+ACT.a20 = function(self, event){ openModal('settings');closeHMenu() };
+ACT.a21 = function(self, event){ localStorage.removeItem('ob-done');closeHMenu();setTimeout(obShow,200) };
+ACT.a22 = function(self, event){ setGST(18) };
+ACT.a23 = function(self, event){ setGST(5) };
+ACT.a24 = function(self, event){ onCustomGST(self) };
+ACT.a25 = function(self, event){ setT('profit') };
+ACT.a26 = function(self, event){ setT('sp') };
+ACT.a27 = function(self, event){ setT('cp') };
+ACT.a28 = function(self, event){ resetAll() };
+ACT.a29 = function(self, event){ onMrpInput(self) };
+ACT.a30 = function(self, event){ nextFrom('mrp') };
+ACT.a31 = function(self, event){ stepQty(-1) };
+ACT.a32 = function(self, event){ calc();debouncedSaveCalcState() };
+ACT.a33 = function(self, event){ stepQty(1) };
+ACT.a34 = function(self, event){ setCM('excl') };
+ACT.a35 = function(self, event){ setCM('incl') };
+ACT.a36 = function(self, event){ setCM('manual') };
+ACT.a37 = function(self, event){ calc() };
+ACT.a38 = function(self, event){ nextFrom('cpd') };
+ACT.a39 = function(self, event){ setCPManual('incl') };
+ACT.a40 = function(self, event){ setCPManual('excl') };
+ACT.a41 = function(self, event){ onAmtInput(self) };
+ACT.a42 = function(self, event){ nextFrom('cpv') };
+ACT.a43 = function(self, event){ toggleAcc('cp') };
+ACT.a44 = function(self, event){ setSM('excl') };
+ACT.a45 = function(self, event){ setSM('incl') };
+ACT.a46 = function(self, event){ setSM('manual') };
+ACT.a47 = function(self, event){ nextFrom('spd') };
+ACT.a48 = function(self, event){ setSPManual('incl') };
+ACT.a49 = function(self, event){ setSPManual('excl') };
+ACT.a50 = function(self, event){ nextFrom('spv') };
+ACT.a51 = function(self, event){ toggleAcc('sp') };
+ACT.a52 = function(self, event){ setPM('val') };
+ACT.a53 = function(self, event){ setPM('gp') };
+ACT.a54 = function(self, event){ setPM('margin') };
+ACT.a55 = function(self, event){ togglePanel('inc') };
+ACT.a56 = function(self, event){ toggleIncEditMode('cp') };
+ACT.a57 = function(self, event){ addInc('cp') };
+ACT.a58 = function(self, event){ togglePanel('sp-inc') };
+ACT.a59 = function(self, event){ toggleIncEditMode('sp') };
+ACT.a60 = function(self, event){ addInc('sp') };
+ACT.a61 = function(self, event){ openModal('whatif') };
+ACT.a62 = function(self, event){ togglePanel('hist') };
+ACT.a63 = function(self, event){ setHistQuery(self.value) };
+ACT.a64 = function(self, event){ setHistFilter('all') };
+ACT.a65 = function(self, event){ setHistFilter('pos') };
+ACT.a66 = function(self, event){ setHistFilter('neg') };
+ACT.a67 = function(self, event){ setHistFilter('below') };
+ACT.a68 = function(self, event){ setHistFilter('tagged') };
+ACT.a69 = function(self, event){ syncAutosave(self) };
+ACT.a70 = function(self, event){ exportHistoryCSV() };
+ACT.a71 = function(self, event){ clearHistory() };
+ACT.a72 = function(self, event){ onMrpInput(self);wzCalc() };
+ACT.a73 = function(self, event){ wzSetGST(18) };
+ACT.a74 = function(self, event){ wzSetGST(5) };
+ACT.a75 = function(self, event){ wzSetT('cp') };
+ACT.a76 = function(self, event){ wzSetT('sp') };
+ACT.a77 = function(self, event){ wzSetCM('excl') };
+ACT.a78 = function(self, event){ wzSetCM('incl') };
+ACT.a79 = function(self, event){ wzSetCM('manual') };
+ACT.a80 = function(self, event){ wzCalc() };
+ACT.a81 = function(self, event){ wzSetMS('incl') };
+ACT.a82 = function(self, event){ wzSetMS('excl') };
+ACT.a83 = function(self, event){ wzFmtAmt(self);wzCalc() };
+ACT.a84 = function(self, event){ wzSyncCD() };
+ACT.a85 = function(self, event){ wzSetCDMode('before') };
+ACT.a86 = function(self, event){ wzSetCDMode('after') };
+ACT.a87 = function(self, event){ wzSyncSc() };
+ACT.a88 = function(self, event){ wzSetScMode('pct') };
+ACT.a89 = function(self, event){ wzSetScMode('abs') };
+ACT.a90 = function(self, event){ wzReset() };
+ACT.a91 = function(self, event){ wzToDefault() };
+ACT.a92 = function(self, event){ fcSetT('profit') };
+ACT.a93 = function(self, event){ fcSetT('sp') };
+ACT.a94 = function(self, event){ fcSetT('cp') };
+ACT.a95 = function(self, event){ onMrpInput(self);fcCalc() };
+ACT.a96 = function(self, event){ fcSetGST(18) };
+ACT.a97 = function(self, event){ fcSetGST(5) };
+ACT.a98 = function(self, event){ fcNext() };
+ACT.a99 = function(self, event){ bnavGo('calc') };
+ACT.a100 = function(self, event){ bnavGo('inc') };
+ACT.a101 = function(self, event){ bnavGo('summary') };
+ACT.a102 = function(self, event){ bnavGo('hist') };
+ACT.a103 = function(self, event){ overlayClick(event,'settings') };
+ACT.a104 = function(self, event){ closeModal('settings') };
+ACT.a105 = function(self, event){ toggleDarkMode(self.checked) };
+ACT.a106 = function(self, event){ calc();saveCalcState() };
+ACT.a107 = function(self, event){ setRounding('off') };
+ACT.a108 = function(self, event){ setRounding('1') };
+ACT.a109 = function(self, event){ setRounding('5') };
+ACT.a110 = function(self, event){ onCustomRounding(self) };
+ACT.a111 = function(self, event){ syncAutosave('settings') };
+ACT.a112 = function(self, event){ localStorage.removeItem('ob-done');closeModal('settings');setTimeout(obShow,200) };
+ACT.a113 = function(self, event){ closeModal('settings');setTimeout(function(){openModal('shortcuts')},200) };
+ACT.a114 = function(self, event){ overlayClick(event,'whatif') };
+ACT.a115 = function(self, event){ closeModal('whatif') };
+ACT.a116 = function(self, event){ overlayClick(event,'compare') };
+ACT.a117 = function(self, event){ closeModal('compare') };
+ACT.a118 = function(self, event){ overlayClick(event,'shortcuts') };
+ACT.a119 = function(self, event){ closeModal('shortcuts') };
+ACT.a120 = function(self, event){ overlayClick(event,'quote') };
+ACT.a121 = function(self, event){ closeModal('quote') };
+ACT.a122 = function(self, event){ qtAddLine() };
+ACT.a123 = function(self, event){ qtAddFromCalc() };
+ACT.a124 = function(self, event){ qtExportCSV() };
+ACT.a125 = function(self, event){ qtCopy() };
+ACT.a126 = function(self, event){ qtClear() };
+ACT.a127 = function(self, event){ overlayClick(event,'confirm') };
+ACT.a128 = function(self, event){ closeConfirm() };
+ACT.a129 = function(self, event){ runConfirm() };
+ACT.a130 = function(self, event){ closeFab() };
+ACT.a131 = function(self, event){ fabRun(saveToHistory) };
+ACT.a132 = function(self, event){ fabRun(copyToClipboard) };
+ACT.a133 = function(self, event){ fabRun(sendWhatsApp) };
+ACT.a134 = function(self, event){ fabRun(shareLink) };
+ACT.a135 = function(self, event){ fabRun(sendEmail) };
+ACT.a136 = function(self, event){ fabRun(exportPDF) };
+ACT.a137 = function(self, event){ toggleFab() };
+ACT.a138 = function(self, event){ // Onboarding backdrop: dismiss only when the click landed on the overlay itself.
+  if(event.target===self)obSkip(); };
+ACT.a139 = function(self, event){ OB_STEP===0?obSkip():(OB_STEP--,obRender()) };
+ACT.a140 = function(self, event){ obNext() };
+
+/**
+ * Register a delegated listener for one event type.
+ * `closest` means only the nearest matching ancestor fires, so nested targets
+ * behave like the old direct-attribute binding without needing
+ * stopPropagation.
+ * @param {string} evt DOM event name
+ * @param {boolean} [capture] use capture — required for focus/blur, which do not bubble
+ */
+function delegate(evt, capture){
+  document.addEventListener(evt, function(e){
+    var node = e.target && e.target.closest ? e.target.closest('[data-' + evt + ']') : null;
+    if(!node) return;
+    var fn = ACT[node.getAttribute('data-' + evt)];
+    if(!fn){ logWarn('no handler registered for data-' + evt + '="' + node.getAttribute('data-' + evt) + '"'); return; }
+    guard('handler ' + node.getAttribute('data-' + evt), function(){ fn(node, e); });
+  }, !!capture);
+}
+['click','change','input'].forEach(function(evt){ delegate(evt); });
+// focus/blur do not bubble, so they are delegated in the capture phase.
+delegate('focus', true);
+delegate('blur', true);
+
+
+/* ── Parameterised delegated actions ────────────────────────────────────────
+   Rows, cards and dialogs are built as HTML strings, so their handlers were
+   inline attributes too. They take arguments (a row key, a line index), which
+   travel in data-p / data-q / data-r rather than being baked into code.
+   ─────────────────────────────────────────────────────────────────────────── */
+/** Read the positional params off an element carrying a delegated action. */
+function actParams(el){
+  return [el.getAttribute('data-p'), el.getAttribute('data-q'), el.getAttribute('data-r')];
+}
+ACT.incToggle   = function(self){ var p=actParams(self); (p[0]==='cp'?syncToggle:syncSpToggle)(p[1]); calc(); };
+ACT.incDelete   = function(self){ var p=actParams(self); deleteInc(p[0], p[1]); };
+ACT.incMode     = function(self){ var p=actParams(self); setIncMode(p[0], p[1], p[2]); };
+ACT.incRename   = function(self){ var k=self.getAttribute('data-p');
+                                  INC_LABELS[k]=self.value.trim()||INC_LABELS_DEFAULT[k]; saveLabels(); };
+ACT.calc        = function(){ calc(); };
+ACT.saveState   = function(){ saveCalcState(); };
+ACT.cdMode      = function(self){ var p=actParams(self); (p[0]==='cp'?setCDMode:setSCDMode)(p[1]); };
+ACT.schemeMode  = function(self){ var p=actParams(self); (p[0]==='cp'?setSchemeMode:setSpSchemeMode)(p[1]); };
+ACT.histDelete  = function(self){ deleteHistEntry(+self.getAttribute('data-p')); };
+ACT.histCompare = function(self){ openCompare(+self.getAttribute('data-p')); };
+ACT.histTagEdit = function(self){ startTagEdit(+self.getAttribute('data-p')); };
+ACT.histTagSave = function(self){ commitTag(+self.getAttribute('data-p'), self.value); };
+ACT.qtDelLine   = function(self){ qtDelLine(+self.getAttribute('data-p')); };
+ACT.qtSet       = function(self){ qtSet(+self.getAttribute('data-p'), self.getAttribute('data-q'), self.value); };
+ACT.undoQuote   = function(){ pushUndo('edit quote line'); };
+ACT.undoRename  = function(){ pushUndo('rename incentive'); };
+ACT.histMore    = function(){ histShowMore(); };
+ACT.obGoto      = function(self){ OB_STEP=+self.getAttribute('data-p'); obRender(); };
+ACT.fcNext      = function(){ fcNext(); };
+ACT.fcBack      = function(){ fcBack(); };
+ACT.fcReset     = function(){ fcReset(); };
+ACT.fcToDefault = function(){ fcToDefault(); };
+
 /* ── Platform ── */
 var IS_MAC=/Mac/.test(navigator.platform);
 var MOD_KEY=IS_MAC?'⌘':'Ctrl';
@@ -86,6 +328,9 @@ var SCDM='before'; // SP CD mode: 'before' | 'after'
 var ROUND_MODE='off'; // 'off' | '1' | '5' — rounds the incl-GST price
 var QUOTE=[];         // multi-line quote rows
 var HIST_QUERY='',HIST_FILTER='all';
+/* Rendering all 50 entries cost ~90ms on a throttled phone and runs on every
+   save. Only the first page is built; the rest is one click away. */
+var HIST_PAGE=20,HIST_SHOWN=HIST_PAGE;
 var BUILTIN_INC=['cd','eb','qt','an','sc'];
 var INC_MODE={},SP_INC_MODE={};
 /**
@@ -214,9 +459,23 @@ function R(id,v){var e=el(id);if(e)e.textContent=v}
  * @param {number} n
  * @returns {string} e.g. '₹1,23,456.78', or '—' when not a finite number
  */
+/* Number.toLocaleString with options builds a fresh Intl.NumberFormat on every
+   call, which profiling showed to be the single hottest function during load
+   (77ms of self time). One cached formatter, reused. */
+var _inrFmt=null;
+function _getInrFmt(){
+  if(_inrFmt)return _inrFmt;
+  try{
+    _inrFmt=new Intl.NumberFormat('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }catch(e){
+    logWarn('Intl.NumberFormat unavailable, falling back to manual grouping',e);
+    _inrFmt={format:function(v){return fmtINDIAN(v)}};
+  }
+  return _inrFmt;
+}
 function INR(n){
   if(n===null||n===undefined||isNaN(n))return'—';
-  return'₹'+parseFloat(n.toFixed(2)).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return'₹'+_getInrFmt().format(parseFloat(n.toFixed(2)));
 }
 /**
  * Format a number as a percentage to 2 decimals.
@@ -332,7 +591,7 @@ function openModal(id){
     _openOverlay=o;
   }
   if(id==='whatif')renderWhatIf(LAST_CP);
-  if(id==='quote')qtRender();
+  if(id==='quote')withExtras(function(){qtRender()});
   // Move focus into the dialog so keyboard and screen-reader users start inside
   // it rather than behind it.
   if(o)setTimeout(function(){
@@ -445,7 +704,7 @@ function onCustomRounding(inp){
   if(isNaN(v)||v<=0||v>100000){
     logWarn('ignoring invalid rounding step: '+JSON.stringify(inp.value)+' (expected a positive number)');
     toast('Rounding step must be greater than 0');
-    inp.value=(ROUND_MODE==='off'||ROUND_MODE==='1'||ROUND_MODE==='5')?'':ROUND_MODE;
+    inp.value=isCustomRounding()?ROUND_MODE:'';
     return;
   }
   setRounding(String(v));
@@ -498,19 +757,33 @@ function roundPrice(p){
  * @param {string} m 'off', or any positive step as a string — '1' and '5' have
  *   preset buttons, anything else comes from the custom box.
  */
+/**
+ * Whether the active rounding step came from the custom box rather than a
+ * preset button.
+ * @returns {boolean}
+ */
+function isCustomRounding(){
+  return ROUND_MODE!=='off'&&ROUND_MODE!=='1'&&ROUND_MODE!=='5';
+}
+
 function setRounding(m){
   haptic('select');
   ROUND_MODE=String(m);
+  var custom=isCustomRounding();
   ['off','1','5'].forEach(function(k){
     var b=el('rnd-'+k);if(b)b.className='pill'+(k===ROUND_MODE?' on':'');
   });
+  // Highlight the custom chip when it is the live mode, so the row always has
+  // exactly one control reading as selected.
+  var wrap=el('rnd-custom-wrap');
+  if(wrap)wrap.className='rnd-custom-wrap'+(custom?' on':'');
   // Mirror into the custom box, unless the user is mid-edit in it
   var rc=el('rnd-custom');
   if(rc&&document.activeElement!==rc){
-    rc.value=(ROUND_MODE==='off'||ROUND_MODE==='1'||ROUND_MODE==='5')?'':ROUND_MODE;
+    rc.value=custom?ROUND_MODE:'';
   }
   calc();saveCalcState();
-  if(el('overlay-quote').classList.contains('open'))qtRender();
+  if(typeof qtRender==='function'&&el('overlay-quote').classList.contains('open'))qtRender();
 }
 
 /* ── Toast ── */
@@ -635,7 +908,7 @@ function restoreState(s){
     applyShareState(s.share);
     saveLabels();saveHistoryToStorage();saveQuote();
     renderHistory();
-    if(el('overlay-quote').classList.contains('open'))qtRender();
+    if(typeof qtRender==='function'&&el('overlay-quote').classList.contains('open'))qtRender();
     calc();
   }catch(e){
     // Leaves the UI mid-restore, so this is always worth surfacing.
@@ -750,10 +1023,27 @@ function togglePanel(id){
   if(id==='hist'){
     if(!open){
       clearInterval(_histRefreshTimer);
-      _histRefreshTimer=setInterval(function(){if(HISTORY.length>0)renderHistory()},60000);
+      // Only the relative timestamps age; rebuilding every card for that cost
+      // ~224ms at 50 entries on a throttled phone. Update the text in place.
+      _histRefreshTimer=setInterval(refreshHistTimes,60000);
     }else{
       clearInterval(_histRefreshTimer);_histRefreshTimer=null;
     }
+  }
+}
+
+/**
+ * Refresh the relative timestamps on visible history rows without rebuilding
+ * them. Rows are addressed by their true HISTORY index, so this stays correct
+ * under an active search or filter.
+ */
+function refreshHistTimes(){
+  if(HISTORY.length===0)return;
+  for(var i=0;i<HISTORY.length;i++){
+    var h=HISTORY[i];
+    if(!h||!h.ts)continue;
+    var node=document.getElementById('htime-'+i);
+    if(node)node.textContent=relTime(h.ts);
   }
 }
 
@@ -854,7 +1144,7 @@ function _incRowHTML(k,panel,editMode){
   var cbId=(isCP?'it-':'sit-')+k;
   var inpId=(isCP?'iv-':'siv-')+k;
   var lblId='lbl-'+(isCP?'cp':'sp')+'-'+k;
-  var lbl=(INC_LABELS[k]||k).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  var lbl=escHtml(INC_LABELS[k]||k);
   // Same text, for use inside aria-label attributes
   var lblPlain=lbl;
   var syncFn=isCP?'syncToggle':'syncSpToggle';
@@ -863,37 +1153,40 @@ function _incRowHTML(k,panel,editMode){
   var custom=isCustomInc(k),cMode=custom?incModeOf(panel,k):null,cAbs=(cMode==='abs');
   var maxAttr=(k==='sc'||cAbs)?'':' max="100"';
 
-  var delBtn=editMode?'<button class="inc-del-btn" onclick="deleteInc(\''+panel+'\',\''+k+'\')" title="Delete" aria-label="Delete">&#x2212;</button>':'';
+  var delBtn=editMode?'<button class="inc-del-btn" data-click="incDelete" data-p="'+panel+'" data-q="'+k+'" title="Delete" aria-label="Delete">&#x2212;</button>':'';
   var labelHtml=editMode
-    ?'<input class="inc-label-edit" id="'+lblId+'" aria-label="Rename '+lblPlain+'" value="'+lbl+'" onfocus="pushUndo(\'rename incentive\')" oninput="INC_LABELS[\''+k+'\']=this.value.trim()||INC_LABELS_DEFAULT[\''+k+'\'];saveLabels()" maxlength="30" autocomplete="off" spellcheck="false">'
+    ?'<input class="inc-label-edit" id="'+lblId+'" aria-label="Rename '+lblPlain+'" value="'+lbl+'" data-focus="undoRename" data-input="incRename" data-p="'+k+'" maxlength="30" autocomplete="off" spellcheck="false">'
     :'<span class="inc-name" id="'+lblId+'">'+lbl+'</span>';
 
   var unitId=(k==='sc')?' id="'+(isCP?'sc':'ssc')+'-unit"':(custom?' id="unit-'+panel+'-'+k+'"':'');
   var unitTxt=cAbs?'&#x20B9;':'%';
   var pctWrapId=(k==='sc'&&isCP)?' id="sc-pct-wrap"':'';
 
-  var mainRow='<div class="inc-row-main">'+delBtn+'<label class="toggle"><input type="checkbox" id="'+cbId+'" aria-label="Enable '+lblPlain+'" onchange="'+syncFn+'(\''+k+'\');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>'+labelHtml+'<div class="inc-pct-wrap"'+pctWrapId+'><input type="number" inputmode="decimal" id="'+inpId+'" aria-label="'+lblPlain+' value" value="'+defVal+'" placeholder="'+placeholder+'" min="0"'+maxAttr+' step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym"'+unitId+'>'+unitTxt+'</span></div></div>';
+  var mainRow='<div class="inc-row-main">'+delBtn+'<label class="toggle"><input type="checkbox" id="'+cbId+'" aria-label="Enable '+lblPlain+'" data-change="incToggle" data-p="'+panel+'" data-q="'+k+'"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>'+labelHtml+'<div class="inc-pct-wrap"'+pctWrapId+'><input type="number" inputmode="decimal" id="'+inpId+'" aria-label="'+lblPlain+' value" value="'+defVal+'" placeholder="'+placeholder+'" min="0"'+maxAttr+' step="0.01" data-input="calc" autocomplete="off"><span class="inc-pct-sym"'+unitId+'>'+unitTxt+'</span></div></div>';
 
   var subRow='';
   var gPct=Math.round(G*100);
   if(k==='cd'){
     var b1=isCP?'cdm-before':'scdm-before',b2=isCP?'cdm-after':'scdm-after';
-    var fn1=isCP?"setCDMode('before')":'setSCDMode(\'before\')',fn2=isCP?"setCDMode('after')":'setSCDMode(\'after\')';
+    // Delegated: panel in data-p, mode in data-q
+    var fn1='data-click="cdMode" data-p="'+panel+'" data-q="before"';
+    var fn2='data-click="cdMode" data-p="'+panel+'" data-q="after"';
     var lb1='lbl-'+(isCP?'':'s')+'cdm-before',lb2='lbl-'+(isCP?'':'s')+'cdm-after';
     var p=isCP?'CP':'SP';
-    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Calculate CD on:</div><div class="sub-tabs" style="width:100%"><button class="stab on" id="'+b1+'" onclick="'+fn1+'" style="padding:6px 8px;line-height:1.3"><span id="'+lb1+'">'+p+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button><button class="stab" id="'+b2+'" onclick="'+fn2+'" style="padding:6px 8px;line-height:1.3"><span id="'+lb2+'">'+p+' incl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button></div></div>';
+    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Calculate CD on:</div><div class="sub-tabs" style="width:100%"><button class="stab on" id="'+b1+'" '+fn1+' style="padding:6px 8px;line-height:1.3"><span id="'+lb1+'">'+p+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button><button class="stab" id="'+b2+'" '+fn2+' style="padding:6px 8px;line-height:1.3"><span id="'+lb2+'">'+p+' incl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button></div></div>';
   } else if(k==='sc'){
     var sp1=isCP?'scm-pct':'sscm-pct',sp2=isCP?'scm-abs':'sscm-abs';
-    var fn3=isCP?"setSchemeMode('pct')":'setSpSchemeMode(\'pct\')',fn4=isCP?"setSchemeMode('abs')":'setSpSchemeMode(\'abs\')';
+    var fn3='data-click="schemeMode" data-p="'+panel+'" data-q="pct"';
+    var fn4='data-click="schemeMode" data-p="'+panel+'" data-q="abs"';
     var lsp='lbl-'+(isCP?'':'s')+'scm-pct';
     var ssub=isCP?' id="sc-sub"':'';
     var pp=isCP?'CP':'SP';
-    subRow='<div class="inc-row-sub"'+ssub+'><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div><div class="sub-tabs" style="width:100%"><button class="stab on" id="'+sp1+'" onclick="'+fn3+'" style="padding:6px 8px;line-height:1.3"><span id="'+lsp+'">% of '+pp+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab" id="'+sp2+'" onclick="'+fn4+'" style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
+    subRow='<div class="inc-row-sub"'+ssub+'><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div><div class="sub-tabs" style="width:100%"><button class="stab on" id="'+sp1+'" '+fn3+' style="padding:6px 8px;line-height:1.3"><span id="'+lsp+'">% of '+pp+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab" id="'+sp2+'" '+fn4+' style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
   } else if(custom){
     var m1='im-'+panel+'-'+k+'-pct',m2='im-'+panel+'-'+k+'-abs';
     var lm='lbl-im-'+panel+'-'+k;
     var cp2=isCP?'CP':'SP';
-    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Incentive type:</div><div class="sub-tabs" style="width:100%"><button class="stab'+(cAbs?'':' on')+'" id="'+m1+'" onclick="setIncMode(\''+panel+'\',\''+k+'\',\'pct\')" style="padding:6px 8px;line-height:1.3"><span id="'+lm+'">% of '+cp2+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab'+(cAbs?' on':'')+'" id="'+m2+'" onclick="setIncMode(\''+panel+'\',\''+k+'\',\'abs\')" style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
+    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Incentive type:</div><div class="sub-tabs" style="width:100%"><button class="stab'+(cAbs?'':' on')+'" id="'+m1+'" data-click="incMode" data-p="'+panel+'" data-q="'+k+'" data-r="pct" style="padding:6px 8px;line-height:1.3"><span id="'+lm+'">% of '+cp2+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab'+(cAbs?' on':'')+'" id="'+m2+'" data-click="incMode" data-p="'+panel+'" data-q="'+k+'" data-r="abs" style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
   }
   return '<div class="inc-row" id="'+rowId+'">'+mainRow+subRow+'</div>';
 }
@@ -1151,12 +1444,54 @@ function loadLabels(){
     if(!raw)return;
     var parsed=JSON.parse(raw);
     var labels=parsed.labels||parsed;
-    Object.keys(labels).forEach(function(k){INC_LABELS[k]=labels[k];if(!INC_LABELS_DEFAULT[k])INC_LABELS_DEFAULT[k]=labels[k];});
-    if(parsed.cpKeys&&Array.isArray(parsed.cpKeys))INC_KEYS=parsed.cpKeys;
-    if(parsed.spKeys&&Array.isArray(parsed.spKeys))SP_INC_KEYS=parsed.spKeys;
+    Object.keys(labels).forEach(function(k){
+      if(!isValidIncKey(k))return;
+      INC_LABELS[k]=String(labels[k]);
+      if(!INC_LABELS_DEFAULT[k])INC_LABELS_DEFAULT[k]=String(labels[k]);
+    });
+    // Keys are interpolated into element ids and inline handlers, so anything
+    // that did not come from addInc() is dropped rather than rendered.
+    function safeKeys(arr,fallback){
+      if(!Array.isArray(arr))return fallback;
+      var clean=arr.filter(isValidIncKey);
+      if(clean.length!==arr.length)
+        logWarn('discarded '+(arr.length-clean.length)+' malformed incentive key(s) from storage');
+      return clean.length?clean:fallback;
+    }
+    INC_KEYS=safeKeys(parsed.cpKeys,INC_KEYS);
+    SP_INC_KEYS=safeKeys(parsed.spKeys,SP_INC_KEYS);
     if(parsed.cpModes)INC_MODE=parsed.cpModes;
     if(parsed.spModes)SP_INC_MODE=parsed.spModes;
   }catch(e){ logWarn('could not read saved incentives (pc-labels); using defaults',e); }
+}
+
+
+/* ── Landed cost ────────────────────────────────────────────────────────────
+   Freight, insurance and handling are real costs that incentives do not offset,
+   so they are added to effective CP rather than netted against it. Entered per
+   unit in rupees, on the excl-GST basis to match every other figure.
+   ─────────────────────────────────────────────────────────────────────────── */
+/**
+ * Landed cost per unit, excl GST.
+ * @returns {number} rupees, 0 when blank or invalid
+ */
+function getLandedCost(){
+  var e=el('landed');
+  if(!e)return 0;
+  var v=parseFloat(String(e.value).replace(/,/g,''));
+  return (isNaN(v)||v<0)?0:v;
+}
+
+/**
+ * Effective cost price excl GST: list CP, less incentives, plus landed cost.
+ * Every profit calculation goes through here so the three inputs cannot drift
+ * apart between call sites.
+ * @param {{e:number,i:number}|null} cp
+ * @returns {number|null}
+ */
+function effectiveCP(cp){
+  if(!cp)return null;
+  return cp.e - getIncentiveInr(cp) + getLandedCost();
 }
 
 /* ── Incentive helpers ── */
@@ -1461,6 +1796,205 @@ function setSchemeMode(m){
   calc();
 }
 
+
+/* ── Incentive presets ──────────────────────────────────────────────────────
+   Incentive structures repeat per dealer or brand, so the whole set — which
+   incentives exist, their names, %/₹ modes, values and on/off state, plus the
+   CD and scheme sub-modes — is saved under a name and recalled in one step.
+   ─────────────────────────────────────────────────────────────────────────── */
+var PRESETS = {};
+
+/** Persist the preset collection. */
+function savePresets(){
+  try{ localStorage.setItem('pc-presets', JSON.stringify(PRESETS)); }
+  catch(e){ logError('could not save presets (pc-presets)',e); }
+}
+/** Restore the preset collection, dropping anything malformed. */
+function loadPresets(){
+  try{
+    var raw=localStorage.getItem('pc-presets');
+    if(!raw)return;
+    var parsed=JSON.parse(raw);
+    if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))PRESETS=parsed;
+  }catch(e){ logWarn('could not read saved presets (pc-presets); starting empty',e); }
+  renderPresetList();
+}
+
+/**
+ * Snapshot the current incentive configuration.
+ * @returns {Object} everything needed to reproduce both panels
+ */
+function capturePreset(){
+  function panel(keys,pfx){
+    var out={};
+    keys.forEach(function(k){
+      var cb=document.getElementById(pfx.cb+k), iv=document.getElementById(pfx.iv+k);
+      out[k]={on:cb?cb.checked:false, v:iv?iv.value:''};
+    });
+    return out;
+  }
+  return {
+    cpKeys:INC_KEYS.slice(), spKeys:SP_INC_KEYS.slice(),
+    labels:JSON.parse(JSON.stringify(INC_LABELS)),
+    cpModes:JSON.parse(JSON.stringify(INC_MODE)),
+    spModes:JSON.parse(JSON.stringify(SP_INC_MODE)),
+    cp:panel(INC_KEYS,{cb:'it-',iv:'iv-'}),
+    sp:panel(SP_INC_KEYS,{cb:'sit-',iv:'siv-'}),
+    cdm:CDM, scm:SCM, scdm:SCDM, sscm:SSCM
+  };
+}
+
+/**
+ * Apply a saved preset. Keys are re-validated, since presets live in storage.
+ * @param {Object} p snapshot from capturePreset
+ */
+function applyPreset(p){
+  if(!p)return;
+  INC_KEYS=(p.cpKeys||[]).filter(isValidIncKey);
+  SP_INC_KEYS=(p.spKeys||[]).filter(isValidIncKey);
+  if(!INC_KEYS.length)INC_KEYS=['cd','eb','qt','an','sc'];
+  if(!SP_INC_KEYS.length)SP_INC_KEYS=['cd','eb','qt','an','sc'];
+  Object.keys(p.labels||{}).forEach(function(k){
+    if(isValidIncKey(k))INC_LABELS[k]=String(p.labels[k]);
+  });
+  INC_MODE={};SP_INC_MODE={};
+  Object.keys(p.cpModes||{}).forEach(function(k){ if(isValidIncKey(k))INC_MODE[k]=p.cpModes[k]==='abs'?'abs':'pct'; });
+  Object.keys(p.spModes||{}).forEach(function(k){ if(isValidIncKey(k))SP_INC_MODE[k]=p.spModes[k]==='abs'?'abs':'pct'; });
+
+  renderCPIncRows();renderSPIncRows();
+  function restore(keys,src,pfx,sync){
+    keys.forEach(function(k){
+      var e=(src||{})[k]; if(!e)return;
+      var cb=document.getElementById(pfx.cb+k), iv=document.getElementById(pfx.iv+k);
+      if(cb)cb.checked=!!e.on;
+      if(iv&&e.v!=='')iv.value=e.v;
+      sync(k);
+    });
+  }
+  restore(INC_KEYS,p.cp,{cb:'it-',iv:'iv-'},syncToggle);
+  restore(SP_INC_KEYS,p.sp,{cb:'sit-',iv:'siv-'},syncSpToggle);
+  if(INC_KEYS.indexOf('cd')!==-1)setCDMode(p.cdm==='after'?'after':'before');
+  if(INC_KEYS.indexOf('sc')!==-1)setSchemeMode(p.scm==='abs'?'abs':'pct');
+  if(SP_INC_KEYS.indexOf('cd')!==-1)setSCDMode(p.scdm==='after'?'after':'before');
+  if(SP_INC_KEYS.indexOf('sc')!==-1)setSpSchemeMode(p.sscm==='abs'?'abs':'pct');
+  elClearCache();saveLabels();calc();
+}
+
+/** Repaint the preset dropdown from PRESETS. */
+function renderPresetList(){
+  var sel=el('preset-select');
+  if(!sel)return;
+  var names=Object.keys(PRESETS).sort();
+  var cur=sel.value;
+  sel.innerHTML='<option value="">Presets…</option>'+
+    names.map(function(n){return '<option value="'+escHtml(n)+'">'+escHtml(n)+'</option>'}).join('');
+  if(names.indexOf(cur)!==-1)sel.value=cur;
+  var del=el('preset-del');
+  if(del)del.disabled=!sel.value;
+}
+
+/** Load whichever preset the dropdown selects. */
+function onPresetPick(){
+  var sel=el('preset-select');
+  if(!sel||!sel.value)return renderPresetList();
+  pushUndo('load preset');
+  applyPreset(PRESETS[sel.value]);
+  renderPresetList();
+  toast('Loaded "'+sel.value+'"',true);
+}
+
+/** Save the current configuration under a name. */
+function savePresetAs(){
+  var name=prompt('Save this incentive setup as:', el('preset-select').value||'');
+  if(name===null)return;
+  name=String(name).trim().slice(0,40);
+  if(!name){toast('Give the preset a name');return}
+  var overwriting=Object.prototype.hasOwnProperty.call(PRESETS,name);
+  pushUndo(overwriting?'overwrite preset':'save preset');
+  PRESETS[name]=capturePreset();
+  savePresets();renderPresetList();
+  var sel=el('preset-select');if(sel)sel.value=name;
+  renderPresetList();
+  toast(overwriting?'Updated "'+name+'"':'Saved "'+name+'"',true);
+}
+
+/** Delete the selected preset, after confirmation. */
+function deletePreset(){
+  var sel=el('preset-select');
+  if(!sel||!sel.value){toast('Pick a preset first');return}
+  var name=sel.value;
+  askConfirm('Delete preset','Delete the preset "'+name+'"?',
+    'The incentives currently on screen are not changed.','Delete',function(){
+      pushUndo('delete preset');
+      delete PRESETS[name];
+      savePresets();sel.value='';renderPresetList();
+      toast('Deleted "'+name+'"',true);
+    });
+}
+
+/* ── Target-margin solver ───────────────────────────────────────────────────
+   Answers "what incentive do I need to hit X% GP?" rather than making the user
+   converge on it by trial and error.
+   ─────────────────────────────────────────────────────────────────────────── */
+/**
+ * Work out the extra CP incentive required to reach a target GP%.
+ *
+ * @param {number} targetGp desired gross profit percentage
+ * @returns {Object|null} null when the inputs cannot support an answer
+ */
+function solveForGp(targetGp){
+  if(isNaN(targetGp)||targetGp>=100)return null;
+  var cp=LAST_CP, sp=LAST_SP;
+  if(!cp||!sp||cp.e<=0||sp.e<=0)return null;
+
+  var effSP=sp.e-getSPIncentiveInr(sp);
+  var effCPNow=effectiveCP(cp);
+  var gpNow=(effSP>0)?((effSP-effCPNow)/effSP)*100:null;
+
+  // Effective CP that would achieve the target at the current selling price
+  var needEffCP=effSP*(1-targetGp/100);
+  var needInc=cp.e-(needEffCP-getLandedCost());   // rupees of incentive required
+  var haveInc=getIncentiveInr(cp);
+
+  return {
+    gpNow:gpNow,
+    targetGp:targetGp,
+    needEffCP:needEffCP,
+    needIncInr:needInc,
+    extraInr:needInc-haveInc,
+    needIncPct:(cp.e>0)?(needInc/cp.e)*100:null,
+    havePct:(cp.e>0)?(haveInc/cp.e)*100:null,
+    reachable:needInc<=cp.e && needEffCP>0
+  };
+}
+
+/** Recompute and render the solver readout. */
+function renderSolver(){
+  var out=el('solver-out');
+  if(!out)return;
+  var raw=el('solver-gp');
+  var target=raw?parseFloat(raw.value):NaN;
+  if(isNaN(target)){out.textContent='Enter a target GP % to see what it needs.';out.className='solver-out';return}
+  var r=solveForGp(target);
+  if(!r){out.textContent='Enter MRP, CP and SP first.';out.className='solver-out';return}
+  if(!r.reachable){
+    out.textContent='Not reachable — '+PCT(target)+' GP would need more incentive than the cost price.';
+    out.className='solver-out bad';
+    return;
+  }
+  var delta=r.extraInr;
+  var dir=delta>=0?'more':'less';
+  out.className='solver-out'+(Math.abs(delta)<0.005?' ok':'');
+  out.textContent='Needs '+PCT(r.needIncPct)+' total CP incentive ('+INR(r.needEffCP)+' eff. CP). '
+    +'You have '+PCT(r.havePct)+' — '+INR(Math.abs(delta))+' '+dir+' per unit'
+    +(r.gpNow!==null?'. Currently '+PCT(r.gpNow)+'.':'.');
+}
+
+ACT.presetPick = function(){ onPresetPick(); };
+ACT.presetSave = function(){ savePresetAs(); };
+ACT.presetDel  = function(){ deletePreset(); };
+ACT.solve      = function(){ renderSolver(); };
+
 /* ── Layout ── */
 function updateLayout(){
   var isCP=T==='cp',isSP=T==='sp',isPR=T==='profit';
@@ -1527,6 +2061,9 @@ function cpFromProfit(spe,mode,val){
   else if(mode==='gp')e=spe*(1-val/100);
   else if(mode==='margin')e=spe/(1+val/100);
   else return null;
+  // e is the target EFFECTIVE cost; landed cost is added after incentives, so
+  // remove it before inverting the incentive factor.
+  e-=getLandedCost();
   if(!e||e<=0)return null;
   var n=e/K;return{e:n,i:n*(1+G)};
 }
@@ -1545,6 +2082,126 @@ function resolveCP(){
 function resolveSP(){
   if(SM==='manual')return roundPrice(priceFromManual(parseAmt('spv'),SPMS));
   var d=parseFloat(el('spd').value);return isNaN(d)?null:roundPrice(priceFromDisc(d,SM));
+}
+
+
+/* ── Value animation ────────────────────────────────────────────────────────
+   Headline figures count toward their new value rather than jumping, so the
+   direction and size of a change are visible. Deliberately conservative:
+   only worthwhile deltas animate, and a reduced-motion preference or a
+   backgrounded tab skips straight to the final value.
+   ─────────────────────────────────────────────────────────────────────────── */
+var _animTimers = {};
+
+/** True when the user has asked for reduced motion. */
+function prefersReducedMotion(){
+  try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  catch(e){ return false; }
+}
+
+/**
+ * Ease a numeric readout from its current value to a new one.
+ *
+ * @param {string} id element id
+ * @param {number|null} to target value
+ * @param {Function} fmt formatter, e.g. INR or PCT
+ * @param {Object} [opts] {minDelta} below which the value is set directly
+ */
+function animateValue(id, to, fmt, opts){
+  opts = opts || {};
+  var node = el(id);
+  if(!node) return;
+
+  var from = _animTimers[id] && _animTimers[id].current;
+  if(from === undefined || from === null) from = NaN;
+
+  // Nothing to ease toward, or movement is unwanted — set it and stop.
+  if(to === null || to === undefined || isNaN(to) || prefersReducedMotion() ||
+     document.hidden || isNaN(from)){
+    if(_animTimers[id]) cancelAnimationFrame(_animTimers[id].raf);
+    _animTimers[id] = { current: to };
+    node.textContent = fmt(to);
+    return;
+  }
+
+  var delta = Math.abs(to - from);
+  var minDelta = opts.minDelta !== undefined ? opts.minDelta : 1;
+  if(delta < minDelta){
+    if(_animTimers[id]) cancelAnimationFrame(_animTimers[id].raf);
+    _animTimers[id] = { current: to };
+    node.textContent = fmt(to);
+    return;
+  }
+
+  if(_animTimers[id]) cancelAnimationFrame(_animTimers[id].raf);
+  var start = null;
+  // Longer for bigger jumps, but never long enough to feel laggy.
+  var dur = Math.min(520, 220 + Math.log10(1 + delta) * 90);
+  var rec = { current: from, raf: 0 };
+  _animTimers[id] = rec;
+
+  function frame(ts){
+    if(start === null) start = ts;
+    var t = Math.min(1, (ts - start) / dur);
+    // easeOutCubic: fast to begin, settling gently
+    var eased = 1 - Math.pow(1 - t, 3);
+    var v = from + (to - from) * eased;
+    rec.current = v;
+    node.textContent = fmt(v);
+    if(t < 1){
+      rec.raf = requestAnimationFrame(frame);
+    } else {
+      rec.current = to;
+      node.textContent = fmt(to);
+      node.classList.remove('bump');
+      // Re-trigger the bump on the next frame so repeats replay
+      requestAnimationFrame(function(){ node.classList.add('bump'); });
+      setTimeout(function(){ node.classList.remove('bump'); }, 400);
+    }
+  }
+  rec.raf = requestAnimationFrame(frame);
+}
+
+
+/* ── Break-even ─────────────────────────────────────────────────────────────
+   How far the selling price can fall before the deal stops being worth doing.
+   Two thresholds: zero profit, and the GP floor from Settings. Both are quoted
+   incl GST, because that is the number actually negotiated with a customer.
+   ─────────────────────────────────────────────────────────────────────────── */
+/**
+ * Selling prices at which profit hits zero and at which GP% hits the floor.
+ *
+ * Both are stated BEFORE SP incentives: SP incentives reduce what is actually
+ * received, so the price you can quote is the threshold grossed back up by
+ * whatever proportion they take.
+ *
+ * @param {{e:number,i:number}|null} cp
+ * @param {{e:number,i:number}|null} sp current SP, used to infer the SP-incentive ratio
+ * @returns {{zeroE:number,zeroI:number,floorE:number|null,floorI:number|null}|null}
+ */
+function breakEven(cp,sp){
+  var eff=effectiveCP(cp);
+  if(eff===null||isNaN(eff)||eff<=0)return null;
+
+  // Proportion of SP that incentives give away, inferred from the current SP.
+  var keep=1;
+  if(sp&&sp.e>0){
+    var r=getSPIncentiveInr(sp)/sp.e;
+    if(r>=0&&r<1)keep=1-r;
+  }
+  if(keep<=0)return null;
+
+  var zeroE=eff/keep;
+  var floor=getFloor();
+  var floorE=null;
+  if(floor.gp!==null&&floor.gp<100){
+    // GP = (effSP - effCP)/effSP  =>  effSP = effCP / (1 - gp/100)
+    floorE=(eff/(1-floor.gp/100))/keep;
+  }
+  return {
+    zeroE:zeroE, zeroI:zeroE*(1+G),
+    floorE:floorE, floorI:floorE===null?null:floorE*(1+G)
+  };
 }
 
 /* ── Fill helpers ── */
@@ -1615,7 +2272,7 @@ function fillProfit(effCPE,spe){
  */
 function fillIncPanel(cp){
   updateIncSummaryTag();
-  var inc=getIncentiveInr(cp),eff=cp?cp.e-inc:null;
+  var inc=getIncentiveInr(cp),eff=effectiveCP(cp);
   R('inc-total-pct',(inc>0&&cp)?PCT((inc/cp.e)*100):'0.00%');
   R('inc-total-inr',inc>0?INR(inc):'—');R('inc-eff-cp',INR(eff));
 }
@@ -1636,9 +2293,15 @@ function fillSummary(cp,sp){
   ['s-mrp','s-cp','s-ecp','s-sp','s-esp','s-inc','s-spinc','s-pr','s-gp','s-mg','s-dcp','s-dsp'].forEach(function(id){sumSet(id,'—','dim')});
   var mrpV=parseMRP();
   if(mrpV&&mrpV>0)sumSet('s-mrp',INR(mrpV),'');
-  if(!cp||!sp){updateMiniResult(null,null,null);updateA11yStatus(null,null,null);return}
+  if(!cp||!sp){
+    ['s-be-sep','s-item-be','s-item-bef','s-order-sep','s-item-qty','s-item-order','s-item-tpr']
+      .forEach(function(id){var e=el(id);if(e)e.style.display='none'});
+    updateMiniResult(null,null,null);updateA11yStatus(null,null,null);
+    renderSolver();
+    return;
+  }
   var floor=getFloor();
-  var cpInc=getIncentiveInr(cp),eff=cp.e-cpInc;
+  var cpInc=getIncentiveInr(cp),eff=effectiveCP(cp);
   var spInc=getSPIncentiveInr(sp),effSP=sp.e-spInc;
   var pr=effSP-eff,gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
   var dcp=discFromPrice(cp.e),dsp=discFromPrice(sp.e);
@@ -1646,8 +2309,13 @@ function fillSummary(cp,sp){
   sumSet('s-sp',INR(sp.e),'');sumSet('s-esp',INR(effSP),spInc>0?'pos':'');
   sumSet('s-inc',cpInc>0?INR(cpInc):'—',cpInc>0?'amber':'dim');
   sumSet('s-spinc',spInc>0?INR(spInc):'—',spInc>0?'pos':'dim');
+  // Headline figures ease toward their new value; the class still updates now
+  // so colour and floor warnings are never late.
   sumSet('s-pr',INR(pr),pr>=0?'pos':'neg');
   sumSet('s-gp',PCT(gp),gpCls(gp,floor));sumSet('s-mg',PCT(mg),mgCls(mg,floor));
+  animateValue('s-pr',pr,INR,{minDelta:1});
+  animateValue('s-gp',gp,PCT,{minDelta:0.5});
+  animateValue('s-mg',mg,PCT,{minDelta:0.5});
   sumSet('s-dcp',PCT(dcp.de),'');sumSet('s-dsp',PCT(dsp.de),'');
   // Order-level totals — only shown once qty > 1, so single-unit use is unchanged
   var q=getQty(),multi=q>1;
@@ -1659,8 +2327,24 @@ function fillSummary(cp,sp){
     sumSet('s-order',INR(sp.i*q),'');
     sumSet('s-tpr',INR(pr*q),pr>=0?'pos':'neg');
   }
+  // Break-even: how far SP can fall before profit or the GP floor is breached
+  var be=breakEven(cp,sp);
+  var beEls=['s-be-sep','s-item-be','s-item-bef'];
+  if(be){
+    sumSet('s-be',INR(be.zeroI),sp&&sp.i<=be.zeroI?'neg':'');
+    if(be.floorI!==null){
+      sumSet('s-bef',INR(be.floorI),sp&&sp.i<be.floorI?'warn':'');
+      el('s-item-bef').style.display='';
+    } else {
+      el('s-item-bef').style.display='none';
+    }
+    el('s-be-sep').style.display='';el('s-item-be').style.display='';
+  } else {
+    beEls.forEach(function(id){var e=el(id);if(e)e.style.display='none'});
+  }
   updateMiniResult(pr,gp,mg);
   updateA11yStatus(pr,gp,mg);
+  renderSolver();
   // Flash key values
   ['s-pr','s-gp','s-mg'].forEach(flashSumVal);
 }
@@ -1734,7 +2418,7 @@ function resolveWiSP(sc){
 // Update only the result rows — never touches inputs so keyboard stays open
 function updateWiResults(){
   if(!LAST_CP)return;
-  var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc,floor=getFloor();
+  var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP),floor=getFloor();
 
   // Recalculate best GP
   var bestGP=-Infinity,bestIdx=-1;
@@ -1778,7 +2462,7 @@ function updateWiResults(){
 function renderWhatIf(cp){
   var info=el('wi-cp-info'),grid=el('wi-grid');
   if(!cp){info.innerHTML='Enter CP and incentives on the main screen first.';grid.innerHTML='';return}
-  var inc=getIncentiveInr(cp),eff=cp.e-inc,floor=getFloor();
+  var inc=getIncentiveInr(cp),eff=effectiveCP(cp),floor=getFloor();
   var incTxt=inc>0?' · Incentives: '+INR(inc)+' · Eff CP: '+INR(eff):'';
   info.innerHTML='<span>MRP: <strong>'+INR(MI)+'</strong></span><span>CP excl GST: <strong>'+INR(cp.e)+'</strong></span>'+incTxt;
 
@@ -1923,7 +2607,7 @@ function autoSave(){
   clearTimeout(_autoSaveTimer);
   _autoSaveTimer=setTimeout(function(){
     if(!LAST_CP||!LAST_SP)return;
-    var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
+    var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
     var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
     var pr=effSP-eff;
     if(HISTORY.length>0){
@@ -1944,7 +2628,7 @@ function saveToHistory(){
     alert('Enter CP and SP first.');
     return;
   }
-  var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
+  var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
   var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
   var pr=effSP-eff;
   var q=getQty();
@@ -2020,26 +2704,29 @@ function renderHistory(){
     c.innerHTML='<div class="hist-none" role="status">No entries match this search or filter.</div>';
     return;
   }
+  var visible=rows.slice(0,HIST_SHOWN);
   var html='';
-  rows.forEach(function(row){
+  visible.forEach(function(row){
     var h=row.h,idx=row.idx;
     var tagHtml=h.tag
-      ?'<button type="button" class="hist-tag" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Edit tag" aria-label="Edit tag: '+String(h.tag).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')+'">'+String(h.tag).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</button>'
-      :'<button type="button" class="hist-tag empty" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Add a tag" aria-label="Add a tag to this entry">+ Tag</button>';
-    var timeDisp=h.ts?relTime(h.ts):h.time;
-    var timeFull=h.ts?fmtTime(h.ts):h.time;
+      ?'<button type="button" class="hist-tag" id="tag-'+idx+'" data-click="histTagEdit" data-p="'+idx+'" title="Edit tag" aria-label="Edit tag: '+escHtml(h.tag)+'">'+escHtml(h.tag)+'</button>'
+      :'<button type="button" class="hist-tag empty" id="tag-'+idx+'" data-click="histTagEdit" data-p="'+idx+'" title="Add a tag" aria-label="Add a tag to this entry">+ Tag</button>';
+    // h.time / h.gst come from storage and are not guaranteed to be the
+    // numbers and formatted strings this app writes.
+    var timeDisp=escHtml(h.ts?relTime(h.ts):h.time);
+    var timeFull=escHtml(h.ts?fmtTime(h.ts):h.time);
     var gpCls=belowFloor(h.gp,floor.gp)?'warn':(h.gp>=0?'pos':'neg');
     var mgCls=belowFloor(h.mg,floor.mg)?'warn':(h.mg>=0?'pos':'neg');
     var prCls=h.pr>=0?'pos':'neg';
     html+='<div class="hist-entry" data-idx="'+idx+'" role="listitem">'
       +'<div class="hist-inner">'
         +'<div class="hist-meta">'
-          +'<span class="hist-time" title="'+timeFull+'">'+timeDisp+'</span>'
+          +'<span class="hist-time" id="htime-'+idx+'" title="'+timeFull+'">'+timeDisp+'</span>'
           +tagHtml
-          +(h.qty>1?'<span class="hist-gst">×'+h.qty+'</span>':'')
-          +'<span class="hist-gst">GST '+h.gst+'%</span>'
-          +'<button class="cmp-hist-btn" onclick="openCompare('+idx+')" aria-label="Compare entry from '+timeDisp+'">Compare</button>'
-          +'<button class="hist-del-btn" onclick="deleteHistEntry('+idx+')" aria-label="Delete entry from '+timeDisp+'" title="Delete">'
+          +(h.qty>1?'<span class="hist-gst">×'+escHtml(h.qty)+'</span>':'')
+          +'<span class="hist-gst">GST '+escHtml(h.gst)+'%</span>'
+          +'<button class="cmp-hist-btn" data-click="histCompare" data-p="'+idx+'" aria-label="Compare entry from '+timeDisp+'">Compare</button>'
+          +'<button class="hist-del-btn" data-click="histDelete" data-p="'+idx+'" aria-label="Delete entry from '+timeDisp+'" title="Delete">'
             +'<svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
           +'</button>'
         +'</div>'
@@ -2055,6 +2742,11 @@ function renderHistory(){
       +'</div>'
     +'</div>';
   });
+  if(rows.length>visible.length){
+    html+='<button type="button" class="hist-more" data-click="histMore">'
+      +'Show '+Math.min(HIST_PAGE,rows.length-visible.length)+' more'
+      +' <span>('+visible.length+' of '+rows.length+')</span></button>';
+  }
   c.innerHTML=html;
 }
 
@@ -2122,7 +2814,7 @@ function renderCompare(){
   // Build current snapshot
   var cur=null;
   if(LAST_CP&&LAST_SP){
-    var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
+    var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
     var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
     var pr=effSP-eff;
     cur={
@@ -2224,7 +2916,7 @@ function renderCompare(){
  */
 function getSummaryText(){
   if(!LAST_CP||!LAST_SP)return null;
-  var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
+  var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
   var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
   var pr=effSP-eff;
   var gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
@@ -2288,22 +2980,21 @@ function calc(){
   if(T==='profit'){
     cp=resolveCP();sp=resolveSP();
     fillCP(cp);fillSP(sp);
-    var inc=getIncentiveInr(cp);
     var spInc=getSPIncentiveInr(sp);
-    var effCPE=cp?cp.e-inc:null;
+    var effCPE=effectiveCP(cp);
     var effSPE=sp?sp.e-spInc:null;
     fillProfit(effCPE,effSPE);fillIncPanel(cp);fillSpIncPanel(sp);fillSummary(cp,sp);
   }else if(T==='sp'){
     cp=resolveCP();prV=parseAmt('pri');fillCP(cp);fillIncPanel(cp);
     if(cp&&!isNaN(prV)){
-      var inc2=getIncentiveInr(cp);
+      var effCP2=effectiveCP(cp);
       // SP incentives unknown yet (no SP) — solve ignoring SP inc, then apply
-      var spe2=spFromProfit(cp.e-inc2,PM,prV);
+      var spe2=spFromProfit(effCP2,PM,prV);
       if(spe2&&spe2>0){
         sp={e:spe2,i:spe2*(1+G)};
         var spInc2=getSPIncentiveInr(sp);
         var effSPE2=spe2-spInc2;
-        fillSP(sp);fillProfit(cp.e-inc2,effSPE2);fillSpIncPanel(sp);fillSummary(cp,sp);
+        fillSP(sp);fillProfit(effCP2,effSPE2);fillSpIncPanel(sp);fillSummary(cp,sp);
       }else{fillSP(null);fillProfit(null,null);fillSpIncPanel(null);fillSummary(cp,null)}
     }else{fillSP(null);fillProfit(null,null);fillSpIncPanel(null);fillSummary(cp,null)}
   }else if(T==='cp'){
@@ -2312,7 +3003,7 @@ function calc(){
       var spInc3=getSPIncentiveInr(sp);
       var effSPE3=sp.e-spInc3;
       cp=cpFromProfit(effSPE3,PM,prV);
-      if(cp&&cp.e>0){var inc3=getIncentiveInr(cp);fillCP(cp);fillProfit(cp.e-inc3,effSPE3);fillIncPanel(cp);fillSpIncPanel(sp);fillSummary(cp,sp)}
+      if(cp&&cp.e>0){fillCP(cp);fillProfit(effectiveCP(cp),effSPE3);fillIncPanel(cp);fillSpIncPanel(sp);fillSummary(cp,sp)}
       else{fillCP(null);fillProfit(null,null);fillIncPanel(null);fillSpIncPanel(sp);fillSummary(null,sp)}
     }else{fillCP(null);fillProfit(null,null);fillIncPanel(null);fillSpIncPanel(sp);fillSummary(null,sp)}
   }
@@ -2337,6 +3028,7 @@ function resetAll(){
   el('floor-gp').value='5'; el('floor-mg').value='';
   // Quantity
   if(el('qty'))el('qty').value='1';
+  if(el('landed'))el('landed').value='';
   // GST back to 18%
   setGST(18);
   // CP mode
@@ -2544,6 +3236,14 @@ function bnavGo(id){
   ['settings','whatif','compare'].forEach(function(m){closeModal(m)});
 
   // If switching to wizard, show that mode; if switching away, stay in current default/quick
+  if(id==='wizard'&&typeof wzCalc!=='function'){
+    withExtras(function(){ bnavGo('wizard'); });
+    return;
+  }
+  if(id==='wizard'&&typeof wzCalc!=='function'){
+    withExtras(function(){ bnavGo('wizard'); });
+    return;
+  }
   if(id==='wizard'){
     // Show wizard mode, hide page + quick mode
     document.querySelector('.page').style.display='none';
@@ -2622,7 +3322,54 @@ var FC_SPMS  = 'incl';
  * Switch between Default and Quick layouts, restoring Quick's saved inputs.
  * @param {'default'|'quick'} m
  */
+/**
+ * Run a DOM update inside a View Transition when the browser supports one, so
+ * swapping layouts cross-fades instead of snapping.
+ *
+ * Falls back to calling fn directly — which is also what happens under reduced
+ * motion, since a transition the user did not ask for is worse than none.
+ * @param {Function} fn the DOM mutation to wrap
+ */
+function withViewTransition(fn){
+  if(typeof document.startViewTransition !== 'function' || prefersReducedMotion()){
+    fn();
+    return;
+  }
+  try{
+    document.startViewTransition(fn);
+  }catch(e){
+    logWarn('view transition failed, applying the change directly',e);
+    fn();
+  }
+}
+
 function setMode(m){
+  if(m!=='default'&&typeof fcBuildCards!=='function'){
+    // Quick mode lives in the deferred bundle; fetch it, then retry.
+    withExtras(function(){ setMode(m); });
+    return;
+  }
+  _applyMode(m);
+}
+
+/**
+ * Switch mode from a user gesture, wrapped in a View Transition so the layout
+ * cross-fades. Kept separate from setMode: startViewTransition defers its
+ * callback, and setMode's programmatic callers run calc() immediately after,
+ * so they need it to stay synchronous.
+ * @param {'default'|'quick'} m
+ */
+function setModeAnimated(m){
+  if(m===APP_MODE){ setMode(m); return; }
+  withViewTransition(function(){ setMode(m); });
+}
+
+/**
+ * Apply a mode switch. Split out of setMode so the whole DOM update can be
+ * handed to startViewTransition as one callback.
+ * @param {'default'|'quick'} m
+ */
+function _applyMode(m){
   haptic('select');
   APP_MODE = m;
   el('mode-default').className = 'mode-pill' + (m==='default' ? ' mode-pill-on' : '');
@@ -2670,631 +3417,27 @@ function setMode(m){
 }
 
 /* ── Quick calc helpers (independent state from main) ── */
-function fcINR(n){
-  if(n===null||n===undefined||isNaN(n))return'—';
-  return'₹'+fmtINDIAN(n);
-}
-/**
- * Percentage formatter for Quick mode cards.
- * @param {number|null} n
- * @returns {string}
- */
-function fcPCT(n){
-  if(n===null||isNaN(n))return'—';
-  return parseFloat(n.toFixed(4)).toFixed(2)+'%';
-}
-/**
- * Set the GST rate in Quick mode (independent of the main calculator).
- * @param {number} p
- */
-function fcSetGST(p){
-  haptic('select');
-  FC_G=p/100;
-  el('fcg18').className='fc-tab'+(p===18?' on':'');
-  el('fcg5').className='fc-tab'+(p===5?' on':'');
-  updateGSTLabels();
-  fcCalc();
-  saveQState();
-}
-/**
- * Choose what Quick mode solves for.
- * @param {'profit'|'sp'|'cp'} t
- */
-function fcSetT(t){
-  FC_T=t;
-  ['profit','sp','cp'].forEach(function(k){
-    var b=el('fc-t-'+k);if(b)b.className='fc-tab'+(t===k?' on':'');
-  });
-  // Rebuild cards 1 & 2 for new mode, labels update
-  fcBuildCards();
-  // If already past step 0, reset to step 1
-  if(FC_STEP>0)fcGoto(1,false);
-  saveQState();
-}
-/**
- * Set how target profit is expressed in Quick mode.
- * @param {'val'|'gp'|'margin'} m
- */
-function fcSetPM(m){
-  FC_PM=m;
-  ['val','gp','margin'].forEach(function(k){
-    var b=el('fc-pm-'+k);if(b)b.className='fc-tab'+(m===k?' on':'');
-  });
-  var s=el('fc-pr-sym');if(s)s.textContent=m==='val'?'₹':'%';
-  var i2=el('fc-pr-val');
-  if(i2){
-    i2.value='';
-    i2.placeholder=m==='val'?'e.g. 10':'e.g. 15';
-    if(m==='val'){
-      i2.type='text';
-      i2.oninput=function(){fcFmtInput(this);if(FC_STEP===3)fcRenderResult()};
-    } else {
-      i2.type='number';i2.min='0';i2.step='0.01';
-      i2.oninput=function(){if(FC_STEP===3)fcRenderResult()};
-    }
-  }
-  fcCalc();
-}
-/**
- * Set the Quick mode CP input mode.
- * @param {'excl'|'incl'|'manual'} m
- */
-function fcSetCM(m){
-  haptic('select');
-  FC_CM=m;
-  ['excl','incl','manual'].forEach(function(k){
-    var b=el('fc-cm-'+k);if(b)b.className='fc-tab'+(m===k?' on':'');
-  });
-  el('fc-cp-disc-wrap') && (el('fc-cp-disc-wrap').style.display = m==='manual'?'none':'');
-  el('fc-cp-manual-wrap') && (el('fc-cp-manual-wrap').style.display = m==='manual'?'':'none');
-  updateGSTLabels();
-  fcCalc();
-}
-/**
- * Choose incl/excl GST for a manually entered Quick mode CP.
- * @param {'incl'|'excl'} s
- */
-function fcSetCPMS(s){
-  haptic('select');
-  FC_CPMS=s;
-  ['incl','excl'].forEach(function(k){var b=el('fc-cpms-'+k);if(b)b.className='fc-tab'+(s===k?' on':'')});
-  var inp=el('fc-cpv');if(inp)inp.placeholder=s==='incl'?'CP incl GST':'CP excl GST';
-  fcCalc();
-}
-/**
- * Set the Quick mode SP input mode.
- * @param {'excl'|'incl'|'manual'} m
- */
-function fcSetSM(m){
-  haptic('select');
-  FC_SM=m;
-  ['excl','incl','manual'].forEach(function(k){
-    var b=el('fc-sm-'+k);if(b)b.className='fc-tab'+(m===k?' on':'');
-  });
-  el('fc-sp-disc-wrap') && (el('fc-sp-disc-wrap').style.display = m==='manual'?'none':'');
-  el('fc-sp-manual-wrap') && (el('fc-sp-manual-wrap').style.display = m==='manual'?'':'none');
-  updateGSTLabels();
-  fcCalc();
-}
-/**
- * Choose incl/excl GST for a manually entered Quick mode SP.
- * @param {'incl'|'excl'} s
- */
-function fcSetSPMS(s){
-  haptic('select');
-  FC_SPMS=s;
-  ['incl','excl'].forEach(function(k){var b=el('fc-spms-'+k);if(b)b.className='fc-tab'+(s===k?' on':'')});
-  var inp=el('fc-spv');if(inp)inp.placeholder=s==='incl'?'SP incl GST':'SP excl GST';
-  fcCalc();
-}
 
-/**
- * Read the Quick mode MRP field.
- * @returns {number} 0 when blank
- */
-function fcResolveMRP(){
-  var raw=el('fc-mrp')&&el('fc-mrp').value||'';
-  return parseFloat(raw.replace(/,/g,''))||0;
-}
-/**
- * Quick mode cost price from its active input mode.
- * @param {number} mrpV
- * @returns {{e:number,i:number}|null}
- */
-function fcResolveCP(fcMI){
-  if(!el('fc-cpd'))return null;
-  if(FC_CM==='manual'){
-    var v=parseFloat((el('fc-cpv')&&el('fc-cpv').value||'').replace(/,/g,''));
-    if(isNaN(v)||v<=0)return null;
-    return FC_CPMS==='incl'?{e:v/(1+FC_G),i:v}:{e:v,i:v*(1+FC_G)};
-  }
-  var d=parseFloat(el('fc-cpd').value);if(isNaN(d))return null;
-  if(FC_CM==='excl'){var e=fcMI*(1-d/100);return{e:e,i:e*(1+FC_G)}}
-  var i=fcMI*(1-d/100);return{e:i/(1+FC_G),i:i};
-}
-/**
- * Quick mode selling price from its active input mode.
- * @param {number} mrpV
- * @returns {{e:number,i:number}|null}
- */
-function fcResolveSP(fcMI){
-  if(!el('fc-spd'))return null;
-  if(FC_SM==='manual'){
-    var v=parseFloat((el('fc-spv')&&el('fc-spv').value||'').replace(/,/g,''));
-    if(isNaN(v)||v<=0)return null;
-    return FC_SPMS==='incl'?{e:v/(1+FC_G),i:v}:{e:v,i:v*(1+FC_G)};
-  }
-  var d=parseFloat(el('fc-spd').value);if(isNaN(d))return null;
-  if(FC_SM==='excl'){var e2=fcMI*(1-d/100);return{e:e2,i:e2*(1+FC_G)}}
-  var i2=fcMI*(1-d/100);return{e:i2/(1+FC_G),i:i2};
-}
 
-/**
- * Quick mode target profit as entered.
- * @returns {number} NaN when blank
- */
-function fcResolveProfit(cp, sp){
-  // Returns {cp, sp} after solving the missing one
-  var mrpV=fcResolveMRP();
-  if(!mrpV||mrpV<=0)return{cp:cp,sp:sp};
-  var prInput=el('fc-pr-val');
-  var prV=prInput?parseFloat((prInput.value||'').replace(/,/g,'')):NaN;
-  if(isNaN(prV))return{cp:cp,sp:sp};
 
-  if(FC_T==='sp'&&cp){
-    // Solve for SP
-    var spe;
-    if(FC_PM==='val')spe=cp.e+prV;
-    else if(FC_PM==='gp')spe=prV>=100?null:cp.e/(1-prV/100);
-    else spe=cp.e*(1+prV/100);
-    if(spe&&spe>0){sp={e:spe,i:spe*(1+FC_G)}}
-  } else if(FC_T==='cp'&&sp){
-    // Solve for CP
-    var cpe;
-    if(FC_PM==='val')cpe=sp.e-prV;
-    else if(FC_PM==='gp')cpe=sp.e*(1-prV/100);
-    else cpe=sp.e/(1+prV/100);
-    if(cpe&&cpe>0){cp={e:cpe,i:cpe*(1+FC_G)}}
-  }
-  return{cp:cp,sp:sp};
-}
-
-/**
- * Recompute and repaint the Quick mode result card.
- */
-function fcCalc(){
-  var mrpV=fcResolveMRP();
-  if(mrpV>0){
-    var me=mrpV/(1+FC_G);
-    var mxw=el('fc-mx-wrap'),mgw=el('fc-mg-wrap');
-    if(mxw)mxw.style.display='';if(mgw)mgw.style.display='';
-    if(el('fc-mx'))el('fc-mx').textContent=fcINR(me);
-    if(el('fc-mg'))el('fc-mg').textContent=fcINR(mrpV-me);
-  }
-  // Update CP preview if visible
-  if(el('fc-cp-e')||el('fc-cp-i')){
-    var cpPrev=mrpV>0?fcResolveCP(mrpV):null;
-    if(el('fc-cp-e'))el('fc-cp-e').textContent=cpPrev?fcINR(cpPrev.e):'—';
-    if(el('fc-cp-i'))el('fc-cp-i').textContent=cpPrev?fcINR(cpPrev.i):'—';
-  }
-  // Update SP preview if visible
-  if(el('fc-sp-e')||el('fc-sp-i')){
-    var spPrev=mrpV>0?fcResolveSP(mrpV):null;
-    if(el('fc-sp-e'))el('fc-sp-e').textContent=spPrev?fcINR(spPrev.e):'—';
-    if(el('fc-sp-i'))el('fc-sp-i').textContent=spPrev?fcINR(spPrev.i):'—';
-  }
-  if(FC_STEP===3)fcRenderResult();
-  debouncedSaveQState();
-}
 
 /* ── Build CP/SP cards dynamically ── */
-function fcBuildCards(){
-  if(FC_T==='profit'){
-    fcBuildCPCard();   // slot 1 = CP
-    fcBuildSPCard();   // slot 2 = SP
-  } else if(FC_T==='sp'){
-    fcBuildCPCard();          // slot 1 = CP
-    fcBuildProfitCard('sp');  // slot 2 = Profit input → solve SP
-  } else if(FC_T==='cp'){
-    fcBuildSPCard();          // slot 1 = SP  (reuse, just relabelled)
-    fcBuildProfitCard('cp');  // slot 2 = Profit input → solve CP
-  }
-  // Update progress dots label count
-  fcUpdateDots();
-  // Sync all GST-rate labels for the newly built cards
-  updateGSTLabels();
-  elClearCache();
-}
 
-/**
- * Build one Quick mode input field.
- * @param {string} symTxt prefix symbol, e.g. '₹' or '%'
- * @param {string} inputId
- * @param {string} placeholder
- * @param {string} extraStyle inline style for the wrapper
- * @param {string} [sufId] id for an optional suffix span
- * @returns {HTMLElement}
- */
-function fcMkField(symTxt,inputId,placeholder,extraStyle,sufId){
-  var isRupee=(symTxt==='₹');
-  var wrap=document.createElement('div');wrap.className='fc-input-wrap';if(extraStyle)wrap.style.cssText=extraStyle;
-  var sym=document.createElement('span');sym.className='fc-input-sym';sym.textContent=symTxt;
-  var inp=document.createElement('input');inp.className='fc-input';inp.inputMode='decimal';inp.autocomplete='off';
-  inp.id=inputId;inp.placeholder=placeholder;
-  if(isRupee){
-    inp.type='text';
-    inp.oninput=function(){
-      fcFmtInput(this);fcCalc();
-    };
-  } else {
-    inp.type='number';inp.min='0';inp.max='100';inp.step='0.01';
-    inp.oninput=fcCalc;
-  }
-  wrap.appendChild(sym);wrap.appendChild(inp);
-  if(sufId){var suf=document.createElement('span');suf.className='fc-input-suf';suf.id=sufId;wrap.appendChild(suf);}
-  return wrap;
-}
 
 // Live comma formatting for quick-mode ₹ text inputs
-function fcFmtInput(inp){
-  var raw=inp.value.replace(/[^0-9.]/g,'');
-  var parts=raw.split('.');if(parts.length>2)raw=parts[0]+'.'+parts.slice(1).join('');
-  var num=parseFloat(raw);
-  if(!isNaN(num)&&raw!==''&&raw!=='.'){
-    var fmt=fmtINDIAN(num);
-    if(raw.indexOf('.')!==-1){var dec=raw.split('.')[1];fmt=fmtINDIAN(parseFloat(raw.split('.')[0])||0).split('.')[0]+'.'+(dec||'')}
-    inp.value=fmt;
-  } else if(raw===''||raw==='.'){inp.value=raw}
-}
 
-/**
- * Build the Quick mode cost-price card.
- * @returns {HTMLElement}
- */
-function fcBuildCPCard(){
-  var card=el('fcc-1');if(!card)return;
-  card.innerHTML='';card.className='fc-card behind-1';
-  var top=document.createElement('div');top.style.cssText='display:flex;align-items:center;gap:12px';
-  top.innerHTML='<div class="fc-card-icon cp"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 11h14M4 7h14M4 15h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>'
-    +'<div><div class="fc-card-label">'+(FC_T==='cp'?'Step 2 of 3':'Step 2 of 3')+'</div><div class="fc-card-title">Cost Price</div></div>';
-  card.appendChild(top);
 
-  var sub=document.createElement('div');sub.className='fc-card-sub';sub.textContent='How much do you pay for this item? Choose how to enter it.';
-  card.appendChild(sub);
-
-  // mode tabs
-  var modes=document.createElement('div');modes.className='fc-mode-tabs';
-  [{k:'excl',l:'Discount + GST %'},{k:'incl',l:'Nett Discount %'},{k:'manual',l:'Enter ₹ directly'}].forEach(function(m){
-    var b=document.createElement('button');b.className='fc-tab'+(FC_CM===m.k?' on':'');
-    b.id='fc-cm-'+m.k;b.textContent=m.l;b.onclick=function(){fcSetCM(m.k)};modes.appendChild(b);
-  });
-  card.appendChild(modes);
-
-  // disc input
-  var discWrap=document.createElement('div');discWrap.id='fc-cp-disc-wrap';
-  discWrap.style.display=FC_CM==='manual'?'none':'';
-  discWrap.appendChild(fcMkField('Disc','fc-cpd','e.g. 34',null,'fc-cpd-suf'));
-  card.appendChild(discWrap);
-
-  // manual input
-  var manWrap=document.createElement('div');manWrap.id='fc-cp-manual-wrap';manWrap.style.cssText='display:'+(FC_CM==='manual'?'flex':'none')+';flex-direction:column;gap:8px';
-  var subTabs=document.createElement('div');subTabs.className='fc-mode-tabs';
-  [{k:'incl',l:'CP incl GST'},{k:'excl',l:'CP excl GST'}].forEach(function(s){
-    var b=document.createElement('button');b.className='fc-tab'+(FC_CPMS===s.k?' on':'');
-    b.id='fc-cpms-'+s.k;b.textContent=s.l;b.onclick=function(){fcSetCPMS(s.k)};subTabs.appendChild(b);
-  });
-  manWrap.appendChild(subTabs);
-  manWrap.appendChild(fcMkField('₹','fc-cpv',FC_CPMS==='incl'?'CP incl GST':'CP excl GST'));
-  card.appendChild(manWrap);
-
-  // output preview
-  var preview=document.createElement('div');preview.id='fc-cp-preview';preview.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
-  ['CP excl GST|fc-cp-e','CP incl GST|fc-cp-i'].forEach(function(pair){
-    var parts=pair.split('|');
-    var item=document.createElement('div');item.style.cssText='flex:1;min-width:90px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px';
-    item.innerHTML='<div style="font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:2px">'+parts[0]+'</div>'
-      +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:15px;font-weight:500;color:var(--text)" id="'+parts[1]+'">—</div>';
-    preview.appendChild(item);
-  });
-  card.appendChild(preview);
-
-  var acts=document.createElement('div');acts.className='fc-actions';
-  acts.innerHTML='<button class="fc-btn fc-btn-back" onclick="fcBack()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
-    +'<button class="fc-btn fc-btn-next" onclick="fcNext()">Next <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
-  card.appendChild(acts);
-}
-
-/**
- * Build the Quick mode selling-price card.
- * @returns {HTMLElement}
- */
-function fcBuildSPCard(){
-  var slotId = (FC_T==='cp') ? 'fcc-1' : 'fcc-2';
-  var card=el(slotId);if(!card)return;
-  card.innerHTML='';card.className='fc-card behind-'+(FC_T==='cp'?'1':'2');
-  var stepLbl=(FC_T==='cp')?'Step 2 of 3':'Step 3 of 3';
-  var top=document.createElement('div');top.style.cssText='display:flex;align-items:center;gap:12px';
-  top.innerHTML='<div class="fc-card-icon sp"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 11h5M11 8.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>'
-    +'<div><div class="fc-card-label">'+stepLbl+'</div><div class="fc-card-title">Selling Price</div></div>';
-  card.appendChild(top);
-
-  var sub=document.createElement('div');sub.className='fc-card-sub';sub.textContent='What do you want to sell it for?';
-  card.appendChild(sub);
-
-  var modes=document.createElement('div');modes.className='fc-mode-tabs';
-  [{k:'excl',l:'Discount + GST %'},{k:'incl',l:'Nett Discount %'},{k:'manual',l:'Enter ₹ directly'}].forEach(function(m){
-    var b=document.createElement('button');b.className='fc-tab'+(FC_SM===m.k?' on':'');
-    b.id='fc-sm-'+m.k;b.textContent=m.l;b.onclick=function(){fcSetSM(m.k)};modes.appendChild(b);
-  });
-  card.appendChild(modes);
-
-  var discWrap=document.createElement('div');discWrap.id='fc-sp-disc-wrap';
-  discWrap.style.display=FC_SM==='manual'?'none':'';
-  discWrap.appendChild(fcMkField('Disc','fc-spd','e.g. 20',null,'fc-spd-suf'));
-  card.appendChild(discWrap);
-
-  var manWrap=document.createElement('div');manWrap.id='fc-sp-manual-wrap';manWrap.style.cssText='display:'+(FC_SM==='manual'?'flex':'none')+';flex-direction:column;gap:8px';
-  var subTabs=document.createElement('div');subTabs.className='fc-mode-tabs';
-  [{k:'incl',l:'SP incl GST'},{k:'excl',l:'SP excl GST'}].forEach(function(s){
-    var b=document.createElement('button');b.className='fc-tab'+(FC_SPMS===s.k?' on':'');
-    b.id='fc-spms-'+s.k;b.textContent=s.l;b.onclick=function(){fcSetSPMS(s.k)};subTabs.appendChild(b);
-  });
-  manWrap.appendChild(subTabs);
-  manWrap.appendChild(fcMkField('₹','fc-spv',FC_SPMS==='incl'?'SP incl GST':'SP excl GST'));
-  card.appendChild(manWrap);
-
-  var preview=document.createElement('div');preview.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
-  ['SP excl GST|fc-sp-e','SP incl GST|fc-sp-i'].forEach(function(pair){
-    var parts=pair.split('|');
-    var item=document.createElement('div');item.style.cssText='flex:1;min-width:90px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px';
-    item.innerHTML='<div style="font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:2px">'+parts[0]+'</div>'
-      +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:15px;font-weight:500;color:var(--text)" id="'+parts[1]+'">—</div>';
-    preview.appendChild(item);
-  });
-  card.appendChild(preview);
-
-  var acts=document.createElement('div');acts.className='fc-actions';
-  acts.innerHTML='<button class="fc-btn fc-btn-back" onclick="fcBack()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
-    +'<button class="fc-btn fc-btn-next" onclick="fcNext()">'+(FC_T==='cp'?'Next':'Calculate')+' <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
-  card.appendChild(acts);
-}
 
 /* ── Result card ── */
 /* ── Profit input card (when solving for SP or CP) ── */
-function fcBuildProfitCard(solveFor){
-  var card=el('fcc-2');if(!card)return;
-  card.innerHTML='';card.className='fc-card behind-2';
 
-  var titleText=solveFor==='sp'?'Profit / GP% / Margin%':'Profit / GP% / Margin%';
-  var subText=solveFor==='sp'
-    ?'Enter your target profit to calculate the Selling Price.'
-    :'Enter your target profit to calculate the Cost Price.';
 
-  var top=document.createElement('div');top.style.cssText='display:flex;align-items:center;gap:12px';
-  top.innerHTML='<div class="fc-card-icon result" style="background:var(--green-bg)">'
-    +'<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 17l4-5 4 3 6-8" stroke="var(--green)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
-    +'<div><div class="fc-card-label">Step 3 of 3</div><div class="fc-card-title">Profit</div></div>';
-  card.appendChild(top);
 
-  var sub=document.createElement('div');sub.className='fc-card-sub';sub.textContent=subText;
-  card.appendChild(sub);
-
-  // mode tabs
-  var modes=document.createElement('div');modes.className='fc-mode-tabs';
-  [{k:'val',l:'₹ Value'},{k:'gp',l:'GP %'},{k:'margin',l:'Margin %'}].forEach(function(m){
-    var b=document.createElement('button');b.className='fc-tab'+(FC_PM===m.k?' on':'');
-    b.id='fc-pm-'+m.k;b.textContent=m.l;b.onclick=function(){fcSetPM(m.k)};modes.appendChild(b);
-  });
-  card.appendChild(modes);
-
-  // input
-  var fld=document.createElement('div');fld.className='fc-input-wrap';
-  var sym=document.createElement('span');sym.className='fc-input-sym';
-  sym.id='fc-pr-sym';sym.textContent=FC_PM==='val'?'₹':'%';
-  var isVal=FC_PM==='val';
-  var inp=document.createElement('input');inp.className='fc-input';inp.inputMode='decimal';
-  inp.id='fc-pr-val';inp.placeholder=isVal?'e.g. 10':'e.g. 15';inp.autocomplete='off';
-  if(isVal){
-    inp.type='text';
-    inp.oninput=function(){fcFmtInput(this);if(FC_STEP===3)fcRenderResult()};
-  } else {
-    inp.type='number';inp.min='0';inp.step='0.01';
-    inp.oninput=function(){if(FC_STEP===3)fcRenderResult()};
-  }
-  fld.appendChild(sym);fld.appendChild(inp);
-  card.appendChild(fld);
-
-  var acts=document.createElement('div');acts.className='fc-actions';
-  acts.innerHTML='<button class="fc-btn fc-btn-back" onclick="fcBack()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
-    +'<button class="fc-btn fc-btn-next" onclick="fcNext()">Calculate <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
-  card.appendChild(acts);
-}
-
-/**
- * Highlight the progress dot for the current Quick mode card.
- */
-function fcUpdateDots(){
-  // All modes are 3 steps (cards 0,1,2,3 = MRP,A,B,Result)
-  for(var d=0;d<4;d++){
-    var dot=el('fcdot-'+d);
-    if(dot)dot.className='fc-dot'+(d<FC_STEP?' done':d===FC_STEP?' cur':'');
-  }
-}
-
-/**
- * Draw the Quick mode result card.
- */
-function fcRenderResult(){
-  var card=el('fcc-3');if(!card)return;
-  var mrpV=fcResolveMRP();
-  var me=mrpV>0?mrpV/(1+FC_G):0;
-
-  var cp=mrpV>0?fcResolveCP(mrpV):null;
-  var sp=(FC_T!=='cp'&&mrpV>0)?fcResolveSP(mrpV):null;
-
-  // Apply solve-for
-  var solved=fcResolveProfit(cp,sp);
-  cp=solved.cp; sp=solved.sp;
-
-  var pr=null,gp=null,mg=null;
-  if(cp&&sp){pr=sp.e-cp.e;gp=sp.e>0?(pr/sp.e)*100:null;mg=cp.e>0?(pr/cp.e)*100:null}
-
-  var cpOver=cp&&mrpV>0&&cp.i>mrpV;
-  var spOver=sp&&mrpV>0&&sp.i>mrpV;
-  var calcdBadge='<span style="font-size:9px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border);border-radius:8px;padding:1px 6px;margin-left:4px;font-family:sans-serif;vertical-align:middle">calc</span>';
-
-  var html='<div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">'
-    +'<div class="fc-card-icon result"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 17l4-5 4 3 6-8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
-    +'<div><div class="fc-card-label">Result</div><div class="fc-card-title">Summary</div></div>'
-    +'</div>';
-
-  html+='<div class="fc-result-grid">';
-  html+=fcRItem('MRP (incl GST)', fcINR(mrpV), '', '');
-  html+=fcRItem('MRP excl GST',   fcINR(me),   '', '');
-  html+=fcRItem('CP excl GST'+(FC_T==='cp'?calcdBadge:''), cp?fcINR(cp.e):'—', cpOver?'warn':'', '');
-  html+=fcRItem('CP incl GST',  cp?fcINR(cp.i):'—', cpOver?'warn':'', '');
-  html+=fcRItem('SP excl GST'+(FC_T==='sp'?calcdBadge:''), sp?fcINR(sp.e):'—', spOver?'warn':'', '');
-  html+=fcRItem('SP incl GST',  sp?fcINR(sp.i):'—', spOver?'warn':'', '');
-  html+=fcRItem('Profit ₹', pr!==null?fcINR(pr):'—', pr!==null?(pr>=0?'pos':'neg'):'', pr!==null&&pr<0?'profit-neg':pr!==null&&pr>=0?'profit-pos':'');
-  html+=fcRItem('GP %',     gp!==null?fcPCT(gp):'—', gp!==null?(gp>=0?'pos':'neg'):'', '');
-  html+=fcRItem('Margin %', mg!==null?fcPCT(mg):'—', mg!==null?(mg>=0?'pos':'neg'):'', '');
-  html+='</div>';
-
-  if(cpOver)html+='<div class="fc-over-alert" style="margin-top:6px">⚠ CP incl GST exceeds MRP</div>';
-  if(spOver)html+='<div class="fc-over-alert" style="margin-top:4px">⚠ SP incl GST exceeds MRP</div>';
-
-  html+='<div class="fc-actions">'
-    +'<button class="fc-btn fc-btn-back" onclick="fcBack()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
-    +'<div style="display:flex;gap:8px">'
-    +'<button class="fc-btn fc-btn-full" onclick="fcToDefault()">Full view</button>'
-    +'<button class="fc-btn fc-btn-next" onclick="fcReset()">New <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2C4.24 2 2 4.24 2 7s2.24 5 5 5 5-2.24 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 1.5l2 1.2-2 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
-    +'</div></div>';
-
-  card.innerHTML=html;
-}
-
-/**
- * Build one labelled row for the Quick mode result card.
- * @param {string} lbl
- * @param {string} val
- * @param {string} [cls]
- * @returns {string} HTML
- */
-function fcRItem(lbl,val,valCls,cardCls){
-  return'<div class="fc-result-item '+(cardCls||'')+'">'
-    +'<div class="fc-result-lbl">'+lbl+'</div>'
-    +'<div class="fc-result-val '+(valCls||'')+'">'+val+'</div>'
-    +'</div>';
-}
 
 /* ── Navigation ── */
-function fcGoto(step,animate){
-  // Dismiss keyboard when arriving at result card
-  if(step===3&&document.activeElement&&document.activeElement.blur){
-    document.activeElement.blur();
-  }
-  var prev=FC_STEP;FC_STEP=step;
-  var cards=['fcc-0','fcc-1','fcc-2','fcc-3'];
 
-  // Pre-render result card BEFORE animation starts so it's ready
-  if(step===3)fcRenderResult();
-  // Also pre-render result in background when reaching step 2 (so step 3 is instant)
-  if(step===2)setTimeout(fcRenderResult,50);
 
-  // Update progress dots
-  for(var d=0;d<4;d++){
-    var dot=el('fcdot-'+d);
-    if(!dot)continue;
-    dot.className='fc-dot'+(d<step?' done':d===step?' cur':'');
-  }
 
-  cards.forEach(function(id,i){
-    var c=el(id);if(!c)return;
-    var diff=i-step;
-    if(diff===0){
-      if(animate&&prev<step){
-        c.style.transform='translateX(100%)';c.style.opacity='0';c.style.transition='none';
-        c.className='fc-card entering';
-        var cid=id;
-        requestAnimationFrame(function(){
-          requestAnimationFrame(function(){
-            c.style.transform='';c.style.opacity='';c.style.transition='';
-            c.className='fc-card active';
-            setTimeout(function(){cardBounce(cid)},340);
-          });
-        });
-      } else if(animate&&prev>step){
-        c.style.transform='translateX(-100%)';c.style.opacity='0';c.style.transition='none';
-        c.className='fc-card entering';
-        var cid2=id;
-        requestAnimationFrame(function(){
-          requestAnimationFrame(function(){
-            c.style.transform='';c.style.opacity='';c.style.transition='';
-            c.className='fc-card active';
-            setTimeout(function(){cardBounce(cid2)},340);
-          });
-        });
-      } else {
-        c.style.transform='';c.style.opacity='';c.style.transition='';c.className='fc-card active';
-      }
-    } else if(diff===1){c.style.transform='';c.style.opacity='';c.style.transition='';c.className='fc-card behind-1'}
-    else if(diff>=2){c.style.transform='';c.style.opacity='';c.style.transition='';c.className='fc-card behind-2'}
-    else{c.style.transform='';c.style.opacity='';c.style.transition='';c.className='fc-card behind-2';}
-  });
-
-  // Focus the relevant input
-  setTimeout(function(){
-    var targets=['fc-mrp','fc-cpd','fc-spd',null];
-    var t=targets[step];
-    if(t&&el(t)){el(t).focus();el(t).select()}
-  },380);
-}
-
-/**
- * Advance to the next Quick mode card.
- */
-function fcNext(){
-  if(FC_STEP<3)haptic(FC_STEP===2?'success':'light');
-  fcGoto(Math.min(FC_STEP+1,3),true);
-}
-/**
- * Return to the previous Quick mode card.
- */
-function fcBack(){
-  if(FC_STEP>0){haptic('select');fcGoto(FC_STEP-1,true);}
-}
-
-/**
- * Clear Quick mode back to defaults.
- */
-function fcReset(){
-  FC_CM='excl';FC_SM='excl';FC_CPMS='incl';FC_SPMS='incl';FC_T='profit';FC_PM='val';
-  // Reset solve-for tabs
-  ['profit','sp','cp'].forEach(function(k){var b=el('fc-t-'+k);if(b)b.className='fc-tab'+(k==='profit'?' on':'')});
-  fcBuildCards();fcGoto(0,false);
-  ['fc-mrp','fc-cpd','fc-cpv','fc-spd','fc-spv'].forEach(function(id){var e=el(id);if(e)e.value=''});
-}
-
-/**
- * Copy Quick mode values into the main calculator and switch to it.
- */
-function fcToDefault(){
-  // Copy quick-mode values into default calc and switch
-  var mrpV=fcResolveMRP();
-  if(mrpV>0)el('mrp').value=mrpV;
-  setGST(Math.round(FC_G*100));
-  var cp=fcResolveCP(mrpV);
-  var sp=fcResolveSP(mrpV);
-  if(cp){
-    if(FC_CM==='manual'){setCM('manual');setCPManual(FC_CPMS);el('cpv').value=FC_CPMS==='incl'?cp.i:cp.e}
-    else{setCM(FC_CM);el('cpd').value=el('fc-cpd')?el('fc-cpd').value:''}
-  }
-  if(sp){
-    if(FC_SM==='manual'){setSM('manual');setSPManual(FC_SPMS);el('spv').value=FC_SPMS==='incl'?sp.i:sp.e}
-    else{setSM(FC_SM);el('spd').value=el('fc-spd')?el('fc-spd').value:''}
-  }
-  setMode('default');calc();
-}
 
 /* ── Swipe support ── */
 (function(){
@@ -3368,13 +3511,16 @@ function deleteHistEntry(idx){
 }
 
 /* ── History search / filter / tags ── */
-function setHistQuery(q){HIST_QUERY=(q||'').trim().toLowerCase();renderHistory()}
+function setHistQuery(q){HIST_QUERY=(q||'').trim().toLowerCase();HIST_SHOWN=HIST_PAGE;renderHistory()}
+/** Reveal the next page of history rows. */
+function histShowMore(){HIST_SHOWN+=HIST_PAGE;renderHistory();haptic('light')}
 /**
  * Apply a history filter and repaint the pills.
  * @param {'all'|'pos'|'neg'|'below'|'tagged'} f
  */
 function setHistFilter(f){
   HIST_FILTER=f;
+  HIST_SHOWN=HIST_PAGE;
   ['all','pos','neg','below','tagged'].forEach(function(k){
     var b=el('hf-'+k);if(b)b.className='hist-fpill'+(k===f?' on':'');
   });
@@ -3407,8 +3553,8 @@ function startTagEdit(idx){
   var cell=document.getElementById('tag-'+idx);
   if(!cell)return;
   var cur=HISTORY[idx]&&HISTORY[idx].tag?HISTORY[idx].tag:'';
-  cell.outerHTML='<input class="hist-tag-input" id="tagin-'+idx+'" aria-label="Tag for this entry" value="'+cur.replace(/"/g,'&quot;')+'" maxlength="24" placeholder="Tag…" autocomplete="off" '
-    +'onblur="commitTag('+idx+',this.value)" '
+  cell.outerHTML='<input class="hist-tag-input" id="tagin-'+idx+'" aria-label="Tag for this entry" value="'+escHtml(cur)+'" maxlength="24" placeholder="Tag…" autocomplete="off" '
+    +'data-blur="histTagSave" data-p="'+idx+'" '
     +'onkeydown="if(event.key===\'Enter\'){this.blur()}else if(event.key===\'Escape\'){this.value=\'\\u0000\';this.blur()}">';
   var inp=document.getElementById('tagin-'+idx);
   if(inp){inp.focus();inp.select()}
@@ -3479,218 +3625,12 @@ var WZ_MS='incl';  // manual sub: 'incl' | 'excl'
 var WZ_CDM='before'; // CD mode
 var WZ_SCM='pct';    // scheme mode
 
-/**
- * Set the GST rate in wizard mode.
- * @param {number} p
- */
-function wzSetGST(p){
-  WZ_G=p/100;
-  el('wzg18').className='stab'+(p===18?' on':'');
-  el('wzg5').className='stab'+(p===5?' on':'');
-  updateGSTLabels();
-  wzCalc();
-}
-/**
- * Choose whether the wizard is pricing CP or SP.
- * @param {'cp'|'sp'} t
- */
-function wzSetT(t){
-  WZ_T=t;
-  el('wz-t-cp').className='stab'+(t==='cp'?' on':'');
-  el('wz-t-sp').className='stab'+(t==='sp'?' on':'');
-  var lbl=t==='cp'?'Cost Price':'Selling Price';
-  el('wz-price-title').textContent=lbl+' Input';
-  el('wz-result-title').textContent=lbl+' Breakdown';
-  updateGSTLabels(); // updates all wizard incl/excl labels with current WZ_G
-  wzCalc();
-}
-/**
- * Set the wizard's price input mode.
- * @param {'excl'|'incl'|'manual'} m
- */
-function wzSetCM(m){
-  WZ_CM=m;
-  ['excl','incl','manual'].forEach(function(k){el('wz-cm-'+k).className='stab'+(m===k?' on':'')});
-  el('wz-disc-wrap').style.display=m==='manual'?'none':'';
-  el('wz-manual-wrap').style.display=m==='manual'?'flex':'none';
-  updateGSTLabels();
-  wzCalc();
-}
-/**
- * Choose incl/excl GST for a manually entered wizard price.
- * @param {'incl'|'excl'} s
- */
-function wzSetMS(s){
-  WZ_MS=s;
-  el('wz-ms-incl').className='stab'+(s==='incl'?' on':'');
-  el('wz-ms-excl').className='stab'+(s==='excl'?' on':'');
-  wzCalc();
-}
-/**
- * Choose whether wizard cash discount applies before or after GST.
- * @param {'before'|'after'} m
- */
-function wzSetCDMode(m){
-  WZ_CDM=m;
-  el('wz-cdm-before').className='stab'+(m==='before'?' on':'');
-  el('wz-cdm-after').className='stab'+(m==='after'?' on':'');
-  wzCalc();
-}
-/**
- * Switch the wizard scheme between percentage and flat ₹.
- * @param {'pct'|'abs'} m
- */
-function wzSetScMode(m){
-  WZ_SCM=m;
-  el('wz-scm-pct').className='stab'+(m==='pct'?' on':'');
-  el('wz-scm-abs').className='stab'+(m==='abs'?' on':'');
-  el('wz-sc-unit').textContent=m==='abs'?'₹':'%';
-  if(m==='abs')el('wz-iv-sc').removeAttribute('max');
-  else el('wz-iv-sc').max='100';
-  wzCalc();
-}
-/**
- * Show or hide the wizard's cash-discount sub-options.
- */
-function wzSyncCD(){
-  el('wz-cdm-sub').style.display=el('wz-it-cd').checked?'block':'none';
-  wzCalc();
-}
-/**
- * Show or hide the wizard's scheme sub-options.
- */
-function wzSyncSc(){
-  el('wz-scm-sub').style.display=el('wz-it-sc').checked?'block':'none';
-  wzCalc();
-}
-/**
- * Format an amount for wizard display.
- * @param {number} n
- * @returns {string}
- */
-function wzFmtAmt(inp){
-  var raw=inp.value.replace(/[^0-9.]/g,'');
-  var pts=raw.split('.');if(pts.length>2)raw=pts[0]+'.'+pts.slice(1).join('');
-  var num=parseFloat(raw);
-  if(!isNaN(num)&&raw!==''&&raw!=='.'){
-    var fmt=fmtINDIAN(num);
-    if(raw.indexOf('.')!==-1){var dec=raw.split('.')[1];fmt=fmtINDIAN(parseFloat(raw.split('.')[0])||0).split('.')[0]+'.'+(dec||'')}
-    inp.value=fmt;
-  } else if(raw===''||raw==='.'){inp.value=raw}
-}
-/**
- * Total wizard incentive value in rupees.
- * @param {{e:number,i:number}} p base price
- * @returns {number}
- */
-function wzGetInc(price){
-  if(!price)return 0;
-  var t=0;
-  ['cd','eb','qt','an','sc'].forEach(function(k){
-    if(!el('wz-it-'+k).checked)return;
-    var v=parseFloat(el('wz-iv-'+k).value);
-    if(isNaN(v)||v<=0)return;
-    if(k==='sc')t+=WZ_SCM==='abs'?v:(price.e*v/100);
-    else t+=(k==='cd'&&WZ_CDM==='after')?(price.i*v/100):(price.e*v/100);
-  });
-  return t;
-}
-/**
- * Recompute and repaint the wizard's breakdown.
- */
-function wzCalc(){
-  var mrp=parseFloat((el('wz-mrp').value||'').replace(/,/g,''))||0;
-  var ids=['wz-rde','wz-rdi','wz-rve','wz-rvi','wz-rga','wz-rinc','wz-reff','wz-reffi'];
-  ids.forEach(function(id){var e=el(id);if(e){e.textContent='—';e.className='row-val'+(id.indexOf('amber')>-1?' amber':'')}});
-  el('wz-alert').style.display='none';
-  el('wz-rinc-row').style.display='none';
-  el('wz-reff-row').style.display='none';
-  el('wz-reffi-row').style.display='none';
-  if(!mrp)return;
 
-  // Resolve price
-  var price=null;
-  if(WZ_CM==='manual'){
-    var v=parseFloat((el('wz-manual').value||'').replace(/,/g,''));
-    if(!isNaN(v)&&v>0)price=WZ_MS==='incl'?{e:v/(1+WZ_G),i:v}:{e:v,i:v*(1+WZ_G)};
-  } else {
-    var d=parseFloat(el('wz-disc').value);
-    if(!isNaN(d)){
-      var e2=WZ_CM==='excl'?mrp*(1-d/100):mrp*(1-d/100)/(1+WZ_G);
-      price={e:e2,i:e2*(1+WZ_G)};
-    }
-  }
-  if(!price)return;
 
-  var overMRP=price.i>mrp;
-  var de=(1-price.e/mrp)*100;
-  var di=(1-price.i/mrp)*100;
-
-  var rv=function(id,val,cls){var e=el(id);if(e){e.textContent=val;e.className='row-val'+(cls?' '+cls:'')}};
-  rv('wz-rde','₹'+fmtINDIAN(price.e)+' / '+de.toFixed(2)+'%',de<0?'neg':'');
-  rv('wz-rdi',di.toFixed(2)+'%',di<0?'neg':'');
-  rv('wz-rve','₹'+fmtINDIAN(price.e),overMRP?'neg':'');
-  rv('wz-rvi','₹'+fmtINDIAN(price.i),overMRP?'neg':'');
-  rv('wz-rga','₹'+fmtINDIAN(price.i-price.e));
-  el('wz-alert').style.display=overMRP?'':'none';
-
-  var inc=wzGetInc(price);
-  if(inc>0){
-    var eff={e:price.e-inc, i:(price.e-inc)*(1+WZ_G)};
-    rv('wz-rinc','₹'+fmtINDIAN(inc),'amber');
-    rv('wz-reff','₹'+fmtINDIAN(eff.e),'amber');
-    rv('wz-reffi','₹'+fmtINDIAN(eff.i),'amber');
-    el('wz-rinc-row').style.display='';
-    el('wz-reff-row').style.display='';
-    el('wz-reffi-row').style.display='';
-  }
-}
-
-/**
- * Clear the wizard back to defaults.
- */
-function wzReset(){
-  el('wz-mrp').value='';el('wz-disc').value='';el('wz-manual').value='';
-  ['cd','eb','qt','an','sc'].forEach(function(k){if(el('wz-it-'+k))el('wz-it-'+k).checked=false});
-  el('wz-cdm-sub').style.display='none';el('wz-scm-sub').style.display='none';
-  wzSetT('cp');wzSetCM('excl');wzSetMS('incl');wzSetCDMode('before');wzSetScMode('pct');wzSetGST(18);
-}
-
-/**
- * Copy wizard values into the main calculator and switch to it.
- */
-function wzToDefault(){
-  var mrpV=el('wz-mrp').value;if(mrpV)el('mrp').value=mrpV;
-  setGST(Math.round(WZ_G*100));
-  if(WZ_T==='cp'){
-    if(WZ_CM==='manual'){setCM('manual');setCPManual(WZ_MS);el('cpv').value=el('wz-manual').value}
-    else{setCM(WZ_CM);el('cpd').value=el('wz-disc').value}
-    ['cd','eb','qt','an','sc'].forEach(function(k){
-      if(el('wz-it-'+k)&&el('wz-it-'+k).checked){el('it-'+k).checked=true;el('iv-'+k).value=el('wz-iv-'+k).value;syncToggle(k)}
-    });
-    setCDMode(WZ_CDM);setSchemeMode(WZ_SCM);
-  } else {
-    if(WZ_CM==='manual'){setSM('manual');setSPManual(WZ_MS);el('spv').value=el('wz-manual').value}
-    else{setSM(WZ_CM);el('spd').value=el('wz-disc').value}
-    ['cd','eb','qt','an','sc'].forEach(function(k){
-      if(el('wz-it-'+k)&&el('wz-it-'+k).checked){el('sit-'+k).checked=true;el('siv-'+k).value=el('wz-iv-'+k).value;syncSpToggle(k)}
-    });
-    setSCDMode(WZ_CDM);setSpSchemeMode(WZ_SCM);
-  }
-  setMode('default');calc();
-}
 
 /* ── Quote builder (multi-line) ──
    Each line is self-contained: MRP, qty and net CP/SP discounts on MRP.
    Incentives are deliberately excluded — enter the net landed discount per line. */
-function qtBlank(){return{desc:'',mrp:'',qty:1,cpd:'',spd:''}}
-/**
- * Persist the quote lines.
- */
-function saveQuote(){
-  try{ localStorage.setItem('pc-quote',JSON.stringify(QUOTE)) }
-  catch(e){ logError('could not save quote lines (pc-quote)',e); }
-}
 /**
  * Restore saved quote lines.
  */
@@ -3701,313 +3641,6 @@ function loadQuote(){
     var a=JSON.parse(raw);
     if(Array.isArray(a))QUOTE=a;
   }catch(e){ logWarn('could not read saved quote (pc-quote); starting empty',e); }
-}
-/**
- * Compute one quote line at the current GST and rounding settings.
- * @param {Object} L line record
- * @returns {Object|null} null when MRP or either discount is missing/invalid
- */
-function qtCalcLine(L){
-  var mrp=parseFloat(L.mrp),qty=parseInt(L.qty,10)||1;
-  if(isNaN(mrp)||mrp<=0)return null;
-  var cpd=parseFloat(L.cpd),spd=parseFloat(L.spd);
-  if(isNaN(cpd)||isNaN(spd))return null;
-  var cp=roundPrice({e:mrp*(1-cpd/100),i:mrp*(1-cpd/100)*(1+G)});
-  var sp=roundPrice({e:mrp*(1-spd/100),i:mrp*(1-spd/100)*(1+G)});
-  var unitPr=sp.e-cp.e;
-  return{
-    qty:qty,cpE:cp.e,spE:sp.e,spI:sp.i,
-    unitPr:unitPr,
-    lineVal:sp.i*qty,
-    linePr:unitPr*qty,
-    gp:(sp.e>0)?(unitPr/sp.e)*100:null
-  };
-}
-/**
- * Aggregate every complete quote line.
- * Incomplete lines are skipped rather than treated as zero, so a half-typed row
- * doesn't drag the blended GP down.
- * @returns {Object} totals including blended gp and mg
- */
-function qtTotals(){
-  var t={val:0,pr:0,cost:0,rev:0,units:0,lines:0};
-  QUOTE.forEach(function(L){
-    var r=qtCalcLine(L);
-    if(!r)return;
-    t.lines++;t.units+=r.qty;
-    t.val+=r.lineVal;t.pr+=r.linePr;
-    t.cost+=r.cpE*r.qty;t.rev+=r.spE*r.qty;
-  });
-  t.gp=(t.rev>0)?(t.pr/t.rev)*100:null;
-  t.mg=(t.cost>0)?(t.pr/t.cost)*100:null;
-  return t;
-}
-/**
- * Rebuild the quote view, choosing the layout that fits the viewport.
- */
-function qtRender(){
-  if(qtIsMobile())qtRenderCards();else qtRenderTable();
-}
-/**
- * Whether the quote should use the stacked card layout.
- * The table needs 720px of width; anything narrower gets cards instead so the
- * user never has to scroll sideways while typing.
- * @returns {boolean}
- */
-function qtIsMobile(){return window.innerWidth<=800}
-/**
- * Markup for one editable quote field, shared by both layouts.
- * @param {number} i line index
- * @param {string} field property on the line record
- * @param {*} val current value
- * @param {Object} [opts] type, mode, ph, cls, style, min, max, step, label
- * @returns {string} HTML
- */
-function qtField(i,field,val,opts){
-  opts=opts||{};
-  var esc=String(val==null?'':val).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-  return '<input class="qt-in '+(opts.cls||'')+'"'
-    +(opts.type?' type="'+opts.type+'"':'')
-    +(opts.mode?' inputmode="'+opts.mode+'"':'')
-    +' value="'+esc+'" placeholder="'+(opts.ph||'')+'"'
-    +(opts.min!==undefined?' min="'+opts.min+'"':'')
-    +(opts.max!==undefined?' max="'+opts.max+'"':'')
-    +(opts.step?' step="'+opts.step+'"':'')
-    +(opts.style?' style="'+opts.style+'"':'')
-    +(opts.label?' aria-label="'+opts.label+'"':'')
-    +' onfocus="pushUndo(\'edit quote line\')"'
-    +' oninput="qtSet('+i+',\''+field+'\',this.value)" autocomplete="off">';
-}
-/**
- * Remove-line button, shared by both layouts.
- * @param {number} i line index
- * @returns {string} HTML
- */
-function qtDelBtnHTML(i){
-  return '<button class="qt-del" onclick="qtDelLine('+i+')" title="Remove line" aria-label="Remove line '+(i+1)+'">'
-    +'<svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>';
-}
-/**
- * Empty-state markup, shared by both layouts.
- * @returns {string} HTML
- */
-function qtEmptyHTML(){
-  return '<div class="qt-empty">No lines yet — add one, or pull in the current calculation.</div>';
-}
-/**
- * Wide layout: one table row per line.
- * Derived cells carry stable qtd-* ids so qtRefreshDerived never has to depend
- * on column positions.
- */
-function qtRenderTable(){
-  var tbl=el('qt-table'),wrap=el('qt-cards');
-  if(!tbl)return;
-  if(wrap){wrap.innerHTML='';wrap.style.display='none'}
-  tbl.style.display='';
-  if(QUOTE.length===0){tbl.innerHTML='<tr><td>'+qtEmptyHTML()+'</td></tr>';return}
-  var g=Math.round(G*100),floor=getFloor();
-  var h='<thead><tr>'
-    +'<th>#</th><th>Description</th><th class="num">MRP</th><th class="num">Qty</th>'
-    +'<th class="num">CP disc %</th><th class="num">SP disc %</th>'
-    +'<th class="num">SP incl '+g+'%</th><th class="num">Line value</th>'
-    +'<th class="num">Profit</th><th class="num">GP %</th><th><span class="sr-only">Actions</span></th>'
-    +'</tr></thead><tbody>';
-  QUOTE.forEach(function(L,i){
-    var r=qtCalcLine(L);
-    var prCls=r?(r.linePr>=0?'qt-pos':'qt-neg'):'';
-    var gpCls=r&&belowFloor(r.gp,floor.gp)?'qt-neg':prCls;
-    h+='<tr>'
-      +'<td>'+(i+1)+'</td>'
-      +'<td>'+qtField(i,'desc',L.desc,{cls:'desc',ph:'Part / description',label:'Description for line '+(i+1)})+'</td>'
-      +'<td class="num">'+qtField(i,'mrp',L.mrp,{type:'number',mode:'decimal',ph:'0',min:0,step:'0.01',label:'MRP for line '+(i+1)})+'</td>'
-      +'<td class="num">'+qtField(i,'qty',L.qty,{type:'number',mode:'numeric',min:1,step:'1',style:'width:52px',label:'Quantity for line '+(i+1)})+'</td>'
-      +'<td class="num">'+qtField(i,'cpd',L.cpd,{type:'number',mode:'decimal',ph:'0',min:0,max:100,step:'0.01',style:'width:62px',label:'CP discount for line '+(i+1)})+'</td>'
-      +'<td class="num">'+qtField(i,'spd',L.spd,{type:'number',mode:'decimal',ph:'0',min:0,max:100,step:'0.01',style:'width:62px',label:'SP discount for line '+(i+1)})+'</td>'
-      +'<td class="num" id="qtd-spi-'+i+'">'+(r?INR(r.spI):'—')+'</td>'
-      +'<td class="num" id="qtd-val-'+i+'">'+(r?INR(r.lineVal):'—')+'</td>'
-      +'<td class="num '+prCls+'" id="qtd-pr-'+i+'">'+(r?INR(r.linePr):'—')+'</td>'
-      +'<td class="num '+gpCls+'" id="qtd-gp-'+i+'">'+(r?PCT(r.gp):'—')+'</td>'
-      +'<td>'+qtDelBtnHTML(i)+'</td>'
-      +'</tr>';
-  });
-  var t=qtTotals();
-  h+='</tbody><tfoot><tr class="qt-foot">'
-    +'<td colspan="3">Total — '+t.lines+' line'+(t.lines===1?'':'s')+'</td>'
-    +'<td class="num" id="qt-total-units">'+t.units+'</td>'
-    +'<td colspan="2"></td><td></td>'
-    +'<td class="num" id="qt-total-val">'+INR(t.val)+'</td>'
-    +'<td class="num '+(t.pr>=0?'qt-pos':'qt-neg')+'" id="qt-total-pr">'+INR(t.pr)+'</td>'
-    +'<td class="num" id="qt-total-gp">'+PCT(t.gp)+'</td>'
-    +'<td></td></tr></tfoot>';
-  tbl.innerHTML=h;
-}
-/**
- * Narrow layout: one card per line, so nothing scrolls sideways.
- * Reuses the same qtd-* ids as the table, so both share one refresh path.
- */
-function qtRenderCards(){
-  var tbl=el('qt-table'),wrap=el('qt-cards');
-  if(!wrap)return;
-  if(tbl){tbl.innerHTML='';tbl.style.display='none'}
-  wrap.style.display='';
-  if(QUOTE.length===0){wrap.innerHTML=qtEmptyHTML();return}
-  var g=Math.round(G*100),floor=getFloor();
-  var h='';
-  QUOTE.forEach(function(L,i){
-    var r=qtCalcLine(L);
-    var prCls=r?(r.linePr>=0?'qt-pos':'qt-neg'):'';
-    var gpCls=r&&belowFloor(r.gp,floor.gp)?'qt-neg':prCls;
-    h+='<div class="qtc">'
-      +'<div class="qtc-head">'
-        +'<span class="qtc-num">'+(i+1)+'</span>'
-        +qtField(i,'desc',L.desc,{cls:'desc qtc-desc',ph:'Part / description',label:'Description for line '+(i+1)})
-        +qtDelBtnHTML(i)
-      +'</div>'
-      +'<div class="qtc-inputs">'
-        +'<label class="qtc-f"><span>MRP</span>'+qtField(i,'mrp',L.mrp,{type:'number',mode:'decimal',ph:'0',min:0,step:'0.01',label:'MRP for line '+(i+1)})+'</label>'
-        +'<label class="qtc-f"><span>Qty</span>'+qtField(i,'qty',L.qty,{type:'number',mode:'numeric',min:1,step:'1',label:'Quantity for line '+(i+1)})+'</label>'
-        +'<label class="qtc-f"><span>CP disc %</span>'+qtField(i,'cpd',L.cpd,{type:'number',mode:'decimal',ph:'0',min:0,max:100,step:'0.01',label:'CP discount for line '+(i+1)})+'</label>'
-        +'<label class="qtc-f"><span>SP disc %</span>'+qtField(i,'spd',L.spd,{type:'number',mode:'decimal',ph:'0',min:0,max:100,step:'0.01',label:'SP discount for line '+(i+1)})+'</label>'
-      +'</div>'
-      +'<div class="qtc-out">'
-        +'<span class="qtc-o"><span class="qtc-ol">SP incl '+g+'%</span><span id="qtd-spi-'+i+'">'+(r?INR(r.spI):'—')+'</span></span>'
-        +'<span class="qtc-o"><span class="qtc-ol">Line value</span><span id="qtd-val-'+i+'">'+(r?INR(r.lineVal):'—')+'</span></span>'
-        +'<span class="qtc-o"><span class="qtc-ol">Profit</span><span class="'+prCls+'" id="qtd-pr-'+i+'">'+(r?INR(r.linePr):'—')+'</span></span>'
-        +'<span class="qtc-o"><span class="qtc-ol">GP %</span><span class="'+gpCls+'" id="qtd-gp-'+i+'">'+(r?PCT(r.gp):'—')+'</span></span>'
-      +'</div>'
-    +'</div>';
-  });
-  var t=qtTotals();
-  h+='<div class="qtc qtc-total">'
-    +'<div class="qtc-thead">Total — '+t.lines+' line'+(t.lines===1?'':'s')+' · <span id="qt-total-units">'+t.units+'</span> units</div>'
-    +'<div class="qtc-out">'
-      +'<span class="qtc-o"><span class="qtc-ol">Order value</span><span id="qt-total-val">'+INR(t.val)+'</span></span>'
-      +'<span class="qtc-o"><span class="qtc-ol">Total profit</span><span class="'+(t.pr>=0?'qt-pos':'qt-neg')+'" id="qt-total-pr">'+INR(t.pr)+'</span></span>'
-      +'<span class="qtc-o"><span class="qtc-ol">Blended GP</span><span id="qt-total-gp">'+PCT(t.gp)+'</span></span>'
-    +'</div>'
-  +'</div>';
-  wrap.innerHTML=h;
-}
-/**
- * Update one field of one quote line.
- * Refreshes only the derived cells, leaving the inputs untouched so focus and
- * caret position survive typing.
- * @param {number} i line index
- * @param {string} field property name
- * @param {string} val
- */
-function qtSet(i,field,val){
-  if(!QUOTE[i])return;
-  QUOTE[i][field]=val;
-  saveQuote();
-  qtRefreshDerived();
-}
-/**
- * Recompute the calculated cells and totals without rebuilding the inputs.
- * Targets elements by id rather than by cell position, so the table and card
- * layouts share a single implementation.
- */
-function qtRefreshDerived(){
-  var floor=getFloor(),inTable=!qtIsMobile();
-  function put(id,txt,cls){
-    var e=document.getElementById(id);
-    if(!e)return;
-    e.textContent=txt;
-    if(cls!==undefined)e.className=cls;
-  }
-  QUOTE.forEach(function(L,i){
-    var r=qtCalcLine(L);
-    var prCls=r?(r.linePr>=0?'qt-pos':'qt-neg'):'';
-    var gpCls=r&&belowFloor(r.gp,floor.gp)?'qt-neg':prCls;
-    put('qtd-spi-'+i, r?INR(r.spI):'—');
-    put('qtd-val-'+i, r?INR(r.lineVal):'—');
-    put('qtd-pr-'+i,  r?INR(r.linePr):'—', inTable?('num '+prCls):prCls);
-    put('qtd-gp-'+i,  r?PCT(r.gp):'—',     inTable?('num '+gpCls):gpCls);
-  });
-  var t=qtTotals();
-  put('qt-total-units',String(t.units));
-  put('qt-total-val',INR(t.val));
-  put('qt-total-pr',INR(t.pr),(inTable?'num ':'')+(t.pr>=0?'qt-pos':'qt-neg'));
-  put('qt-total-gp',PCT(t.gp));
-}
-/**
- * Append a blank quote line.
- */
-function qtAddLine(){
-  pushUndo('add quote line');
-  QUOTE.push(qtBlank());
-  saveQuote();qtRender();haptic('light');
-}
-/**
- * Add a quote line from the main calculator's current MRP, quantity and discounts.
- */
-function qtAddFromCalc(){
-  var mrpV=parseMRP();
-  if(!mrpV||!LAST_CP||!LAST_SP){toast('Enter MRP, CP and SP first');return}
-  pushUndo('add quote line');
-  var dcp=discFromPrice(LAST_CP.e),dsp=discFromPrice(LAST_SP.e);
-  QUOTE.push({
-    desc:'',
-    mrp:String(parseFloat(mrpV.toFixed(2))),
-    qty:getQty(),
-    cpd:String(parseFloat(dcp.de.toFixed(4))),
-    spd:String(parseFloat(dsp.de.toFixed(4)))
-  });
-  saveQuote();qtRender();haptic('light');
-  toast('Line added from calculator',true);
-}
-/**
- * Remove one quote line. Undoable.
- * @param {number} i line index
- */
-function qtDelLine(i){
-  if(!QUOTE[i])return;
-  pushUndo('delete quote line');
-  QUOTE.splice(i,1);
-  saveQuote();qtRender();haptic('light');
-  toast('Line removed',true);
-}
-/**
- * Remove all quote lines, after confirmation. Undoable.
- */
-function qtClear(){
-  if(QUOTE.length===0){toast('Quote is already empty');return}
-  askConfirm('Clear quote',
-    'Remove all '+QUOTE.length+' line'+(QUOTE.length===1?'':'s')+' from the quote?',
-    'You can undo this straight after.',
-    'Clear all',
-    function(){
-      pushUndo('clear quote');
-      QUOTE=[];saveQuote();qtRender();
-      toast('Quote cleared',true);
-    });
-}
-/**
- * Download the quote as CSV, including a totals row.
- */
-function qtExportCSV(){
-  if(QUOTE.length===0){toast('Nothing to export');return}
-  var g=Math.round(G*100);
-  var rows=[['Line','Description','MRP','Qty','CP disc %','SP disc %','CP excl GST','SP excl GST','SP incl '+g+'% GST','Line value','Unit profit','Line profit','GP %'].join(',')];
-  QUOTE.forEach(function(L,i){
-    var r=qtCalcLine(L);
-    rows.push([
-      i+1,
-      '"'+String(L.desc||'').replace(/"/g,'""')+'"',
-      L.mrp||'',L.qty||1,L.cpd||'',L.spd||'',
-      r?r.cpE.toFixed(2):'',r?r.spE.toFixed(2):'',r?r.spI.toFixed(2):'',
-      r?r.lineVal.toFixed(2):'',r?r.unitPr.toFixed(2):'',r?r.linePr.toFixed(2):'',
-      (r&&r.gp!==null)?r.gp.toFixed(2):''
-    ].join(','));
-  });
-  var t=qtTotals();
-  rows.push(['','TOTAL','',''+t.units,'','','','','',t.val.toFixed(2),'',t.pr.toFixed(2),(t.gp!==null?t.gp.toFixed(2):'')].join(','));
-  var blob=new Blob([rows.join('\r\n')],{type:'text/csv;charset=utf-8;'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;a.download='quote-'+new Date().toISOString().slice(0,10)+'.csv';
-  document.body.appendChild(a);a.click();
-  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url)},200);
 }
 /**
  * Build the plain-text quote for copying.
@@ -4035,17 +3668,6 @@ function getQuoteText(){
   return lines.join('\n');
 }
 /**
- * Copy the quote text to the clipboard.
- */
-function qtCopy(){
-  var txt=getQuoteText();
-  if(!txt){toast('Nothing to copy');return}
-  function done(){toast('Quote copied')}
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(txt).then(done,function(){fallbackCopyQuote(txt,done)});
-  } else fallbackCopyQuote(txt,done);
-}
-/**
  * Clipboard fallback via a hidden textarea, for browsers without the async API.
  * @param {string} txt
  * @param {Function} done success callback
@@ -4071,6 +3693,7 @@ var _qtResizeTimer=null,_qtWasMobile=null;
 window.addEventListener('resize',function(){
   clearTimeout(_qtResizeTimer);
   _qtResizeTimer=setTimeout(function(){
+    if(typeof qtIsMobile!=='function')return;   // quote bundle not loaded yet
     var nowMobile=qtIsMobile();
     if(nowMobile!==_qtWasMobile){
       _qtWasMobile=nowMobile;
@@ -4079,6 +3702,154 @@ window.addEventListener('resize',function(){
     }
   },150);
 });
+
+
+
+
+/* ── Deferred feature loading ───────────────────────────────────────────────
+   Quick mode, the wizard and the quote builder live in app-extra.js. Entry
+   points below await it before handing over. Requests are de-duplicated, and a
+   failure is reported rather than leaving a dead button.
+   ─────────────────────────────────────────────────────────────────────────── */
+var _extrasPromise = null;
+
+/**
+ * Load the deferred feature bundle, at most once.
+ * @returns {Promise} resolves when app-extra.js has executed
+ */
+function loadExtras(){
+  if(_extrasPromise) return _extrasPromise;
+  _extrasPromise = new Promise(function(resolve, reject){
+    var s = document.createElement('script');
+    s.src = 'assets/app-extra.js';
+    s.async = false;
+    s.onload = function(){ resolve(); };
+    s.onerror = function(e){
+      _extrasPromise = null;          // allow a retry
+      logError('could not load app-extra.js — quick mode, wizard and quote are unavailable', e);
+      toast('Could not load that feature. Check your connection.');
+      reject(e);
+    };
+    document.head.appendChild(s);
+  });
+  return _extrasPromise;
+}
+
+/**
+ * Run fn once the deferred bundle is available.
+ * @param {Function} fn
+ */
+function withExtras(fn){
+  loadExtras().then(function(){ guard('deferred feature', fn); }, function(){});
+}
+
+// Warm the bundle when the browser is idle, so the first use is usually instant
+// without competing with first paint for main-thread time.
+if(typeof requestIdleCallback === 'function'){
+  requestIdleCallback(function(){ loadExtras().catch(function(){}); }, { timeout: 4000 });
+} else {
+  setTimeout(function(){ loadExtras().catch(function(){}); }, 2500);
+}
+
+
+/* ── Share-link payload validation ──────────────────────────────────────────
+   ?s= is unauthenticated base64 JSON from whoever sends you the link, applied
+   directly to app state. Everything below is allow-listed: unknown keys are
+   dropped, values are coerced and range-checked, and a payload that fails is
+   ignored rather than partially applied.
+   ─────────────────────────────────────────────────────────────────────────── */
+var SHARE_VERSION = 1;
+
+/** One of a fixed set, or the fallback. */
+function pickEnum(v, allowed, fallback){
+  return allowed.indexOf(v) !== -1 ? v : fallback;
+}
+/** A numeric string safe to drop into an input's value. */
+function numStr(v, max){
+  if(v === undefined || v === null) return undefined;
+  var n = parseFloat(String(v).replace(/,/g, ''));
+  if(isNaN(n) || !isFinite(n)) return undefined;
+  if(max !== undefined && Math.abs(n) > max) return undefined;
+  return String(n);
+}
+/**
+ * Validate and normalise a decoded share payload.
+ * @param {*} raw parsed JSON from the ?s= parameter or localStorage
+ * @returns {Object|null} a state object containing only known-good fields,
+ *   or null when the payload is not usable at all
+ */
+function validateShareState(raw){
+  if(!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  var s = {};
+
+  var g = parseFloat(raw.g);
+  if(!isNaN(g) && g >= 0 && g <= 100) s.g = g;
+
+  if(raw.m !== undefined) s.m = numStr(raw.m, 1e12);
+  ['cpd','cpv','spd','spv','pri','fgp','fmg'].forEach(function(k){
+    var v = numStr(raw[k], 1e12);
+    if(v !== undefined) s[k] = v;
+  });
+
+  if(raw.lc !== undefined){
+    var lc = numStr(raw.lc, 1e9);
+    if(lc !== undefined && parseFloat(lc) >= 0) s.lc = lc;
+  }
+
+  var qty = parseInt(raw.qty, 10);
+  if(!isNaN(qty) && qty >= 1 && qty <= 1e6) s.qty = String(qty);
+
+  if(raw.rnd !== undefined){
+    s.rnd = raw.rnd === 'off' ? 'off' : numStr(raw.rnd, 1e5);
+    if(s.rnd === undefined || (s.rnd !== 'off' && parseFloat(s.rnd) <= 0)) delete s.rnd;
+  }
+
+  if(raw.t)     s.t     = pickEnum(raw.t, ['profit','sp','cp'], undefined);
+  if(raw.cm)    s.cm    = pickEnum(raw.cm, ['excl','incl','manual'], undefined);
+  if(raw.sm)    s.sm    = pickEnum(raw.sm, ['excl','incl','manual'], undefined);
+  if(raw.cpms)  s.cpms  = pickEnum(raw.cpms, ['incl','excl'], undefined);
+  if(raw.spms)  s.spms  = pickEnum(raw.spms, ['incl','excl'], undefined);
+  if(raw.pm)    s.pm    = pickEnum(raw.pm, ['val','gp','margin'], undefined);
+  if(raw.cdm)   s.cdm   = pickEnum(raw.cdm, ['before','after'], undefined);
+  if(raw.scdm)  s.scdm  = pickEnum(raw.scdm, ['before','after'], undefined);
+  if(raw.scm)   s.scm   = pickEnum(raw.scm, ['pct','abs'], undefined);
+  if(raw.sscm)  s.sscm  = pickEnum(raw.sscm, ['pct','abs'], undefined);
+  Object.keys(s).forEach(function(k){ if(s[k] === undefined) delete s[k]; });
+
+  // Incentive maps are keyed by incentive key, which is interpolated into
+  // element ids elsewhere — so the key rules apply here too.
+  function cleanModes(obj){
+    if(!obj || typeof obj !== 'object') return undefined;
+    var out = {}, any = false;
+    Object.keys(obj).forEach(function(k){
+      if(!isValidIncKey(k)) return;
+      out[k] = obj[k] === 'abs' ? 'abs' : 'pct';
+      any = true;
+    });
+    return any ? out : undefined;
+  }
+  function cleanInc(obj){
+    if(!obj || typeof obj !== 'object') return undefined;
+    var out = {}, any = false;
+    Object.keys(obj).forEach(function(k){
+      if(!isValidIncKey(k)) return;
+      var e = obj[k];
+      if(!e || typeof e !== 'object') return;
+      var v = numStr(e.v, 1e9);
+      out[k] = { on: !!e.on, v: v === undefined ? '' : v };
+      any = true;
+    });
+    return any ? out : undefined;
+  }
+  var im = cleanModes(raw.incm);   if(im) s.incm   = im;
+  var sm = cleanModes(raw.spincm); if(sm) s.spincm = sm;
+  var ic = cleanInc(raw.inc);      if(ic) s.inc    = ic;
+  var sc = cleanInc(raw.spinc);    if(sc) s.spinc  = sc;
+
+  if(raw._as !== undefined) s._as = !!raw._as;
+
+  return Object.keys(s).length ? s : null;
+}
 
 /* ── Share as link ── */
 function getShareState(){
@@ -4092,6 +3863,7 @@ function getShareState(){
     spinc[k]={on:cb?cb.checked:false,v:iv?iv.value:''};
   });
   return{
+    v:SHARE_VERSION,
     m:el('mrp').value,
     g:G*100,
     t:T,
@@ -4099,7 +3871,7 @@ function getShareState(){
     sm:SM,spms:SPMS,spd:el('spd').value,spv:el('spv').value,
     pm:PM,pri:el('pri').value,
     cdm:CDM,scm:SCM,scdm:SCDM,sscm:SSCM,incm:INC_MODE,spincm:SP_INC_MODE,
-    qty:el('qty')?el('qty').value:'1',rnd:ROUND_MODE,
+    qty:el('qty')?el('qty').value:'1',rnd:ROUND_MODE,lc:el('landed')?el('landed').value:'',
     fgp:el('floor-gp').value,fmg:el('floor-mg').value,
     inc:inc,spinc:spinc
   };
@@ -4110,10 +3882,16 @@ function getShareState(){
  * Each field is applied independently so one bad value can't block the rest.
  * @param {Object} s state object from getShareState
  */
-function applyShareState(s){
+function applyShareState(raw){
+  var s=validateShareState(raw);
+  if(!s){
+    logWarn('share/saved state rejected: no usable fields',raw);
+    return;
+  }
   try{
     if(s.rnd)setRounding(s.rnd);
     if(s.qty!==undefined&&el('qty'))el('qty').value=s.qty;
+    if(s.lc!==undefined&&el('landed'))el('landed').value=s.lc;
     if(s.g)setGST(parseFloat(s.g));
     if(s.m)el('mrp').value=s.m;
     if(s.cm)setCM(s.cm);
@@ -4354,7 +4132,7 @@ function obRender(){
   var s=OB_STEPS[OB_STEP];
   // dots
   var dots='';
-  for(var i=0;i<OB_STEPS.length;i++)dots+='<button type="button" class="ob-dot'+(i===OB_STEP?' cur':'')+'" onclick="OB_STEP='+i+';obRender()" aria-label="Go to step '+(i+1)+'"'+(i===OB_STEP?' aria-current="step"':'')+'></button>';
+  for(var i=0;i<OB_STEPS.length;i++)dots+='<button type="button" class="ob-dot'+(i===OB_STEP?' cur':'')+'" data-click="obGoto" data-p="'+i+'" aria-label="Go to step '+(i+1)+'"'+(i===OB_STEP?' aria-current="step"':'')+'></button>';
   el('ob-dots').innerHTML=dots;
   // icon
   var icon=el('ob-icon');
@@ -4380,6 +4158,7 @@ loadLabels();
 renderCPIncRows();
 renderSPIncRows();
 loadHistoryFromStorage();
+loadPresets();
 loadQuote();
 document.querySelectorAll('.kbd-mod').forEach(function(el){el.textContent=MOD_KEY;});
 updateLayout();
@@ -4394,3 +4173,128 @@ registerSW();
 setTimeout(function(){
   if(!localStorage.getItem('ob-done'))obShow();
 },600);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Persist the quote lines.
+ */
+function saveQuote(){
+  try{ localStorage.setItem('pc-quote',JSON.stringify(QUOTE)) }
+  catch(e){ logError('could not save quote lines (pc-quote)',e); }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

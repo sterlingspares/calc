@@ -39,7 +39,12 @@ function readSource() {
     .replace(/<link\s+rel="stylesheet"\s+href="(assets\/[^"]+)"\s*\/?>/g, (m, href) =>
       '<style>\n' + fs.readFileSync(path.join(ROOT, href), 'utf8') + '\n</style>')
     .replace(/<script\s+src="(assets\/[^"]+)"[^>]*><\/script>/g, (m, src) =>
-      '<script>\n' + fs.readFileSync(path.join(ROOT, src), 'utf8') + '\n</script>');
+      // app.js is split; app-extra.js is normally fetched on demand, but the
+      // suites drive those features directly, so both are inlined here.
+      '<script>\n' + fs.readFileSync(path.join(ROOT, src), 'utf8') + '\n' +
+      (src.endsWith('app.js') && fs.existsSync(path.join(ROOT, 'assets/app-extra.js'))
+        ? fs.readFileSync(path.join(ROOT, 'assets/app-extra.js'), 'utf8')
+        : '') + '\n</script>');
 }
 
 /** @returns {string} index.html exactly as it ships, without inlining */
