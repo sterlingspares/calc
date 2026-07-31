@@ -11,6 +11,70 @@ supplier and your customer actually give you, and it tells you what you make.
 
 No build step, no framework, no runtime dependencies.
 
+![The calculator with a worked example on screen](docs/screenshot.png)
+
+---
+
+## What problem it solves
+
+In Indian distribution, the **MRP** printed on the pack is a legal ceiling — no
+one in the chain may sell above it. So price is not built up from cost; it is
+discounted *down* from the MRP. A distributor buys at, say, 40% off MRP and
+sells at 25% off. The gap is the business.
+
+What makes that hard to hold in your head is that the invoice discount is not
+the real one. On top of it sit **incentives** — cash discount for paying
+promptly, early-bird for ordering in a window, quarterly and annual volume
+rebates, seasonal schemes. None appear on the invoice line, all change what the
+stock actually cost you. Some of them you receive; others you pass on to your
+own customer. Meanwhile every figure has to be tracked both **excl GST** (what
+profit is computed from, since the tax is passed through) and **incl GST** (what
+you actually quote and negotiate).
+
+This app does that arithmetic, live, so a quote can be checked before it is
+given rather than regretted after.
+
+### A worked example
+
+The screenshot above, step by step. A part with an MRP of ₹1,000 at 18% GST,
+bought at 40% off, sold at 25% off, with a 2% cash discount and 1% early-bird
+rebate from the supplier:
+
+| | | |
+|---|---:|---|
+| MRP (incl GST) | **₹1,000.00** | the printed ceiling |
+| CP excl GST | ₹600.00 | 40% off |
+| − CP incentives | ₹18.00 | 2% cash discount + 1% early bird |
+| **Effective CP** | **₹582.00** | what the stock really cost |
+| SP excl GST | ₹750.00 | 25% off — ₹885.00 incl GST, the quoted price |
+| **Profit** | **₹168.00** | ₹750.00 − ₹582.00 |
+| GP % | 22.40% | 168 ÷ 750 |
+| Margin % | 28.87% | 168 ÷ 582 |
+| Break-even SP | ₹686.76 | incl GST — below this you lose money |
+
+Without the two incentives the same deal shows ₹150.00 profit and 20.00% GP.
+That 3% off-invoice is a fifth of the profit, and it is exactly the part that is
+easy to forget.
+
+### Terms
+
+| Term | Means |
+|---|---|
+| **MRP** | Maximum Retail Price — the ceiling printed on the pack. Every price is a discount off it |
+| **CP** | Cost Price — what you pay your supplier |
+| **SP** | Selling Price — what you charge your customer |
+| **GST** | Goods and Services Tax. Auto parts are usually 18%, some 5% |
+| **Incentive** | An off-invoice discount — cash discount, rebate, scheme — that changes real cost without changing the invoice line |
+| **Effective CP / SP** | The price after incentives and landed costs. Profit is computed from these, not from the invoice figures |
+| **Landed cost** | Per-unit freight, insurance or handling — added to CP inbound, deducted from SP outbound |
+| **GP %** | Profit as a share of **selling** price |
+| **Margin %** | Profit as a share of **cost** |
+
+> Note the last two, which the trade uses in a specific way. **GP %** is
+> profit ÷ SP; **Margin %** is profit ÷ CP. If you come from a finance
+> background, "Margin %" here is what you would call *markup* — it is always the
+> larger of the two, as in the example above.
+
 ---
 
 ## Contents
@@ -55,6 +119,7 @@ sw.js                   service worker
 manifest.json           PWA manifest
 _headers                response headers for the host
 tests/                  test suite (dev-only)
+docs/                   screenshots for this README
 ```
 
 ---
@@ -364,6 +429,8 @@ remembers its own last inputs and restores them when you return.
 ---
 
 ## Mobile
+
+<img src="docs/screenshot-mobile.png" alt="The calculator on a phone, showing the sticky result bar, floating action button and bottom navigation" width="330">
 
 The layout adapts below 800 px.
 
