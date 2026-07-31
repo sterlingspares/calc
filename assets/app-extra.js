@@ -1284,3 +1284,77 @@ function _onFxManualImpl(inp){
   saveFx();renderFxNote();calc();
   toast('Using ₹'+per+' per '+DISPLAY_CCY,true);
 }
+
+/* ── Feature switches (deferred) ────────────────────────────────────────────
+   Reading what a feature holds and drawing the Settings grid only happen when
+   Settings is open. featOn() and applyFeatureVisibility() stay in the core:
+   one is in the calculation hot path, the other runs on first paint.
+   ─────────────────────────────────────────────────────────────────────────── */
+/**
+ * Values held by an incentive panel, as a readable list.
+ * @param {'cp'|'sp'} panel
+ * @returns {Array<string>}
+ */
+function _incValues(panel){
+  var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS, pfx=panel==='cp'?['it-','iv-']:['sit-','siv-'];
+  var out=[];
+  keys.forEach(function(k){
+    var cb=document.getElementById(pfx[0]+k),iv=document.getElementById(pfx[1]+k);
+    var v=iv?parseFloat(iv.value):NaN;
+    if(cb&&cb.checked&&!isNaN(v)&&v>0)out.push((INC_LABELS[k]||k)+' '+v+(incIsAbsolute(panel,k)?'':'%'));
+  });
+  return out;
+}
+function _fieldVal(id){
+  var e=el(id);
+  if(!e)return null;
+  var v=parseFloat(String(e.value).replace(/,/g,''));
+  return(isNaN(v)||v===0)?null:v;
+}
+
+/** Draw the feature switches. */
+function _renderFeatureGridImpl(){
+  var c=el('feat-grid');
+  if(!c)return;
+  c.innerHTML=FEATURE_DEFS.map(function(f){
+    var on=featOn(f.k);
+    return '<button class="feat-chip'+(on?' on':'')+'" data-click="featToggle" data-p="'+f.k+'" '+
+      'role="switch" aria-checked="'+(on?'true':'false')+'">'+
+      '<span class="feat-name">'+escHtml(f.name)+'</span>'+
+      '<span class="feat-hint">'+escHtml(f.hint)+'</span></button>';
+  }).join('');
+}
+/**
+ * Turn a feature on, or off after saying what that costs.
+ *
+ * Switching something off throws its values away, so the ones it is holding are
+ * named before anything happens — "2 saved presets" is a very different
+ * decision from an empty panel. Turning one back on needs no ceremony.
+ *
+ * @param {string} k feature key
+ */
+function _toggleFeatureImpl(k){
+  var f=featureDef(k);
+  if(!f){ logWarn('unknown feature '+JSON.stringify(k)); return }
+  if(!featOn(k)){                        // switching back on
+    FEATURES[k]=true;
+    saveFeatures();applyFeatureVisibility();renderFeatureGrid();calc();
+    toast(f.name+' is back',true);
+    return;
+  }
+  var held=[];
+  try{ held=f.values()||[] }catch(e){ logError('could not read values held by '+k,e) }
+  var turnOff=function(){
+    pushUndo('turn off '+f.name);
+    if(held.length){ try{ f.clear() }catch(e){ logError('could not clear '+k,e) } }
+    FEATURES[k]=false;
+    saveFeatures();applyFeatureVisibility();renderFeatureGrid();calc();
+    debouncedSaveCalcState();
+    toast(f.name+' turned off',true);
+  };
+  if(!held.length)return turnOff();
+  askConfirm('Turn off '+f.name,
+    'This will clear '+held.join(', ')+'.',
+    'The setting and its values are removed. This can be undone.',
+    'Turn off and clear',turnOff);
+}

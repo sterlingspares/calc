@@ -61,9 +61,11 @@ html[data-theme="dark"] .header{background:#111110}
 html[data-theme="dark"] .pill.on,
 html[data-theme="dark"] .fc-tab.on{background:#736f68;border-color:#736f68;color:#fff}
 html[data-theme="dark"] .confirm-btn.primary{background:var(--text);border-color:var(--text);color:var(--bg)}
+html[data-theme="dark"] .feat-chip.on,
 html[data-theme="dark"] .gst-custom-wrap.on,
 html[data-theme="dark"] .rnd-custom-wrap.on,
 html[data-theme="dark"] .hist-fpill.on{background:#736f68;border-color:#736f68}
+html[data-theme="dark"] .feat-chip.on .feat-name,
 html[data-theme="dark"] .rnd-custom-wrap.on input,
 html[data-theme="dark"] .gst-custom-wrap.on input{color:#fff}
 html[data-theme="dark"] .hist-fpill.on{color:#fff}
@@ -826,6 +828,16 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 #prompt-hint{min-height:16px;margin-top:6px}
 
 /* ── Preset manager ── */
+.feat-intro{font-size:12px;color:var(--text2);line-height:1.55;margin:0 0 12px}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.feat-chip{display:flex;flex-direction:column;gap:2px;text-align:left;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-ctrl);background:transparent;cursor:pointer;font-family:var(--font-body);transition:all .15s;min-height:44px}
+.feat-chip:hover{background:var(--surface2)}
+.feat-name{font-size:12.5px;font-weight:600;color:var(--text2)}
+.feat-hint{font-size:10.5px;color:var(--text3);line-height:1.4}
+.feat-chip.on{background:var(--accent);border-color:var(--accent)}
+.feat-chip.on .feat-name{color:var(--accent-fg)}
+.feat-chip.on .feat-hint{color:rgba(255,255,255,0.66)}
+@media(max-width:800px){.feat-grid{grid-template-columns:1fr}}
 .pm-intro{font-size:12px;color:var(--text2);line-height:1.55;margin:0 0 14px}
 .pm-new{width:100%;padding:10px 14px;border-radius:var(--radius-sm);border:1px dashed var(--border-ctrl);background:transparent;color:var(--text2);font-size:12.5px;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:all .15s}
 .pm-new:hover{background:var(--surface2);color:var(--text)}

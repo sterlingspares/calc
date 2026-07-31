@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1223%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1262%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -208,7 +208,7 @@ Grouping follows the currency, not the app. Rupees group Indian-style
 
 ### Currency
 
-Rupees are the unit everything is *stored and calculated* in. The **Show in**
+Rupees are the unit everything is *stored and calculated* in. The **Show**
 control picks which side of the deal a foreign currency applies to, and in which
 currency — twenty are available:
 
@@ -482,6 +482,7 @@ operations.
 | **Minimum Margin %** | Flags values red below this threshold |
 | **Auto-save** | Toggle automatic history logging |
 | **Rounding** | ₹1, ₹5, a custom step, or off |
+| **Features** | Switch off anything you do not use |
 | **Saved presets** | Open the preset manager |
 | **Exchange rates** | Update now, and set a manual rate |
 | **App tour** | Restart the onboarding walkthrough |
@@ -489,7 +490,36 @@ operations.
 
 Floor limits, auto-save preference and theme persist across sessions.
 
-### Quick (flashcard) mode
+#### Turning features off
+
+Not every distributor quotes abroad, pays freight separately or passes
+incentives on to customers. **Settings → Features** switches any of these off,
+and it disappears from the screen:
+
+| | |
+|---|---|
+| **Presets** | the control-bar picker and the manager |
+| **Quote builder** | the header button, menu item and bottom-nav tab |
+| **What-if scenarios** | the button on the summary |
+| **Currency conversion** | the Show control; the display returns to rupees |
+| **Landed costs** | both fields in the MRP bar |
+| **Target GP solver** | the row under break-even |
+| **Incentives on CP** · **Incentives on SP** | the whole panel; the Incentives tab goes when both are off |
+
+Switching one off **clears what it holds**, so it says what that is first —
+*"This will clear 2 saved presets"* — and does nothing until you confirm. A
+feature holding nothing goes quietly. Turning one back on is immediate and asks
+nothing, but does not bring cleared values back.
+
+Off means unreachable, not merely hidden: the keyboard shortcut, the bottom-nav
+tab and a restored share link all stop opening it, and a value left in a hidden
+field cannot move a figure — a disabled landed cost reads as zero even if the
+box still has something in it. Every switch is undoable and persists across
+sessions.
+
+---
+
+## Quick (flashcard) mode
 
 A mobile-oriented 4-step card interface — `Q` toggles it.
 
@@ -567,6 +597,7 @@ taken by Solve-for-Profit and Settings, so presets use `E`.
 | `pc-labels` | Custom incentive names and the CP/SP incentive lists |
 | `pc-presets` | Saved incentive presets |
 | `pc-fx` | Cached exchange rates, their age, and any manual override |
+| `pc-features` | Which optional features are switched off |
 | `pc-qstate` | Quick mode inputs and settings |
 | `pc-quote` | Quote builder lines |
 | `pc-theme` | Dark / light preference |
@@ -646,8 +677,8 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 1223 passing, 7 suites | `npm test` |
-| Statement coverage | **81.3%** (app.js 85.0%, app-extra.js 67.2%) | `npm run coverage` |
+| Tests | 1262 passing, 7 suites | `npm test` |
+| Statement coverage | **81.9%** (app.js 85.4%, app-extra.js 68.5%) | `npm run coverage` |
 | Lighthouse Performance | **98** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
 | Lighthouse Best Practices | **100** | ” |
@@ -674,7 +705,7 @@ commands after significant changes.
 
 ## Tests
 
-1223 assertions across seven suites. They load the real `index.html`,
+1262 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -685,7 +716,7 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 813 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 852 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 69 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |

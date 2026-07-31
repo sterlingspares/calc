@@ -816,6 +816,7 @@ function renderFxNote(){
  * @param {string} c currency code
  */
 function setDisplayCcy(c,scope){
+  if(!featOn('forex')&&c!=='INR')return;
   if(CCY_CODES.indexOf(c)===-1){
     logWarn('ignoring unknown currency '+JSON.stringify(c));
     c='INR';
@@ -1060,6 +1061,12 @@ document.addEventListener('keydown',function(e){
 });
 
 function openModal(id){
+  // A disabled feature stays unreachable however it is reached — a stale
+  // keyboard shortcut, a bottom-nav tap, a restored share link.
+  if(id==='quote'&&!featOn('quote'))return;
+  if(id==='whatif'&&!featOn('whatif'))return;
+  if(id==='presets'&&!featOn('presets'))return;
+  if(id==='settings')renderFeatureGrid();
   var o=el('overlay-'+id);
   closeFab();
   if(o){
@@ -1124,6 +1131,136 @@ function onCustomGST(inp){
   setGST(p);
   if(preset)inp.value='';
 }
+
+/* ── Optional features ──────────────────────────────────────────────────────
+   Not every distributor quotes in foreign currency, pays freight separately or
+   passes incentives on to customers. Anything switched off here disappears
+   from the screen instead of sitting there as noise.
+
+   Each entry declares three things: what to hide, how to tell whether it is
+   holding data, and how to let that data go. Keeping them together means
+   adding a feature is one entry rather than edits in four places, and the
+   tests can walk the registry rather than naming elements by hand.
+   ─────────────────────────────────────────────────────────────────────────── */
+var FEATURES={presets:true,quote:true,whatif:true,forex:true,landed:true,solver:true,inccp:true,incsp:true};
+
+/** True when the named feature is switched on. Unknown keys read as on. */
+function featOn(k){ return FEATURES[k]!==false }
+
+var FEATURE_DEFS=[
+  {k:'presets',name:'Presets',hint:'Save and reuse incentive setups.',
+   els:['grp-preset','div-preset','sec-set-presets'],
+   values:function(){ var n=Object.keys(PRESETS).length; return n?[n+' saved preset'+(n===1?'':'s')]:[] },
+   clear:function(){ PRESETS={}; savePresets(); renderPresetList(); renderPresetManager(); }},
+
+  {k:'quote',name:'Quote builder',hint:'Multi-line quotes with blended GP.',
+   els:['hbtn-quote','hmenu-quote','bnav-quote'],
+   values:function(){ return QUOTE.length?[QUOTE.length+' quote line'+(QUOTE.length===1?'':'s')]:[] },
+   clear:function(){ QUOTE.length=0; saveQuote(); if(typeof qtRender==='function')qtRender(); closeModal('quote'); }},
+
+  {k:'whatif',name:'What-if scenarios',hint:'Compare three selling prices side by side.',
+   els:['btn-whatif'],
+   values:function(){
+     var n=0;
+     WI_SCENES.forEach(function(s){ if((s.spDisc!==''&&s.spDisc!=null)||(s.spVal!==''&&s.spVal!=null))n++ });
+     return n?[n+' scenario'+(n===1?'':'s')]:[];
+   },
+   clear:function(){
+     WI_SCENES.forEach(function(s){ s.spDisc='';s.spVal='';s.spMode='excl';s.spManualSub='incl' });
+     closeModal('whatif');
+   }},
+
+  {k:'forex',name:'Currency conversion',hint:'Show either side of the deal in another currency.',
+   els:['grp-forex','div-forex','sec-set-forex'],
+   values:function(){
+     var out=[];
+     if(DISPLAY_CCY!=='INR')out.push('showing '+DISPLAY_CCY);
+     var m=Object.keys(FX.manual||{}).filter(function(c){return FX.manual[c]>0});
+     if(m.length)out.push(m.length+' manual rate'+(m.length===1?'':'s'));
+     return out;
+   },
+   clear:function(){ FX.manual={}; saveFx(); setDisplayCcy('INR','both'); }},
+
+  {k:'landed',name:'Landed costs',hint:'Per-unit freight in and out.',
+   els:['stat-landed-cp','stat-landed-sp'],
+   values:function(){
+     var out=[],a=_fieldVal('landed'),b=_fieldVal('sp-landed');
+     if(a)out.push('inbound '+CINR(fromDisplay(a,'cost')));
+     if(b)out.push('outbound '+SINR(fromDisplay(b,'sale')));
+     return out;
+   },
+   clear:function(){ if(el('landed'))el('landed').value=''; if(el('sp-landed'))el('sp-landed').value=''; }},
+
+  {k:'solver',name:'Target GP solver',hint:'Work out the incentive a target GP needs.',
+   els:['solver'],
+   values:function(){ var v=_fieldVal('solver-gp'); return v?['target '+PCT(v)]:[] },
+   clear:function(){ if(el('solver-gp')){el('solver-gp').value='';renderSolver()} }},
+
+  {k:'inccp',name:'Incentives on CP',hint:'Discounts and rebates that cut your cost.',
+   els:['sec-inc'],
+   values:function(){ return _incValues('cp') },
+   clear:function(){ INC_KEYS.forEach(function(k){
+       var cb=document.getElementById('it-'+k),iv=document.getElementById('iv-'+k);
+       if(cb)cb.checked=false; if(iv)iv.value=''; syncToggle(k);
+     }); }},
+
+  {k:'incsp',name:'Incentives on SP',hint:'Discounts you pass on to the customer.',
+   els:['sec-sp-inc'],
+   values:function(){ return _incValues('sp') },
+   clear:function(){ SP_INC_KEYS.forEach(function(k){
+       var cb=document.getElementById('sit-'+k),iv=document.getElementById('siv-'+k);
+       if(cb)cb.checked=false; if(iv)iv.value=''; syncSpToggle(k);
+     }); }}
+];
+
+/** @param {string} k @returns {Object|null} the registry entry */
+function featureDef(k){
+  for(var i=0;i<FEATURE_DEFS.length;i++)if(FEATURE_DEFS[i].k===k)return FEATURE_DEFS[i];
+  return null;
+}
+/** Persist the on/off set. */
+function saveFeatures(){
+  try{ localStorage.setItem('pc-features',JSON.stringify(FEATURES)); }
+  catch(e){ logError('could not save feature settings (pc-features)',e); }
+}
+/** Restore it, ignoring anything that is not a known key. */
+function loadFeatures(){
+  try{
+    var raw=localStorage.getItem('pc-features');
+    if(!raw)return;
+    var p=JSON.parse(raw);
+    if(!p||typeof p!=='object')return;
+    FEATURE_DEFS.forEach(function(f){ if(p[f.k]===false)FEATURES[f.k]=false; });
+  }catch(e){ logWarn('could not read feature settings (pc-features); enabling everything',e); }
+}
+/**
+ * Show or hide everything the registry owns.
+ * Bottom-nav targets are hidden too, or a phone would offer a tab that leads
+ * to a panel that is no longer there.
+ */
+function applyFeatureVisibility(){
+  FEATURE_DEFS.forEach(function(f){
+    var on=featOn(f.k);
+    f.els.forEach(function(id){
+      var e=el(id);
+      if(e)e.style.display=on?'':'none';
+    });
+  });
+  var nInc=el('bnav-inc');
+  if(nInc)nInc.style.display=(featOn('inccp')||featOn('incsp'))?'':'none';
+}
+
+/** Draw the feature switches. Implementation is in the deferred bundle. */
+function renderFeatureGrid(){
+  if(typeof _renderFeatureGridImpl==='function')return _renderFeatureGridImpl();
+  withExtras(function(){ _renderFeatureGridImpl() });
+}
+/** Turn a feature on or off. Implementation is in the deferred bundle. */
+function toggleFeature(k){
+  if(typeof _toggleFeatureImpl==='function')return _toggleFeatureImpl(k);
+  withExtras(function(){ _toggleFeatureImpl(k) });
+}
+ACT.featToggle = function(self){ toggleFeature(self.getAttribute('data-p')) };
 
 /* ── Floating action button (mobile) ── */
 var FAB_OPEN=false;
@@ -1507,6 +1644,7 @@ function captureState(){
        everything except the thing being deleted and undo silently did nothing
        for it. */
     presets:JSON.parse(JSON.stringify(PRESETS)),
+    features:JSON.parse(JSON.stringify(FEATURES)),
     round:ROUND_MODE,
     qty:el('qty')?el('qty').value:'1'
   };
@@ -1529,6 +1667,7 @@ function restoreState(s){
     HISTORY=JSON.parse(JSON.stringify(s.history));
     QUOTE=JSON.parse(JSON.stringify(s.quote));
     if(s.presets)PRESETS=JSON.parse(JSON.stringify(s.presets));
+    if(s.features){FEATURES=JSON.parse(JSON.stringify(s.features));saveFeatures();renderFeatureGrid();applyFeatureVisibility()}
     ROUND_MODE=s.round;
     renderCPIncRows();renderSPIncRows();
     setRounding(ROUND_MODE);
@@ -2100,6 +2239,7 @@ function loadLabels(){
  * @returns {number} rupees, 0 when blank or invalid
  */
 function getLandedCost(){
+  if(!featOn('landed'))return 0;
   var e=el('landed');
   if(!e)return 0;
   var v=parseFloat(String(e.value).replace(/,/g,''));
@@ -2115,6 +2255,7 @@ function getLandedCost(){
  * @returns {number} rupees, 0 when blank or invalid
  */
 function getSPLandedCost(){
+  if(!featOn('landed'))return 0;
   var e=el('sp-landed');
   if(!e)return 0;
   var v=parseFloat(String(e.value).replace(/,/g,''));
@@ -2157,7 +2298,7 @@ function syncToggle(k){haptic('select');var row=el('ir-'+k),cb=el('it-'+k);if(ro
  * @returns {number} rupees, 0 when cp is null
  */
 function getIncentiveInr(cp){
-  if(!cp)return 0;
+  if(!cp||!featOn('inccp'))return 0;
   var t=0;
   INC_KEYS.forEach(function(k){
     var cb=document.getElementById('it-'+k);
@@ -2223,7 +2364,7 @@ function computeK(){
 
 /* ── SP Incentives ── */
 function getSPIncentiveInr(sp){
-  if(!sp)return 0;
+  if(!sp||!featOn('incsp'))return 0;
   var t=0;
   SP_INC_KEYS.forEach(function(k){
     var cb=document.getElementById('sit-'+k);
@@ -2713,6 +2854,7 @@ function renderPresetManager(){
 
 /** Open the preset manager. */
 function openPresetManager(){
+  if(!featOn('presets'))return;
   renderPresetManager();
   openModal('presets');
 }
@@ -4941,8 +5083,8 @@ document.addEventListener('keydown',function(e){
       if(e.metaKey||e.ctrlKey){/* let browser copy */}
       break;
     case 'q': case 'Q': setMode(APP_MODE==='default'?'quick':'default'); break;
-    case 'm': case 'M': openModal('quote'); break;
-    case 'e': case 'E': openPresetManager(); break;
+    case 'm': case 'M': if(featOn('quote'))openModal('quote'); break;
+    case 'e': case 'E': if(featOn('presets'))openPresetManager(); break;
     case '1': setGST(18); break;
     case '2': setGST(5); break;
     case 'p': case 'P': setT('profit'); break;
@@ -5020,6 +5162,7 @@ renderSPIncRows();
 loadHistoryFromStorage();
 loadPresets();
 loadFx();renderCcyList();refreshCurrencySymbols();renderFxNote();
+loadFeatures();applyFeatureVisibility();
 loadQuote();
 document.querySelectorAll('.kbd-mod').forEach(function(el){el.textContent=MOD_KEY;});
 updateLayout();
