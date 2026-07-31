@@ -208,7 +208,7 @@ Grouping follows the currency, not the app. Rupees group Indian-style
 
 ### Currency
 
-Rupees are the unit everything is *stored and calculated* in. The **Show in**
+Rupees are the unit everything is *stored and calculated* in. The **Show**
 control picks which side of the deal a foreign currency applies to, and in which
 currency — twenty are available:
 
