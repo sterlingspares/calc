@@ -293,6 +293,7 @@ ACT.incMode     = function(self){ var p=actParams(self); setIncMode(p[0], p[1], 
 ACT.incRename   = function(self){ var k=self.getAttribute('data-p');
                                   INC_LABELS[k]=self.value.trim()||INC_LABELS_DEFAULT[k]; saveLabels(); };
 ACT.calc        = function(){ calc(); };
+ACT.saveState   = function(){ saveCalcState(); };
 ACT.cdMode      = function(self){ var p=actParams(self); (p[0]==='cp'?setCDMode:setSCDMode)(p[1]); };
 ACT.schemeMode  = function(self){ var p=actParams(self); (p[0]==='cp'?setSchemeMode:setSpSchemeMode)(p[1]); };
 ACT.histDelete  = function(self){ deleteHistEntry(+self.getAttribute('data-p')); };
@@ -1464,6 +1465,35 @@ function loadLabels(){
   }catch(e){ logWarn('could not read saved incentives (pc-labels); using defaults',e); }
 }
 
+
+/* ── Landed cost ────────────────────────────────────────────────────────────
+   Freight, insurance and handling are real costs that incentives do not offset,
+   so they are added to effective CP rather than netted against it. Entered per
+   unit in rupees, on the excl-GST basis to match every other figure.
+   ─────────────────────────────────────────────────────────────────────────── */
+/**
+ * Landed cost per unit, excl GST.
+ * @returns {number} rupees, 0 when blank or invalid
+ */
+function getLandedCost(){
+  var e=el('landed');
+  if(!e)return 0;
+  var v=parseFloat(String(e.value).replace(/,/g,''));
+  return (isNaN(v)||v<0)?0:v;
+}
+
+/**
+ * Effective cost price excl GST: list CP, less incentives, plus landed cost.
+ * Every profit calculation goes through here so the three inputs cannot drift
+ * apart between call sites.
+ * @param {{e:number,i:number}|null} cp
+ * @returns {number|null}
+ */
+function effectiveCP(cp){
+  if(!cp)return null;
+  return cp.e - getIncentiveInr(cp) + getLandedCost();
+}
+
 /* ── Incentive helpers ── */
 function syncToggle(k){haptic('select');var row=el('ir-'+k),cb=el('it-'+k);if(row&&cb)row.className='inc-row'+(cb.checked?' active':'')}
 /**
@@ -1766,6 +1796,205 @@ function setSchemeMode(m){
   calc();
 }
 
+
+/* ── Incentive presets ──────────────────────────────────────────────────────
+   Incentive structures repeat per dealer or brand, so the whole set — which
+   incentives exist, their names, %/₹ modes, values and on/off state, plus the
+   CD and scheme sub-modes — is saved under a name and recalled in one step.
+   ─────────────────────────────────────────────────────────────────────────── */
+var PRESETS = {};
+
+/** Persist the preset collection. */
+function savePresets(){
+  try{ localStorage.setItem('pc-presets', JSON.stringify(PRESETS)); }
+  catch(e){ logError('could not save presets (pc-presets)',e); }
+}
+/** Restore the preset collection, dropping anything malformed. */
+function loadPresets(){
+  try{
+    var raw=localStorage.getItem('pc-presets');
+    if(!raw)return;
+    var parsed=JSON.parse(raw);
+    if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))PRESETS=parsed;
+  }catch(e){ logWarn('could not read saved presets (pc-presets); starting empty',e); }
+  renderPresetList();
+}
+
+/**
+ * Snapshot the current incentive configuration.
+ * @returns {Object} everything needed to reproduce both panels
+ */
+function capturePreset(){
+  function panel(keys,pfx){
+    var out={};
+    keys.forEach(function(k){
+      var cb=document.getElementById(pfx.cb+k), iv=document.getElementById(pfx.iv+k);
+      out[k]={on:cb?cb.checked:false, v:iv?iv.value:''};
+    });
+    return out;
+  }
+  return {
+    cpKeys:INC_KEYS.slice(), spKeys:SP_INC_KEYS.slice(),
+    labels:JSON.parse(JSON.stringify(INC_LABELS)),
+    cpModes:JSON.parse(JSON.stringify(INC_MODE)),
+    spModes:JSON.parse(JSON.stringify(SP_INC_MODE)),
+    cp:panel(INC_KEYS,{cb:'it-',iv:'iv-'}),
+    sp:panel(SP_INC_KEYS,{cb:'sit-',iv:'siv-'}),
+    cdm:CDM, scm:SCM, scdm:SCDM, sscm:SSCM
+  };
+}
+
+/**
+ * Apply a saved preset. Keys are re-validated, since presets live in storage.
+ * @param {Object} p snapshot from capturePreset
+ */
+function applyPreset(p){
+  if(!p)return;
+  INC_KEYS=(p.cpKeys||[]).filter(isValidIncKey);
+  SP_INC_KEYS=(p.spKeys||[]).filter(isValidIncKey);
+  if(!INC_KEYS.length)INC_KEYS=['cd','eb','qt','an','sc'];
+  if(!SP_INC_KEYS.length)SP_INC_KEYS=['cd','eb','qt','an','sc'];
+  Object.keys(p.labels||{}).forEach(function(k){
+    if(isValidIncKey(k))INC_LABELS[k]=String(p.labels[k]);
+  });
+  INC_MODE={};SP_INC_MODE={};
+  Object.keys(p.cpModes||{}).forEach(function(k){ if(isValidIncKey(k))INC_MODE[k]=p.cpModes[k]==='abs'?'abs':'pct'; });
+  Object.keys(p.spModes||{}).forEach(function(k){ if(isValidIncKey(k))SP_INC_MODE[k]=p.spModes[k]==='abs'?'abs':'pct'; });
+
+  renderCPIncRows();renderSPIncRows();
+  function restore(keys,src,pfx,sync){
+    keys.forEach(function(k){
+      var e=(src||{})[k]; if(!e)return;
+      var cb=document.getElementById(pfx.cb+k), iv=document.getElementById(pfx.iv+k);
+      if(cb)cb.checked=!!e.on;
+      if(iv&&e.v!=='')iv.value=e.v;
+      sync(k);
+    });
+  }
+  restore(INC_KEYS,p.cp,{cb:'it-',iv:'iv-'},syncToggle);
+  restore(SP_INC_KEYS,p.sp,{cb:'sit-',iv:'siv-'},syncSpToggle);
+  if(INC_KEYS.indexOf('cd')!==-1)setCDMode(p.cdm==='after'?'after':'before');
+  if(INC_KEYS.indexOf('sc')!==-1)setSchemeMode(p.scm==='abs'?'abs':'pct');
+  if(SP_INC_KEYS.indexOf('cd')!==-1)setSCDMode(p.scdm==='after'?'after':'before');
+  if(SP_INC_KEYS.indexOf('sc')!==-1)setSpSchemeMode(p.sscm==='abs'?'abs':'pct');
+  elClearCache();saveLabels();calc();
+}
+
+/** Repaint the preset dropdown from PRESETS. */
+function renderPresetList(){
+  var sel=el('preset-select');
+  if(!sel)return;
+  var names=Object.keys(PRESETS).sort();
+  var cur=sel.value;
+  sel.innerHTML='<option value="">Presets…</option>'+
+    names.map(function(n){return '<option value="'+escHtml(n)+'">'+escHtml(n)+'</option>'}).join('');
+  if(names.indexOf(cur)!==-1)sel.value=cur;
+  var del=el('preset-del');
+  if(del)del.disabled=!sel.value;
+}
+
+/** Load whichever preset the dropdown selects. */
+function onPresetPick(){
+  var sel=el('preset-select');
+  if(!sel||!sel.value)return renderPresetList();
+  pushUndo('load preset');
+  applyPreset(PRESETS[sel.value]);
+  renderPresetList();
+  toast('Loaded "'+sel.value+'"',true);
+}
+
+/** Save the current configuration under a name. */
+function savePresetAs(){
+  var name=prompt('Save this incentive setup as:', el('preset-select').value||'');
+  if(name===null)return;
+  name=String(name).trim().slice(0,40);
+  if(!name){toast('Give the preset a name');return}
+  var overwriting=Object.prototype.hasOwnProperty.call(PRESETS,name);
+  pushUndo(overwriting?'overwrite preset':'save preset');
+  PRESETS[name]=capturePreset();
+  savePresets();renderPresetList();
+  var sel=el('preset-select');if(sel)sel.value=name;
+  renderPresetList();
+  toast(overwriting?'Updated "'+name+'"':'Saved "'+name+'"',true);
+}
+
+/** Delete the selected preset, after confirmation. */
+function deletePreset(){
+  var sel=el('preset-select');
+  if(!sel||!sel.value){toast('Pick a preset first');return}
+  var name=sel.value;
+  askConfirm('Delete preset','Delete the preset "'+name+'"?',
+    'The incentives currently on screen are not changed.','Delete',function(){
+      pushUndo('delete preset');
+      delete PRESETS[name];
+      savePresets();sel.value='';renderPresetList();
+      toast('Deleted "'+name+'"',true);
+    });
+}
+
+/* ── Target-margin solver ───────────────────────────────────────────────────
+   Answers "what incentive do I need to hit X% GP?" rather than making the user
+   converge on it by trial and error.
+   ─────────────────────────────────────────────────────────────────────────── */
+/**
+ * Work out the extra CP incentive required to reach a target GP%.
+ *
+ * @param {number} targetGp desired gross profit percentage
+ * @returns {Object|null} null when the inputs cannot support an answer
+ */
+function solveForGp(targetGp){
+  if(isNaN(targetGp)||targetGp>=100)return null;
+  var cp=LAST_CP, sp=LAST_SP;
+  if(!cp||!sp||cp.e<=0||sp.e<=0)return null;
+
+  var effSP=sp.e-getSPIncentiveInr(sp);
+  var effCPNow=effectiveCP(cp);
+  var gpNow=(effSP>0)?((effSP-effCPNow)/effSP)*100:null;
+
+  // Effective CP that would achieve the target at the current selling price
+  var needEffCP=effSP*(1-targetGp/100);
+  var needInc=cp.e-(needEffCP-getLandedCost());   // rupees of incentive required
+  var haveInc=getIncentiveInr(cp);
+
+  return {
+    gpNow:gpNow,
+    targetGp:targetGp,
+    needEffCP:needEffCP,
+    needIncInr:needInc,
+    extraInr:needInc-haveInc,
+    needIncPct:(cp.e>0)?(needInc/cp.e)*100:null,
+    havePct:(cp.e>0)?(haveInc/cp.e)*100:null,
+    reachable:needInc<=cp.e && needEffCP>0
+  };
+}
+
+/** Recompute and render the solver readout. */
+function renderSolver(){
+  var out=el('solver-out');
+  if(!out)return;
+  var raw=el('solver-gp');
+  var target=raw?parseFloat(raw.value):NaN;
+  if(isNaN(target)){out.textContent='Enter a target GP % to see what it needs.';out.className='solver-out';return}
+  var r=solveForGp(target);
+  if(!r){out.textContent='Enter MRP, CP and SP first.';out.className='solver-out';return}
+  if(!r.reachable){
+    out.textContent='Not reachable — '+PCT(target)+' GP would need more incentive than the cost price.';
+    out.className='solver-out bad';
+    return;
+  }
+  var delta=r.extraInr;
+  var dir=delta>=0?'more':'less';
+  out.className='solver-out'+(Math.abs(delta)<0.005?' ok':'');
+  out.textContent='Needs '+PCT(r.needIncPct)+' total CP incentive ('+INR(r.needEffCP)+' eff. CP). '
+    +'You have '+PCT(r.havePct)+' — '+INR(Math.abs(delta))+' '+dir+' per unit'
+    +(r.gpNow!==null?'. Currently '+PCT(r.gpNow)+'.':'.');
+}
+
+ACT.presetPick = function(){ onPresetPick(); };
+ACT.presetSave = function(){ savePresetAs(); };
+ACT.presetDel  = function(){ deletePreset(); };
+ACT.solve      = function(){ renderSolver(); };
+
 /* ── Layout ── */
 function updateLayout(){
   var isCP=T==='cp',isSP=T==='sp',isPR=T==='profit';
@@ -1832,6 +2061,9 @@ function cpFromProfit(spe,mode,val){
   else if(mode==='gp')e=spe*(1-val/100);
   else if(mode==='margin')e=spe/(1+val/100);
   else return null;
+  // e is the target EFFECTIVE cost; landed cost is added after incentives, so
+  // remove it before inverting the incentive factor.
+  e-=getLandedCost();
   if(!e||e<=0)return null;
   var n=e/K;return{e:n,i:n*(1+G)};
 }
@@ -1930,6 +2162,48 @@ function animateValue(id, to, fmt, opts){
   rec.raf = requestAnimationFrame(frame);
 }
 
+
+/* ── Break-even ─────────────────────────────────────────────────────────────
+   How far the selling price can fall before the deal stops being worth doing.
+   Two thresholds: zero profit, and the GP floor from Settings. Both are quoted
+   incl GST, because that is the number actually negotiated with a customer.
+   ─────────────────────────────────────────────────────────────────────────── */
+/**
+ * Selling prices at which profit hits zero and at which GP% hits the floor.
+ *
+ * Both are stated BEFORE SP incentives: SP incentives reduce what is actually
+ * received, so the price you can quote is the threshold grossed back up by
+ * whatever proportion they take.
+ *
+ * @param {{e:number,i:number}|null} cp
+ * @param {{e:number,i:number}|null} sp current SP, used to infer the SP-incentive ratio
+ * @returns {{zeroE:number,zeroI:number,floorE:number|null,floorI:number|null}|null}
+ */
+function breakEven(cp,sp){
+  var eff=effectiveCP(cp);
+  if(eff===null||isNaN(eff)||eff<=0)return null;
+
+  // Proportion of SP that incentives give away, inferred from the current SP.
+  var keep=1;
+  if(sp&&sp.e>0){
+    var r=getSPIncentiveInr(sp)/sp.e;
+    if(r>=0&&r<1)keep=1-r;
+  }
+  if(keep<=0)return null;
+
+  var zeroE=eff/keep;
+  var floor=getFloor();
+  var floorE=null;
+  if(floor.gp!==null&&floor.gp<100){
+    // GP = (effSP - effCP)/effSP  =>  effSP = effCP / (1 - gp/100)
+    floorE=(eff/(1-floor.gp/100))/keep;
+  }
+  return {
+    zeroE:zeroE, zeroI:zeroE*(1+G),
+    floorE:floorE, floorI:floorE===null?null:floorE*(1+G)
+  };
+}
+
 /* ── Fill helpers ── */
 function fillCP(cp){
   if(!cp){
@@ -1998,7 +2272,7 @@ function fillProfit(effCPE,spe){
  */
 function fillIncPanel(cp){
   updateIncSummaryTag();
-  var inc=getIncentiveInr(cp),eff=cp?cp.e-inc:null;
+  var inc=getIncentiveInr(cp),eff=effectiveCP(cp);
   R('inc-total-pct',(inc>0&&cp)?PCT((inc/cp.e)*100):'0.00%');
   R('inc-total-inr',inc>0?INR(inc):'—');R('inc-eff-cp',INR(eff));
 }
@@ -2019,9 +2293,15 @@ function fillSummary(cp,sp){
   ['s-mrp','s-cp','s-ecp','s-sp','s-esp','s-inc','s-spinc','s-pr','s-gp','s-mg','s-dcp','s-dsp'].forEach(function(id){sumSet(id,'—','dim')});
   var mrpV=parseMRP();
   if(mrpV&&mrpV>0)sumSet('s-mrp',INR(mrpV),'');
-  if(!cp||!sp){updateMiniResult(null,null,null);updateA11yStatus(null,null,null);return}
+  if(!cp||!sp){
+    ['s-be-sep','s-item-be','s-item-bef','s-order-sep','s-item-qty','s-item-order','s-item-tpr']
+      .forEach(function(id){var e=el(id);if(e)e.style.display='none'});
+    updateMiniResult(null,null,null);updateA11yStatus(null,null,null);
+    renderSolver();
+    return;
+  }
   var floor=getFloor();
-  var cpInc=getIncentiveInr(cp),eff=cp.e-cpInc;
+  var cpInc=getIncentiveInr(cp),eff=effectiveCP(cp);
   var spInc=getSPIncentiveInr(sp),effSP=sp.e-spInc;
   var pr=effSP-eff,gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
   var dcp=discFromPrice(cp.e),dsp=discFromPrice(sp.e);
@@ -2031,8 +2311,8 @@ function fillSummary(cp,sp){
   sumSet('s-spinc',spInc>0?INR(spInc):'—',spInc>0?'pos':'dim');
   // Headline figures ease toward their new value; the class still updates now
   // so colour and floor warnings are never late.
-  sumSet('s-pr','',pr>=0?'pos':'neg');
-  sumSet('s-gp','',gpCls(gp,floor));sumSet('s-mg','',mgCls(mg,floor));
+  sumSet('s-pr',INR(pr),pr>=0?'pos':'neg');
+  sumSet('s-gp',PCT(gp),gpCls(gp,floor));sumSet('s-mg',PCT(mg),mgCls(mg,floor));
   animateValue('s-pr',pr,INR,{minDelta:1});
   animateValue('s-gp',gp,PCT,{minDelta:0.5});
   animateValue('s-mg',mg,PCT,{minDelta:0.5});
@@ -2047,8 +2327,24 @@ function fillSummary(cp,sp){
     sumSet('s-order',INR(sp.i*q),'');
     sumSet('s-tpr',INR(pr*q),pr>=0?'pos':'neg');
   }
+  // Break-even: how far SP can fall before profit or the GP floor is breached
+  var be=breakEven(cp,sp);
+  var beEls=['s-be-sep','s-item-be','s-item-bef'];
+  if(be){
+    sumSet('s-be',INR(be.zeroI),sp&&sp.i<=be.zeroI?'neg':'');
+    if(be.floorI!==null){
+      sumSet('s-bef',INR(be.floorI),sp&&sp.i<be.floorI?'warn':'');
+      el('s-item-bef').style.display='';
+    } else {
+      el('s-item-bef').style.display='none';
+    }
+    el('s-be-sep').style.display='';el('s-item-be').style.display='';
+  } else {
+    beEls.forEach(function(id){var e=el(id);if(e)e.style.display='none'});
+  }
   updateMiniResult(pr,gp,mg);
   updateA11yStatus(pr,gp,mg);
+  renderSolver();
   // Flash key values
   ['s-pr','s-gp','s-mg'].forEach(flashSumVal);
 }
@@ -2122,7 +2418,7 @@ function resolveWiSP(sc){
 // Update only the result rows — never touches inputs so keyboard stays open
 function updateWiResults(){
   if(!LAST_CP)return;
-  var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc,floor=getFloor();
+  var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP),floor=getFloor();
 
   // Recalculate best GP
   var bestGP=-Infinity,bestIdx=-1;
@@ -2166,7 +2462,7 @@ function updateWiResults(){
 function renderWhatIf(cp){
   var info=el('wi-cp-info'),grid=el('wi-grid');
   if(!cp){info.innerHTML='Enter CP and incentives on the main screen first.';grid.innerHTML='';return}
-  var inc=getIncentiveInr(cp),eff=cp.e-inc,floor=getFloor();
+  var inc=getIncentiveInr(cp),eff=effectiveCP(cp),floor=getFloor();
   var incTxt=inc>0?' · Incentives: '+INR(inc)+' · Eff CP: '+INR(eff):'';
   info.innerHTML='<span>MRP: <strong>'+INR(MI)+'</strong></span><span>CP excl GST: <strong>'+INR(cp.e)+'</strong></span>'+incTxt;
 
@@ -2311,7 +2607,7 @@ function autoSave(){
   clearTimeout(_autoSaveTimer);
   _autoSaveTimer=setTimeout(function(){
     if(!LAST_CP||!LAST_SP)return;
-    var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
+    var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
     var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
     var pr=effSP-eff;
     if(HISTORY.length>0){
@@ -2332,7 +2628,7 @@ function saveToHistory(){
     alert('Enter CP and SP first.');
     return;
   }
-  var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
+  var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
   var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
   var pr=effSP-eff;
   var q=getQty();
@@ -2518,7 +2814,7 @@ function renderCompare(){
   // Build current snapshot
   var cur=null;
   if(LAST_CP&&LAST_SP){
-    var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
+    var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
     var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
     var pr=effSP-eff;
     cur={
@@ -2620,7 +2916,7 @@ function renderCompare(){
  */
 function getSummaryText(){
   if(!LAST_CP||!LAST_SP)return null;
-  var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
+  var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
   var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
   var pr=effSP-eff;
   var gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
@@ -2684,22 +2980,21 @@ function calc(){
   if(T==='profit'){
     cp=resolveCP();sp=resolveSP();
     fillCP(cp);fillSP(sp);
-    var inc=getIncentiveInr(cp);
     var spInc=getSPIncentiveInr(sp);
-    var effCPE=cp?cp.e-inc:null;
+    var effCPE=effectiveCP(cp);
     var effSPE=sp?sp.e-spInc:null;
     fillProfit(effCPE,effSPE);fillIncPanel(cp);fillSpIncPanel(sp);fillSummary(cp,sp);
   }else if(T==='sp'){
     cp=resolveCP();prV=parseAmt('pri');fillCP(cp);fillIncPanel(cp);
     if(cp&&!isNaN(prV)){
-      var inc2=getIncentiveInr(cp);
+      var effCP2=effectiveCP(cp);
       // SP incentives unknown yet (no SP) — solve ignoring SP inc, then apply
-      var spe2=spFromProfit(cp.e-inc2,PM,prV);
+      var spe2=spFromProfit(effCP2,PM,prV);
       if(spe2&&spe2>0){
         sp={e:spe2,i:spe2*(1+G)};
         var spInc2=getSPIncentiveInr(sp);
         var effSPE2=spe2-spInc2;
-        fillSP(sp);fillProfit(cp.e-inc2,effSPE2);fillSpIncPanel(sp);fillSummary(cp,sp);
+        fillSP(sp);fillProfit(effCP2,effSPE2);fillSpIncPanel(sp);fillSummary(cp,sp);
       }else{fillSP(null);fillProfit(null,null);fillSpIncPanel(null);fillSummary(cp,null)}
     }else{fillSP(null);fillProfit(null,null);fillSpIncPanel(null);fillSummary(cp,null)}
   }else if(T==='cp'){
@@ -2708,7 +3003,7 @@ function calc(){
       var spInc3=getSPIncentiveInr(sp);
       var effSPE3=sp.e-spInc3;
       cp=cpFromProfit(effSPE3,PM,prV);
-      if(cp&&cp.e>0){var inc3=getIncentiveInr(cp);fillCP(cp);fillProfit(cp.e-inc3,effSPE3);fillIncPanel(cp);fillSpIncPanel(sp);fillSummary(cp,sp)}
+      if(cp&&cp.e>0){fillCP(cp);fillProfit(effectiveCP(cp),effSPE3);fillIncPanel(cp);fillSpIncPanel(sp);fillSummary(cp,sp)}
       else{fillCP(null);fillProfit(null,null);fillIncPanel(null);fillSpIncPanel(sp);fillSummary(null,sp)}
     }else{fillCP(null);fillProfit(null,null);fillIncPanel(null);fillSpIncPanel(sp);fillSummary(null,sp)}
   }
@@ -2733,6 +3028,7 @@ function resetAll(){
   el('floor-gp').value='5'; el('floor-mg').value='';
   // Quantity
   if(el('qty'))el('qty').value='1';
+  if(el('landed'))el('landed').value='';
   // GST back to 18%
   setGST(18);
   // CP mode
@@ -3495,6 +3791,11 @@ function validateShareState(raw){
     if(v !== undefined) s[k] = v;
   });
 
+  if(raw.lc !== undefined){
+    var lc = numStr(raw.lc, 1e9);
+    if(lc !== undefined && parseFloat(lc) >= 0) s.lc = lc;
+  }
+
   var qty = parseInt(raw.qty, 10);
   if(!isNaN(qty) && qty >= 1 && qty <= 1e6) s.qty = String(qty);
 
@@ -3570,7 +3871,7 @@ function getShareState(){
     sm:SM,spms:SPMS,spd:el('spd').value,spv:el('spv').value,
     pm:PM,pri:el('pri').value,
     cdm:CDM,scm:SCM,scdm:SCDM,sscm:SSCM,incm:INC_MODE,spincm:SP_INC_MODE,
-    qty:el('qty')?el('qty').value:'1',rnd:ROUND_MODE,
+    qty:el('qty')?el('qty').value:'1',rnd:ROUND_MODE,lc:el('landed')?el('landed').value:'',
     fgp:el('floor-gp').value,fmg:el('floor-mg').value,
     inc:inc,spinc:spinc
   };
@@ -3590,6 +3891,7 @@ function applyShareState(raw){
   try{
     if(s.rnd)setRounding(s.rnd);
     if(s.qty!==undefined&&el('qty'))el('qty').value=s.qty;
+    if(s.lc!==undefined&&el('landed'))el('landed').value=s.lc;
     if(s.g)setGST(parseFloat(s.g));
     if(s.m)el('mrp').value=s.m;
     if(s.cm)setCM(s.cm);
@@ -3856,6 +4158,7 @@ loadLabels();
 renderCPIncRows();
 renderSPIncRows();
 loadHistoryFromStorage();
+loadPresets();
 loadQuote();
 document.querySelectorAll('.kbd-mod').forEach(function(el){el.textContent=MOD_KEY;});
 updateLayout();

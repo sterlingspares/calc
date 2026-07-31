@@ -216,6 +216,10 @@
       <div class="mrp-stat"><span class="mrp-stat-lbl">GST Amount</span><span class="mrp-stat-val" id="mg">—</span></div>
       <div class="mrp-stat"><span class="mrp-stat-lbl">GST Rate</span><span class="mrp-stat-val" id="grate">18%</span></div>
       <div class="mrp-stat">
+        <span class="mrp-stat-lbl" title="Freight, insurance, handling — added to effective CP">Landed ₹/unit</span>
+        <span class="landed-wrap"><span>₹</span><input type="number" id="landed" value="" placeholder="0" min="0" step="0.01" inputmode="decimal" data-input="calc" data-change="saveState" autocomplete="off" aria-label="Landed cost per unit in rupees, excluding GST"></span>
+      </div>
+      <div class="mrp-stat">
         <span class="mrp-stat-lbl">Quantity</span>
         <span class="qty-wrap">
           <span class="qty-box">
@@ -355,6 +359,14 @@
       </div>
     </div>
     <div class="panel-body" id="body-inc">
+      <div class="preset-bar">
+        <label class="sr-only" for="preset-select">Incentive preset</label>
+        <select id="preset-select" class="preset-select" data-change="presetPick">
+          <option value="">Presets…</option>
+        </select>
+        <button class="preset-btn" data-click="presetSave" title="Save the current incentives as a preset">Save as…</button>
+        <button class="preset-btn danger" id="preset-del" data-click="presetDel" title="Delete the selected preset" disabled>Delete</button>
+      </div>
       <div class="inc-grid" id="cp-inc-grid"></div>
       <button class="inc-add-btn" id="cp-inc-add-btn" data-click="a57">+ Add incentive</button>
       <div class="inc-footer">
@@ -362,6 +374,13 @@
         <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on CP</span><span class="inc-total-val" id="inc-total-pct">0.00%</span></div>
         <div class="inc-total-item"><span class="inc-total-lbl" id="lbl-inc-eff-cp">Effective CP excl 18% GST</span><span class="inc-total-val" id="inc-eff-cp">—</span></div>
         <p class="inc-note">CD can be on CP excl or incl GST.<br>Scheme can be % or fixed ₹. All others on CP excl GST.</p>
+      </div>
+      <div class="solver">
+        <div class="solver-row">
+          <label class="solver-lbl" for="solver-gp">Target GP %</label>
+          <span class="solver-input"><input type="number" id="solver-gp" placeholder="12" min="0" max="99.9" step="0.1" inputmode="decimal" data-input="solve" autocomplete="off" aria-describedby="solver-out"></span>
+        </div>
+        <p class="solver-out" id="solver-out" role="status" aria-live="polite">Enter a target GP % to see what it needs.</p>
       </div>
     </div>
   </div>
@@ -417,6 +436,9 @@
         <div class="sum-item"><div class="sum-lbl">Margin %</div><div class="sum-val dim" id="s-mg">—</div></div>
         <div class="sum-item"><div class="sum-lbl">CP Discount + GST %</div><div class="sum-val dim" id="s-dcp">—</div></div>
         <div class="sum-item"><div class="sum-lbl">SP Discount + GST %</div><div class="sum-val dim" id="s-dsp">—</div></div>
+        <div class="sum-order-sep" id="s-be-sep" style="display:none"></div>
+        <div class="sum-item sum-order" id="s-item-be" style="display:none"><div class="sum-lbl" title="SP incl GST at which profit reaches zero">Break-even SP</div><div class="sum-val dim" id="s-be">—</div></div>
+        <div class="sum-item sum-order" id="s-item-bef" style="display:none"><div class="sum-lbl" title="SP incl GST at which GP% reaches your floor">SP at GP floor</div><div class="sum-val dim" id="s-bef">—</div></div>
         <div class="sum-order-sep" id="s-order-sep" style="display:none"></div>
         <div class="sum-item sum-order" id="s-item-qty" style="display:none"><div class="sum-lbl">Quantity</div><div class="sum-val dim" id="s-qty">—</div></div>
         <div class="sum-item sum-order" id="s-item-order" style="display:none"><div class="sum-lbl">Order Value (incl GST)</div><div class="sum-val dim" id="s-order">—</div></div>

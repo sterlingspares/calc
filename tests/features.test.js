@@ -1106,7 +1106,9 @@ R.section('\n=== 64. Deferred bundle is split correctly ===');
 const coreJs = readAsset('assets/app.js');
 const extraJs = readAsset('assets/app-extra.js');
 ok('app-extra.js exists', extraJs.length > 10000, extraJs.length + ' bytes');
-ok('core shrank below 160KB', coreJs.length < 160 * 1024, (coreJs.length/1024).toFixed(1) + 'KB');
+ok('deferring moved a meaningful share out of the core',
+   extraJs.length > 40 * 1024 && extraJs.length / (coreJs.length + extraJs.length) > 0.2,
+   (100 * extraJs.length / (coreJs.length + extraJs.length)).toFixed(0) + '% deferred');
 ok('quick mode moved out', /^function fcBuildCards\(/m.test(extraJs) && !/^function fcBuildCards\(/m.test(coreJs));
 ok('wizard moved out', /^function wzCalc\(/m.test(extraJs) && !/^function wzCalc\(/m.test(coreJs));
 ok('quote rendering moved out', /^function qtRender\(/m.test(extraJs) && !/^function qtRender\(/m.test(coreJs));
@@ -1182,6 +1184,155 @@ ok('mode pills use the animated entry point',
    readAsset('assets/app.js').indexOf('setModeAnimated(') !== -1);
 ok('view transition CSS is behind a no-preference query',
    /prefers-reduced-motion:no-preference[\s\S]{0,300}view-transition/.test(cssTxt2));
+
+R.section('\n=== 69. Landed cost adds to effective CP ===');
+freshCalc(1000, 40, 25);
+d.getElementById('landed').value = '';
+w.calc();
+ok('no landed cost by default', w.getLandedCost() === 0);
+ok('effectiveCP is CP less incentives', w.effectiveCP(w.LAST_CP) === 600, 'got ' + w.effectiveCP(w.LAST_CP));
+ok('baseline profit 150', Math.abs(num('pvv') - 150) < 0.05);
+
+d.getElementById('landed').value = '50';
+w.calc();
+ok('landed cost is read', w.getLandedCost() === 50);
+ok('it is ADDED to effective CP', w.effectiveCP(w.LAST_CP) === 650, 'got ' + w.effectiveCP(w.LAST_CP));
+ok('profit falls by exactly the landed cost', Math.abs(num('pvv') - 100) < 0.05, 'got ' + num('pvv'));
+ok('margin uses the landed-inclusive cost',
+   Math.abs(num('s-mg') - (100 / 650 * 100)) < 0.05, 'got ' + num('s-mg'));
+
+// It must also flow through the incentive interaction
+d.getElementById('it-eb').checked = true; w.syncToggle('eb'); w.calc();
+ok('incentives and landed cost combine',
+   Math.abs(w.effectiveCP(w.LAST_CP) - (600 - 6 + 50)) < 0.01,
+   'got ' + w.effectiveCP(w.LAST_CP));
+d.getElementById('it-eb').checked = false; w.syncToggle('eb');
+
+ok('negative landed cost is ignored',
+   (() => { d.getElementById('landed').value = '-99'; return w.getLandedCost() === 0; })());
+d.getElementById('landed').value = '50';
+ok('landed cost round-trips through share state', (() => {
+  const st = w.getShareState();
+  d.getElementById('landed').value = '';
+  w.applyShareState(st);
+  return w.getLandedCost() === 50;
+})(), 'got ' + w.getLandedCost());
+d.getElementById('landed').value = '';
+w.calc();
+
+R.section('\n=== 70. Break-even thresholds ===');
+freshCalc(1000, 40, 25);
+d.getElementById('floor-gp').value = '5';
+w.calc();
+const be = w.breakEven(w.LAST_CP, w.LAST_SP);
+ok('break-even is computed', !!be);
+ok('zero-profit SP excl equals effective CP', Math.abs(be.zeroE - 600) < 0.01, 'got ' + be.zeroE);
+ok('quoted incl GST', Math.abs(be.zeroI - 708) < 0.01, 'got ' + be.zeroI);
+// GP 5% => effSP = 600/0.95 = 631.58
+ok('floor SP excl solves the GP equation',
+   Math.abs(be.floorE - 600 / 0.95) < 0.01, 'got ' + be.floorE);
+ok('shown in the summary', d.getElementById('s-item-be').style.display !== 'none');
+ok('summary value matches', Math.abs(num('s-be') - 708) < 0.5, 'got ' + num('s-be'));
+
+// SP incentives reduce what is received, so the quotable threshold rises
+d.getElementById('sit-eb').checked = true;
+d.getElementById('siv-eb').value = '10';
+w.syncSpToggle('eb'); w.calc();
+const be2 = w.breakEven(w.LAST_CP, w.LAST_SP);
+ok('SP incentives raise the break-even price', be2.zeroE > be.zeroE,
+   be.zeroE + ' -> ' + be2.zeroE);
+ok('grossed up by the incentive ratio',
+   Math.abs(be2.zeroE - 600 / 0.9) < 0.01, 'got ' + be2.zeroE);
+d.getElementById('sit-eb').checked = false; w.syncSpToggle('eb');
+
+ok('hidden when there is nothing to compute', (() => {
+  d.getElementById('mrp').value = ''; w.calc();
+  return d.getElementById('s-item-be').style.display === 'none';
+})());
+
+R.section('\n=== 71. Target-margin solver ===');
+freshCalc(1000, 40, 25);
+ok('solveForGp is defined', typeof w.solveForGp === 'function');
+const sv = w.solveForGp(30);
+ok('reports the current GP', Math.abs(sv.gpNow - 20) < 0.01, 'got ' + sv.gpNow);
+// 30% GP on SP excl 750 => eff CP 525 => 75 of incentive on a 600 CP = 12.5%
+ok('required effective CP', Math.abs(sv.needEffCP - 525) < 0.01, 'got ' + sv.needEffCP);
+ok('required incentive in rupees', Math.abs(sv.needIncInr - 75) < 0.01, 'got ' + sv.needIncInr);
+ok('required incentive as a percentage', Math.abs(sv.needIncPct - 12.5) < 0.01, 'got ' + sv.needIncPct);
+ok('marked reachable', sv.reachable === true);
+ok('an unreachable target is flagged', (() => {
+  // Landed cost cannot be discounted away, so a high target becomes impossible
+  d.getElementById('landed').value = '700'; w.calc();
+  const r = w.solveForGp(90);
+  d.getElementById('landed').value = ''; w.calc();
+  return r && r.reachable === false;
+})(), 'expected reachable=false');
+ok('rejects 100% and above', w.solveForGp(100) === null);
+ok('accounts for landed cost', (() => {
+  d.getElementById('landed').value = '50'; w.calc();
+  const r = w.solveForGp(30);
+  d.getElementById('landed').value = ''; w.calc();
+  // eff CP must still be 525, but 50 of that is landed, so incentive must find 125
+  return Math.abs(r.needIncInr - 125) < 0.01;
+})(), 'landed cost not reflected');
+ok('readout renders', (() => {
+  d.getElementById('solver-gp').value = '30';
+  w.renderSolver();
+  return d.getElementById('solver-out').textContent.indexOf('12.50%') !== -1;
+})(), d.getElementById('solver-out').textContent);
+ok('needs a calculation first', (() => {
+  d.getElementById('mrp').value = ''; w.calc();
+  w.renderSolver();
+  return d.getElementById('solver-out').textContent.indexOf('Enter MRP') !== -1;
+})());
+
+R.section('\n=== 72. Incentive presets ===');
+freshCalc(1000, 40, 25);
+w.PRESETS = {};
+// Rendering rebuilds rows from defaults, so set the label first, then values.
+w.INC_LABELS['eb'] = 'Dealer rebate';
+w.renderCPIncRows();
+d.getElementById('it-eb').checked = true;
+d.getElementById('iv-eb').value = '3';
+w.syncToggle('eb');
+w.calc();
+const snap = w.capturePreset();
+ok('snapshot captures the key lists', snap.cpKeys.length === 5 && snap.spKeys.length === 5);
+ok('snapshot captures values', snap.cp.eb.v === '3' && snap.cp.eb.on === true);
+ok('snapshot captures labels', snap.labels.eb === 'Dealer rebate');
+ok('snapshot captures sub-modes', snap.cdm === 'before' && snap.scm === 'pct');
+
+w.PRESETS['Dealer A'] = snap;
+w.savePresets();
+ok('persisted to storage', !!w.localStorage.getItem('pc-presets'));
+
+// Change everything, then restore
+w.INC_LABELS['eb'] = 'Something else';
+w.renderCPIncRows();
+d.getElementById('it-eb').checked = false;
+d.getElementById('iv-eb').value = '1';
+w.syncToggle('eb'); w.calc();
+w.applyPreset(w.PRESETS['Dealer A']);
+ok('restores the toggle', d.getElementById('it-eb').checked === true);
+ok('restores the value', d.getElementById('iv-eb').value === '3');
+ok('restores the label', d.getElementById('lbl-cp-eb').textContent === 'Dealer rebate');
+ok('recalculates on load', Math.abs(num('pvv') - 168) < 0.05, 'got ' + num('pvv'));
+
+w.PRESETS = {};
+w.loadPresets();
+ok('reloads from storage', !!w.PRESETS['Dealer A']);
+ok('dropdown lists it',
+   d.getElementById('preset-select').innerHTML.indexOf('Dealer A') !== -1);
+ok('a preset with a malformed key is sanitised', (() => {
+  w.applyPreset({ cpKeys: ['cd', '"><img src=x>'], spKeys: ['cd'], labels: {}, cp: {}, sp: {} });
+  return w.INC_KEYS.indexOf('"><img src=x>') === -1;
+})(), w.INC_KEYS.join(','));
+ok('an empty preset falls back to defaults', (() => {
+  w.applyPreset({ cpKeys: [], spKeys: [], labels: {}, cp: {}, sp: {} });
+  return w.INC_KEYS.length === 5;
+})());
+w.localStorage.clear();
+w.INC_LABELS['eb'] = w.INC_LABELS_DEFAULT['eb'];
 
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

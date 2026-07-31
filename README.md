@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-632%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-766%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -36,6 +36,19 @@ Set a **Quantity** in the MRP bar. Per-unit figures are unaffected; once quantit
 | **Total Profit ₹** | Per-unit profit × qty |
 
 Quantity is saved with history entries and included in the CSV export. Absolute (₹) incentives are per-unit, consistent with every other figure.
+
+### Landed Cost
+A **Landed ₹/unit** field in the MRP bar for freight, insurance and handling. Unlike incentives, which reduce cost, landed cost is *added* to effective CP — so profit, GP %, margin and break-even all account for it. Entered per unit, excl GST.
+
+### Break-even
+Once a calculation is complete the summary shows two thresholds, both quoted **incl GST** because that is what gets negotiated:
+
+| Row | Meaning |
+|---|---|
+| **Break-even SP** | Price at which profit reaches zero |
+| **SP at GP floor** | Price at which GP % hits your Settings floor |
+
+Both are stated *before* SP incentives — those reduce what you actually receive, so the quotable price is grossed back up accordingly.
 
 ### Rounding
 Settings → **Rounding**: **Off**, **₹1**, **₹5**, or any step you type into the **Other ₹** box (₹20, ₹0.50, ₹100 — anything above zero, decimals allowed).
@@ -329,7 +342,7 @@ Checked with axe-core (WCAG 2.0/2.1 A + AA + best practice) across the default v
 
 ## 🧪 Tests
 
-632 assertions across six suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
+766 assertions across six suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
 
 ```bash
 npm install   # jsdom, dev-only
@@ -338,12 +351,12 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 346 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
+| `features` | 468 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 68 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
 | `a11y` | 90 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
-| `browser` | 45 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport |
+| `browser` | 56 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport |
 
 Individual suites: `npm run test:features`, `test:errors`, `test:mobile`, `test:fab`, `test:a11y`, `test:browser`. Full assertion output: `npm run test:verbose`.
 
