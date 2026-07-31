@@ -2448,6 +2448,121 @@ runFetchCases().then(() => {
      d.getElementById('s-pr').textContent.charAt(0) === '$',
      d.getElementById('s-pr').textContent);
 
+  // ── The custom GST box is a third option in its group ───────────────────
+  // It sets the rate but never showed selected, so a custom rate was live with
+  // nothing on screen saying which of the three options was active. The
+  // rounding chip beside it already behaved this way.
+  const gstSel = () => [['18', 'g18'], ['5', 'g5'], ['other', 'gst-custom-wrap']]
+    .filter(([, id]) => d.getElementById(id).className.indexOf('on') !== -1)
+    .map(([n]) => n);
+  const gstBox = d.getElementById('gst-custom');
+
+  w.setGST(18);
+  ok('18% starts selected', gstSel().join() === '18', gstSel().join());
+  w.setGST(5);
+  ok('5% selects instead', gstSel().join() === '5', gstSel().join());
+
+  gstBox.value = '12'; w.onCustomGST(gstBox);
+  ok('a custom rate selects the Other box', gstSel().join() === 'other', gstSel().join());
+  ok('and deselects the presets',
+     d.getElementById('g18').className.indexOf('on') === -1 &&
+     d.getElementById('g5').className.indexOf('on') === -1);
+  ok('the rate really is applied', Math.abs(w.G - 0.12) < 1e-9, 'G=' + w.G);
+
+  gstBox.value = '28'; w.onCustomGST(gstBox);
+  ok('28% stays custom despite 28/100*100 not being exactly 28',
+     gstSel().join() === 'other', gstSel().join() + ' (G*100=' + (w.G * 100) + ')');
+  gstBox.value = '0'; w.onCustomGST(gstBox);
+  ok('0% counts as a custom rate, not as nothing selected',
+     gstSel().join() === 'other', gstSel().join());
+
+  w.setGST(18);
+  ok('choosing a preset again clears the custom highlight',
+     gstSel().join() === '18', gstSel().join());
+  ok('and empties the box', gstBox.value === '', 'got ' + gstBox.value);
+
+  // Typing a rate that already has a pill hands over to it and empties the box,
+  // rather than leaving a second control looking filled in.
+  gstBox.value = '18'; gstBox.focus(); w.onCustomGST(gstBox);
+  ok('typing 18 in the box selects the 18% pill, not two things at once',
+     gstSel().join() === '18', gstSel().join());
+  ok('and the box empties itself', gstBox.value === '', 'got "' + gstBox.value + '"');
+  ok('the rate really is 18%', Math.abs(w.G - 0.18) < 1e-9, 'G=' + w.G);
+  gstBox.value = '5'; gstBox.focus(); w.onCustomGST(gstBox);
+  ok('same for 5', gstSel().join() === '5', gstSel().join());
+  ok('and it empties too', gstBox.value === '', 'got "' + gstBox.value + '"');
+  // A decimal spelling of a preset is still that preset.
+  gstBox.value = '18.0'; gstBox.focus(); w.onCustomGST(gstBox);
+  ok('18.0 counts as the 18% preset', gstSel().join() === '18' && gstBox.value === '',
+     gstSel().join() + ' box="' + gstBox.value + '"');
+  // A genuinely custom rate keeps its value in the box.
+  gstBox.value = '12'; gstBox.focus(); w.onCustomGST(gstBox);
+  ok('a custom rate stays in the box', gstBox.value === '12', 'got "' + gstBox.value + '"');
+  // Clearing goes back to the preset that is live, not to a stale figure.
+  // Blur first: a real click on the pill moves focus off the box, and the box
+  // deliberately keeps its value while it still has focus so typing survives.
+  gstBox.blur();
+  w.setGST(18);
+  ok('switching to a preset clears the box', gstBox.value === '', 'got "' + gstBox.value + '"');
+
+  // ── Rounding does the same hand-off ─────────────────────────────────────
+  const rndSel = () => [['off', 'rnd-off'], ['1', 'rnd-1'], ['5', 'rnd-5'],
+                        ['other', 'rnd-custom-wrap']]
+    .filter(([, id]) => d.getElementById(id).className.indexOf('on') !== -1)
+    .map(([n]) => n);
+  const rndBox = d.getElementById('rnd-custom');
+  // Back to rupees: the block above leaves the sale side in dollars, and the
+  // step is denominated in the sale currency. The dollar case is covered below.
+  w.setDisplayCcy('INR', 'both');
+
+  rndBox.value = '1'; rndBox.focus(); w.onCustomRounding(rndBox);
+  ok('typing 1 selects the ₹1 chip', rndSel().join() === '1', rndSel().join());
+  ok('and empties the custom box', rndBox.value === '', 'got "' + rndBox.value + '"');
+  ok('the step really is 1', w.roundStep() === 1, 'got ' + w.roundStep());
+  rndBox.value = '5'; rndBox.focus(); w.onCustomRounding(rndBox);
+  ok('typing 5 selects the ₹5 chip', rndSel().join() === '5', rndSel().join());
+  ok('and empties it too', rndBox.value === '', 'got "' + rndBox.value + '"');
+  rndBox.value = '1.0'; rndBox.focus(); w.onCustomRounding(rndBox);
+  ok('1.0 counts as the ₹1 chip', rndSel().join() === '1' && rndBox.value === '',
+     rndSel().join() + ' box="' + rndBox.value + '"');
+  rndBox.value = '20'; rndBox.focus(); w.onCustomRounding(rndBox);
+  ok('a genuinely custom step keeps the box filled and highlighted',
+     rndSel().join() === 'other' && rndBox.value === '20',
+     rndSel().join() + ' box="' + rndBox.value + '"');
+  ['1', '5', '20', '0.5', 'off'].forEach(v => {
+    if (v === 'off') w.setRounding('off');
+    else { rndBox.value = v; rndBox.focus(); w.onCustomRounding(rndBox); }
+    ok('exactly one rounding option is selected at ' + v, rndSel().length === 1,
+       rndSel().join(' + ') || 'none');
+  });
+
+  // The chips carry the sale currency, so 1 there means one unit of it.
+  w.FX.rates = { INR: 1, USD: 0.01 }; w.FX.fetched = w.nowMs();
+  w.setDisplayCcy('USD', 'sale');
+  rndBox.value = '1'; rndBox.focus(); w.onCustomRounding(rndBox);
+  ok('a $1 chip is what typing 1 selects when the sale side is in dollars',
+     rndSel().join() === '1', rndSel().join());
+  ok('and it means 100 rupees at this rate', Math.abs(w.roundStep() - 100) < 1e-6,
+     'got ' + w.roundStep());
+  w.setDisplayCcy('INR', 'both');
+  w.setRounding('off'); rndBox.value = '';
+
+  // Exactly one option is selected in every case.
+  ['18', '5', '12', '0', '99.5', '28'].forEach(v => {
+    gstBox.value = v; w.onCustomGST(gstBox);
+    ok('exactly one GST option is selected at ' + v + '%', gstSel().length === 1,
+       gstSel().join(' + ') || 'none');
+  });
+
+  // A custom rate restored from a share link must come back selected too.
+  gstBox.value = '12'; w.onCustomGST(gstBox);
+  const gstShare = w.getShareState();
+  w.setGST(18);
+  w.applyShareState(gstShare);
+  ok('a restored custom rate shows selected', gstSel().join() === 'other', gstSel().join());
+  ok('and the box holds it', Math.abs(parseFloat(gstBox.value) - 12) < 1e-9, gstBox.value);
+  w.setGST(18);
+
   // ── The scope survives a reload and a share link ────────────────────────
   w.setDisplayCcy('USD', 'sale');
   const scopeShare = w.getShareState();

@@ -61,9 +61,11 @@ html[data-theme="dark"] .header{background:#111110}
 html[data-theme="dark"] .pill.on,
 html[data-theme="dark"] .fc-tab.on{background:#736f68;border-color:#736f68;color:#fff}
 html[data-theme="dark"] .confirm-btn.primary{background:var(--text);border-color:var(--text);color:var(--bg)}
+html[data-theme="dark"] .gst-custom-wrap.on,
 html[data-theme="dark"] .rnd-custom-wrap.on,
 html[data-theme="dark"] .hist-fpill.on{background:#736f68;border-color:#736f68}
-html[data-theme="dark"] .rnd-custom-wrap.on input{color:#fff}
+html[data-theme="dark"] .rnd-custom-wrap.on input,
+html[data-theme="dark"] .gst-custom-wrap.on input{color:#fff}
 html[data-theme="dark"] .hist-fpill.on{color:#fff}
 html[data-theme="dark"] .summary{background:#252421;border:1px solid var(--border)}
 /* 0.35 alpha over the dark card was 2.88:1. 0.62 gives 6.01:1 and keeps
@@ -239,6 +241,9 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .gst-custom-wrap input{border:none;background:transparent;width:38px;font-size:12px;font-family:var(--font-body);text-align:center;outline:none;color:var(--text);padding:2px;-moz-appearance:textfield}
 .gst-custom-wrap input::-webkit-outer-spin-button,.gst-custom-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .gst-custom-wrap span{font-size:11px;color:var(--text3)}
+.gst-custom-wrap.on{background:var(--accent);border-color:var(--accent)}
+.gst-custom-wrap.on input{color:var(--accent-fg);font-weight:600}
+.gst-custom-wrap.on span{color:rgba(255,255,255,0.72)}
 /* Custom rounding step — same widget as the custom GST rate, prefix instead of suffix */
 .rnd-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border-ctrl);border-radius:20px;padding:1px 2px 1px 8px;background:var(--surface);transition:background .15s,border-color .15s}
 .rnd-custom-wrap:focus-within{border-color:var(--accent)}

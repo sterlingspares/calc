@@ -1113,10 +1113,16 @@ function onCustomGST(inp){
   if(isNaN(p)||p<0||p>100){
     logWarn('ignoring out-of-range custom GST rate: '+JSON.stringify(inp.value)+' (expected 0–100)');
     toast('GST must be between 0 and 100');
-    inp.value=(G*100===18||G*100===5)?'':String(G*100);
+    inp.value=isCustomGST()?String(G*100):'';
     return;
   }
+  // Typing a rate that already has a pill hands over to it rather than keeping
+  // a second control filled in. setGST leaves the box alone while it has focus,
+  // so that typing is not interrupted — but this is the change event, so entry
+  // is finished and the box can be cleared for real.
+  var preset=(p===18||p===5);
   setGST(p);
+  if(preset)inp.value='';
 }
 
 /* ── Floating action button (mobile) ── */
@@ -1185,7 +1191,10 @@ function onCustomRounding(inp){
     inp.value=isCustomRounding()?ROUND_MODE:'';
     return;
   }
+  // Same hand-off as the GST box: a step that already has a chip selects it.
+  var preset=(v===1||v===5);
   setRounding(String(v));
+  if(preset)inp.value='';
 }
 
 /* ── Quantity ── */
@@ -1257,6 +1266,18 @@ function roundPrice(p){
 /**
  * Whether the active rounding step came from the custom box rather than a
  * preset button.
+ * @returns {boolean}
+ */
+function isCustomGST(){
+  var p=G*100;
+  if(isNaN(p))return false;
+  // Compared with a tolerance: G is stored as p/100, and 28/100*100 comes back
+  // as 28.000000000000004. It happens not to bite for 18 or 5, but relying on
+  // that is relying on a float coincidence.
+  return Math.abs(p-18)>1e-9&&Math.abs(p-5)>1e-9;
+}
+/**
+ * Whether the rounding step is something other than off, ₹1 or ₹5.
  * @returns {boolean}
  */
 function isCustomRounding(){
@@ -2355,7 +2376,22 @@ function updateGSTLabels(){
  * is cleared when a preset is chosen and filled otherwise.
  * @param {number} p rate as a percentage, e.g. 18
  */
-function setGST(p){haptic('select');G=p/100;el('g18').className=(p===18)?'pill on':'pill';el('g5').className=(p===5)?'pill on':'pill';var gc=el('gst-custom');if(gc&&document.activeElement!==gc)gc.value=(p===18||p===5)?'':p;el('grate').textContent=p+'%';updateGSTLabels();calc()}
+function setGST(p){
+  haptic('select');
+  G=p/100;
+  el('g18').className=(p===18)?'pill on':'pill';
+  el('g5').className=(p===5)?'pill on':'pill';
+  var gc=el('gst-custom');
+  if(gc&&document.activeElement!==gc)gc.value=(p===18||p===5)?'':p;
+  // The custom box is a third option in the same group, so it has to show
+  // selected the way the two pills beside it do — otherwise a custom rate is
+  // live with nothing on screen saying which option is active.
+  var wrap=el('gst-custom-wrap');
+  if(wrap)wrap.className='gst-custom-wrap'+(isCustomGST()?' on':'');
+  el('grate').textContent=p+'%';
+  updateGSTLabels();
+  calc();
+}
 /**
  * Choose which figure the calculator solves for.
  * @param {'profit'|'sp'|'cp'} t
