@@ -901,5 +901,85 @@ ok('rejected input leaves rounding off', w.ROUND_MODE === 'off');
 ok('rejected input leaves the chip unhighlighted', rndWrap.className === 'rnd-custom-wrap',
    rndWrap.className);
 
+R.section('\n=== 55. HTML escaping is centralised and complete ===');
+ok('escHtml is exposed', typeof w.escHtml === 'function');
+ok('escapes angle brackets', w.escHtml('<b>') === '&lt;b&gt;');
+ok('escapes quotes', w.escHtml('a"b\'c') === 'a&quot;b&#39;c');
+ok('escapes ampersand first', w.escHtml('&lt;') === '&amp;lt;');
+ok('null becomes empty', w.escHtml(null) === '' && w.escHtml(undefined) === '');
+ok('numbers pass through', w.escHtml(18) === '18');
+ok('no ad-hoc escape chains remain in the source',
+   readAsset('assets/app.js').indexOf("replace(/&/g,'&amp;')") === -1);
+
+R.section('\n=== 56. Untrusted stored data cannot inject markup ===');
+const EVIL = '"><img src=x onerror=window.__XSS__=1>';
+
+// Incentive label
+freshCalc(1000, 40, 25);
+w.INC_LABELS['eb'] = EVIL;
+w.renderCPIncRows();
+ok('label is escaped in the row', d.getElementById('cp-inc-grid').querySelector('img') === null);
+ok('label renders as text', d.getElementById('lbl-cp-eb').textContent === EVIL);
+w.INC_LABELS['eb'] = w.INC_LABELS_DEFAULT['eb'];
+w.renderCPIncRows();
+
+// History time / GST — these were interpolated unescaped
+w.HISTORY.length = 0;
+w.HISTORY.push({time: EVIL, ts: 0, mrp: 1, cpE: 1, cpI: 1, spE: 2, spI: 2, effCPE: 1,
+                effSPE: 2, incInr: 0, spIncInr: 0, pr: 1, gp: 5, mg: 5, gst: EVIL, tag: EVIL});
+w.renderHistory();
+// The meaningful test is that no element was created and the payload survives
+// as literal text. Scanning innerHTML for '<img' is NOT valid: a '<' inside an
+// attribute value serialises literally and is inert.
+ok('history injects no elements', d.getElementById('hist-content').querySelector('img') === null);
+// svg is excluded: the delete button legitimately contains its own icon.
+ok('history injects no scriptable node',
+   d.getElementById('hist-content').querySelectorAll('img,script,iframe,object,embed').length === 0);
+ok('the payload survives as literal text',
+   d.getElementById('htime-0').textContent === EVIL,
+   d.getElementById('htime-0').textContent);
+ok('tag renders as literal text too',
+   d.getElementById('tag-0').textContent === EVIL, d.getElementById('tag-0').textContent);
+w.HISTORY.length = 0;
+w.renderHistory();
+
+R.section('\n=== 57. Malformed incentive keys are rejected on load ===');
+ok('isValidIncKey accepts generated keys',
+   w.isValidIncKey('c1') && w.isValidIncKey('cd') && w.isValidIncKey('eb'));
+ok('rejects markup', !w.isValidIncKey('"><img src=x>'));
+ok('rejects quotes', !w.isValidIncKey('a"onclick="x'));
+ok('rejects empty and non-strings',
+   !w.isValidIncKey('') && !w.isValidIncKey(null) && !w.isValidIncKey(7));
+ok('rejects over-long keys', !w.isValidIncKey('a'.repeat(25)));
+
+w.localStorage.setItem('pc-labels', JSON.stringify({
+  labels: { cd: 'Cash', '"><img src=x>': 'evil' },
+  cpKeys: ['cd', '"><img src=x>'], spKeys: ['cd'], cpModes: {}, spModes: {}
+}));
+w.INC_KEYS.length = 0; ['cd'].forEach(k => w.INC_KEYS.push(k));
+w.loadLabels();
+ok('malformed key dropped from the list', w.INC_KEYS.indexOf('"><img src=x>') === -1,
+   w.INC_KEYS.join(','));
+ok('valid key retained', w.INC_KEYS.indexOf('cd') !== -1);
+ok('malformed label key ignored', !w.INC_LABELS['"><img src=x>']);
+w.localStorage.clear();
+
+R.section('\n=== 58. History timestamps refresh without a full rebuild ===');
+freshCalc(1000, 40, 25);
+w.HISTORY.length = 0;
+w.saveToHistory();
+w.commitTag(0, 'keepme');
+const timeNode = d.getElementById('htime-0');
+ok('timestamp has a stable id', !!timeNode);
+ok('refreshHistTimes exists', typeof w.refreshHistTimes === 'function');
+// Age the entry and refresh in place
+w.HISTORY[0].ts = Date.now() - 3 * 60 * 1000;
+w.refreshHistTimes();
+ok('timestamp text updated in place',
+   d.getElementById('htime-0').textContent.indexOf('min') !== -1,
+   d.getElementById('htime-0').textContent);
+ok('the same node was reused, not rebuilt', d.getElementById('htime-0') === timeNode);
+ok('tag survived the refresh', w.HISTORY[0].tag === 'keepme');
+
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

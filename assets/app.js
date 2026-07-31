@@ -69,6 +69,33 @@ window.addEventListener('unhandledrejection',function(ev){
   logError('Unhandled promise rejection',ev.reason);
 });
 
+/* ── HTML escaping ──
+   Several renderers build markup as strings. Escaping was previously open-coded
+   at each site with slightly different character sets, and two of those sites
+   missed it entirely (incentive keys, and the history time/GST fields), which
+   was exploitable by anyone able to write to localStorage. One helper now covers
+   every case; use it for anything interpolated into markup, in text or attribute
+   position. */
+var _ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+/**
+ * Escape a value for safe interpolation into an HTML string.
+ * @param {*} v any value; null/undefined become ''
+ * @returns {string}
+ */
+function escHtml(v){
+  return String(v==null?'':v).replace(/[&<>"']/g,function(c){return _ESC_MAP[c]});
+}
+/**
+ * Whether an incentive key is safe to interpolate into element ids and inline
+ * handlers. Generated keys are 'c1', 'c2', …; anything else came from storage
+ * and is not trusted.
+ * @param {*} k
+ * @returns {boolean}
+ */
+function isValidIncKey(k){
+  return typeof k==='string'&&/^[A-Za-z0-9_-]{1,24}$/.test(k);
+}
+
 /* ── Platform ── */
 var IS_MAC=/Mac/.test(navigator.platform);
 var MOD_KEY=IS_MAC?'⌘':'Ctrl';
@@ -764,10 +791,27 @@ function togglePanel(id){
   if(id==='hist'){
     if(!open){
       clearInterval(_histRefreshTimer);
-      _histRefreshTimer=setInterval(function(){if(HISTORY.length>0)renderHistory()},60000);
+      // Only the relative timestamps age; rebuilding every card for that cost
+      // ~224ms at 50 entries on a throttled phone. Update the text in place.
+      _histRefreshTimer=setInterval(refreshHistTimes,60000);
     }else{
       clearInterval(_histRefreshTimer);_histRefreshTimer=null;
     }
+  }
+}
+
+/**
+ * Refresh the relative timestamps on visible history rows without rebuilding
+ * them. Rows are addressed by their true HISTORY index, so this stays correct
+ * under an active search or filter.
+ */
+function refreshHistTimes(){
+  if(HISTORY.length===0)return;
+  for(var i=0;i<HISTORY.length;i++){
+    var h=HISTORY[i];
+    if(!h||!h.ts)continue;
+    var node=document.getElementById('htime-'+i);
+    if(node)node.textContent=relTime(h.ts);
   }
 }
 
@@ -868,7 +912,7 @@ function _incRowHTML(k,panel,editMode){
   var cbId=(isCP?'it-':'sit-')+k;
   var inpId=(isCP?'iv-':'siv-')+k;
   var lblId='lbl-'+(isCP?'cp':'sp')+'-'+k;
-  var lbl=(INC_LABELS[k]||k).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  var lbl=escHtml(INC_LABELS[k]||k);
   // Same text, for use inside aria-label attributes
   var lblPlain=lbl;
   var syncFn=isCP?'syncToggle':'syncSpToggle';
@@ -1165,9 +1209,22 @@ function loadLabels(){
     if(!raw)return;
     var parsed=JSON.parse(raw);
     var labels=parsed.labels||parsed;
-    Object.keys(labels).forEach(function(k){INC_LABELS[k]=labels[k];if(!INC_LABELS_DEFAULT[k])INC_LABELS_DEFAULT[k]=labels[k];});
-    if(parsed.cpKeys&&Array.isArray(parsed.cpKeys))INC_KEYS=parsed.cpKeys;
-    if(parsed.spKeys&&Array.isArray(parsed.spKeys))SP_INC_KEYS=parsed.spKeys;
+    Object.keys(labels).forEach(function(k){
+      if(!isValidIncKey(k))return;
+      INC_LABELS[k]=String(labels[k]);
+      if(!INC_LABELS_DEFAULT[k])INC_LABELS_DEFAULT[k]=String(labels[k]);
+    });
+    // Keys are interpolated into element ids and inline handlers, so anything
+    // that did not come from addInc() is dropped rather than rendered.
+    function safeKeys(arr,fallback){
+      if(!Array.isArray(arr))return fallback;
+      var clean=arr.filter(isValidIncKey);
+      if(clean.length!==arr.length)
+        logWarn('discarded '+(arr.length-clean.length)+' malformed incentive key(s) from storage');
+      return clean.length?clean:fallback;
+    }
+    INC_KEYS=safeKeys(parsed.cpKeys,INC_KEYS);
+    SP_INC_KEYS=safeKeys(parsed.spKeys,SP_INC_KEYS);
     if(parsed.cpModes)INC_MODE=parsed.cpModes;
     if(parsed.spModes)SP_INC_MODE=parsed.spModes;
   }catch(e){ logWarn('could not read saved incentives (pc-labels); using defaults',e); }
@@ -2038,20 +2095,22 @@ function renderHistory(){
   rows.forEach(function(row){
     var h=row.h,idx=row.idx;
     var tagHtml=h.tag
-      ?'<button type="button" class="hist-tag" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Edit tag" aria-label="Edit tag: '+String(h.tag).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')+'">'+String(h.tag).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</button>'
+      ?'<button type="button" class="hist-tag" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Edit tag" aria-label="Edit tag: '+escHtml(h.tag)+'">'+escHtml(h.tag)+'</button>'
       :'<button type="button" class="hist-tag empty" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Add a tag" aria-label="Add a tag to this entry">+ Tag</button>';
-    var timeDisp=h.ts?relTime(h.ts):h.time;
-    var timeFull=h.ts?fmtTime(h.ts):h.time;
+    // h.time / h.gst come from storage and are not guaranteed to be the
+    // numbers and formatted strings this app writes.
+    var timeDisp=escHtml(h.ts?relTime(h.ts):h.time);
+    var timeFull=escHtml(h.ts?fmtTime(h.ts):h.time);
     var gpCls=belowFloor(h.gp,floor.gp)?'warn':(h.gp>=0?'pos':'neg');
     var mgCls=belowFloor(h.mg,floor.mg)?'warn':(h.mg>=0?'pos':'neg');
     var prCls=h.pr>=0?'pos':'neg';
     html+='<div class="hist-entry" data-idx="'+idx+'" role="listitem">'
       +'<div class="hist-inner">'
         +'<div class="hist-meta">'
-          +'<span class="hist-time" title="'+timeFull+'">'+timeDisp+'</span>'
+          +'<span class="hist-time" id="htime-'+idx+'" title="'+timeFull+'">'+timeDisp+'</span>'
           +tagHtml
-          +(h.qty>1?'<span class="hist-gst">×'+h.qty+'</span>':'')
-          +'<span class="hist-gst">GST '+h.gst+'%</span>'
+          +(h.qty>1?'<span class="hist-gst">×'+escHtml(h.qty)+'</span>':'')
+          +'<span class="hist-gst">GST '+escHtml(h.gst)+'%</span>'
           +'<button class="cmp-hist-btn" onclick="openCompare('+idx+')" aria-label="Compare entry from '+timeDisp+'">Compare</button>'
           +'<button class="hist-del-btn" onclick="deleteHistEntry('+idx+')" aria-label="Delete entry from '+timeDisp+'" title="Delete">'
             +'<svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
@@ -3421,7 +3480,7 @@ function startTagEdit(idx){
   var cell=document.getElementById('tag-'+idx);
   if(!cell)return;
   var cur=HISTORY[idx]&&HISTORY[idx].tag?HISTORY[idx].tag:'';
-  cell.outerHTML='<input class="hist-tag-input" id="tagin-'+idx+'" aria-label="Tag for this entry" value="'+cur.replace(/"/g,'&quot;')+'" maxlength="24" placeholder="Tag…" autocomplete="off" '
+  cell.outerHTML='<input class="hist-tag-input" id="tagin-'+idx+'" aria-label="Tag for this entry" value="'+escHtml(cur)+'" maxlength="24" placeholder="Tag…" autocomplete="off" '
     +'onblur="commitTag('+idx+',this.value)" '
     +'onkeydown="if(event.key===\'Enter\'){this.blur()}else if(event.key===\'Escape\'){this.value=\'\\u0000\';this.blur()}">';
   var inp=document.getElementById('tagin-'+idx);
@@ -3779,7 +3838,7 @@ function qtIsMobile(){return window.innerWidth<=800}
  */
 function qtField(i,field,val,opts){
   opts=opts||{};
-  var esc=String(val==null?'':val).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+  var esc=escHtml(val);
   return '<input class="qt-in '+(opts.cls||'')+'"'
     +(opts.type?' type="'+opts.type+'"':'')
     +(opts.mode?' inputmode="'+opts.mode+'"':'')

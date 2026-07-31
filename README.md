@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-606%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-632%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -329,7 +329,7 @@ Checked with axe-core (WCAG 2.0/2.1 A + AA + best practice) across the default v
 
 ## 🧪 Tests
 
-606 assertions across six suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
+632 assertions across six suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
 
 ```bash
 npm install   # jsdom, dev-only
@@ -338,7 +338,7 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 320 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
+| `features` | 346 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 68 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
@@ -354,6 +354,19 @@ npx playwright install chromium   # only needed for the browser suite
 ```
 
 Every push and pull request runs them via GitHub Actions — the jsdom suites on Node 22 and 24, and the browser suite in a dedicated job with `REQUIRE_BROWSER=1` so a missing browser fails rather than silently skips. See [`tests/README.md`](tests/README.md) for how the harness works and how to add a suite.
+
+---
+
+## 🔒 Security
+
+- **Content Security Policy** via meta tag — restricts script, style, font, image and connect sources, blocks plugins, and prevents `<base>` hijacking
+- **One escaping helper** (`escHtml`) for every value interpolated into markup, rather than escaping open-coded per call site
+- **Stored data is untrusted** — incentive keys from `localStorage` are validated against `/^[A-Za-z0-9_-]{1,24}$/` before being used in element ids or inline handlers, and malformed entries are dropped with a console warning
+- **No external origins at runtime** except Google Fonts; icons are served locally so the app works fully offline
+
+> `script-src` still needs `'unsafe-inline'` because the markup uses ~178 inline `on*` handlers. Moving those to `addEventListener` would allow a strict nonce or hash policy — the single biggest remaining security improvement.
+>
+> `frame-ancestors` / `X-Frame-Options` cannot be set from a meta tag. Add them as response headers at the host to prevent framing.
 
 ---
 

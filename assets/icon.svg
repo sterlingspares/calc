@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Price Calc">
+  <!-- Maskable-safe: all meaningful content sits inside the central 80% -->
+  <rect width="512" height="512" fill="#1a1916"/>
+  <circle cx="256" cy="150" r="26" fill="#e8c840"/>
+  <text x="256" y="368" font-family="Georgia, 'Times New Roman', serif" font-size="248"
+        font-weight="700" fill="#f0ede8" text-anchor="middle">&#8377;</text>
+</svg>

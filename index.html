@@ -2,6 +2,31 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Content Security Policy.
+     'unsafe-inline' for script-src is currently unavoidable: the markup uses 178
+     inline on* handlers. Removing those in favour of addEventListener would
+     allow a strict nonce/hash policy — see the note in README. Even so, this
+     blocks plugin content, restricts where scripts, styles, fonts and XHR may
+     come from, and prevents <base> hijacking, all of which meaningfully narrows
+     the impact of any injection.
+     frame-ancestors and X-Frame-Options cannot be set from a meta tag; they need
+     response headers, which a static host must supply. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src https://fonts.gstatic.com;
+  img-src 'self' data:;
+  connect-src 'self';
+  manifest-src 'self';
+  worker-src 'self';
+  object-src 'none';
+  base-uri 'self';
+  form-action 'none';
+">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+
 <!-- Pinch-zoom stays available (WCAG 1.4.4). Accidental double-tap zoom is
      suppressed per-control with `touch-action:manipulation` instead of by
      disabling zoom globally. -->
@@ -20,8 +45,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Pricing Calc">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" href="https://sterlingspares.com/favicon.png">
-<link rel="apple-touch-icon" href="https://sterlingspares.com/favicon.png">
+<!-- Local icons: the previous ones were fetched from sterlingspares.com, which
+     made an offline-first PWA depend on a third origin at load and violated the
+     img-src policy. -->
+<link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Price Calc — Sterling Spares</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
