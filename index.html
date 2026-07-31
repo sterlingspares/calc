@@ -15,7 +15,7 @@
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data:;
-  connect-src 'self';
+  connect-src 'self' https://open.er-api.com;
   manifest-src 'self';
   worker-src 'self';
   object-src 'none';
@@ -202,6 +202,17 @@
         </select>
         <button class="preset-btn" data-click="presetSave" title="Save the current incentive setup as a preset">Save</button>
         <button class="preset-btn" id="preset-manage" data-click="presetManage" title="Rename, update or delete saved presets">Manage</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Show in</span>
+      <div class="fx-bar">
+        <label class="sr-only" for="ccy-select">Display currency</label>
+        <select id="ccy-select" class="preset-select fx-select" data-change="ccyPick"></select>
+        <button class="preset-btn" id="fx-refresh" data-click="fxRefresh"
+                title="Fetch today's exchange rates">Rates</button>
+        <span class="fx-note" id="fx-note" role="status" aria-live="polite"></span>
       </div>
     </div>
     <div class="sep"></div>
@@ -818,6 +829,32 @@
         </div>
       </div>
 
+      <div class="modal-section">
+        <div class="modal-section-title">Currency</div>
+        <div class="settings-row">
+          <div class="settings-lbl">
+            <span>Exchange rates</span>
+            <small id="fx-status">Amounts are entered in rupees; the display currency converts what is shown.</small>
+          </div>
+          <div class="settings-control">
+            <button class="pill" data-click="fxRefresh" style="font-size:11px;padding:5px 12px">Update now</button>
+          </div>
+        </div>
+        <div class="settings-row" id="fx-manual-row">
+          <div class="settings-lbl">
+            <span>Rate override</span>
+            <small id="fx-manual-hint">Set the rate yourself — for a contracted rate, or when offline.</small>
+          </div>
+          <div class="settings-control">
+            <span class="fx-manual-wrap">
+              <span id="fx-manual-pre">1 USD =</span>
+              <input type="number" id="fx-manual" min="0" step="0.0001" inputmode="decimal"
+                     autocomplete="off" data-change="fxManual" aria-label="Rupees per unit of the display currency">
+              <span>&#8377;</span>
+            </span>
+          </div>
+        </div>
+      </div>
       <div class="modal-section">
         <div class="modal-section-title">Presets</div>
         <div class="settings-row">

@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1061%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1125%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -197,8 +197,27 @@ shown in the field itself, so the state is never signalled by colour alone.
 
 ### Number formatting
 
-Monetary values use Indian digit grouping (₹1,00,000.00). Percentages show two
-decimal places.
+Grouping follows the currency, not the app. Rupees group Indian-style
+(₹98,76,54,321.55); every other currency groups in thousands
+($987,654,321.55). Percentages show two decimal places.
+
+### Currency
+
+Everything is entered, stored and calculated in **rupees** — MRP is an Indian
+legal construct and the incentives are quoted against it. The **Show in** picker
+converts only what is displayed, which is what you want for an export quote.
+Twenty currencies are available.
+
+| | |
+|---|---|
+| **Rates** | Fetched from [open.er-api.com](https://open.er-api.com) — free, no key, updated daily |
+| **When** | Never on load. Only when you first switch to a foreign currency, or press **Rates** |
+| **Offline** | The last fetch is cached and reused, labelled with its age (`1 USD = ₹95.69 · 4h ago`) |
+| **Override** | Settings → Currency takes a rate you type, for a contracted rate or no connection. Yours wins over the feed |
+| **No rate** | Amounts show `—`. A rupee figure is never shown wearing a foreign symbol |
+
+The rate is deliberately **not** carried in share links — only the currency is,
+so the recipient fetches a current rate instead of inheriting a stale one.
 
 ---
 
@@ -438,6 +457,7 @@ operations.
 | **Auto-save** | Toggle automatic history logging |
 | **Rounding** | ₹1, ₹5, a custom step, or off |
 | **Saved presets** | Open the preset manager |
+| **Exchange rates** | Update now, and set a manual rate |
 | **App tour** | Restart the onboarding walkthrough |
 | **Keyboard shortcuts** | View all shortcuts |
 
@@ -520,6 +540,7 @@ taken by Solve-for-Profit and Settings, so presets use `E`.
 | `pc-history` | History array — up to 50 entries |
 | `pc-labels` | Custom incentive names and the CP/SP incentive lists |
 | `pc-presets` | Saved incentive presets |
+| `pc-fx` | Cached exchange rates, their age, and any manual override |
 | `pc-qstate` | Quick mode inputs and settings |
 | `pc-quote` | Quote builder lines |
 | `pc-theme` | Dark / light preference |
@@ -572,8 +593,11 @@ evaluate without layout.
   `'unsafe-inline'`. The markup carries no `on*` attributes at all; every
   interaction is routed through a delegated handler registry keyed by
   `data-click` / `data-input` / `data-change` attributes.
-- **No external origins at runtime.** Fonts and icons are served from the same
-  origin, so the CSP is `'self'` throughout and the app is genuinely offline-first.
+- **One external origin, declared narrowly.** Fonts and icons are same-origin;
+  the only outbound request is the exchange-rate feed, so `connect-src` is
+  `'self' https://open.er-api.com` and nothing else. The app makes exactly one
+  `fetch()` call, never during load, and works fully offline without it — a
+  browser test confirms the policy admits that host and refuses any other.
 - **One escaping helper** (`escHtml`) for every value interpolated into markup,
   rather than escaping open-coded per call site.
 - **Stored data is untrusted.** Incentive keys from `localStorage` are validated
@@ -596,8 +620,8 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 1061 passing, 7 suites | `npm test` |
-| Statement coverage | **80.1%** (app.js 83.9%, app-extra.js 66.3%) | `npm run coverage` |
+| Tests | 1125 passing, 7 suites | `npm test` |
+| Statement coverage | **80.8%** (app.js 84.4%, app-extra.js 67.6%) | `npm run coverage` |
 | Lighthouse Performance | **98** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
 | Lighthouse Best Practices | **100** | ” |
@@ -624,7 +648,7 @@ commands after significant changes.
 
 ## Tests
 
-1061 assertions across seven suites. They load the real `index.html`,
+1125 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -635,13 +659,13 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 653 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 715 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 69 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
 | `modes` | 85 | solve modes, price input modes, what-if, comparison, Quick mode, wizard, share-link round trip, theming, auto-save |
 | `a11y` | 103 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
-| `browser` | 68 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport, axe with layout |
+| `browser` | 70 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport, axe with layout |
 
 Individual suites: `npm run test:features`, `test:errors`, `test:mobile`,
 `test:fab`, `test:modes`, `test:a11y`, `test:browser`. Full assertion output:

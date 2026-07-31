@@ -1124,7 +1124,13 @@ ok('service worker precaches it',
    fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').indexOf('/assets/app-extra.js') !== -1);
 
 R.section('\n=== 65. Currency formatter is cached ===');
-ok('formatter is memoised', coreJs.indexOf('_inrFmt') !== -1);
+// Building an Intl.NumberFormat per call was the hottest function during load
+// (77ms of self time). The memo is now keyed by currency, since each one needs
+// its own formatter and its own grouping.
+ok('formatter is memoised', coreJs.indexOf('_fmtCache') !== -1);
+ok('one formatter per currency, not per call',
+   /_fmtCache\[c\]\s*=\s*new Intl\.NumberFormat/.test(coreJs) &&
+   /if\(_fmtCache\[c\]\)return _fmtCache\[c\]/.test(coreJs));
 ok('no per-call toLocaleString with options',
    coreJs.indexOf("toLocaleString('en-IN',{minimumFractionDigits") === -1);
 ok('formats Indian grouping', w.INR(1234567.891) === '₹12,34,567.89', w.INR(1234567.891));
@@ -2063,5 +2069,211 @@ w.PRESETS = {};
 w.renderPresetList(); w.renderPresetManager();
 w.resetAll();
 
-if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
-R.finish();
+R.section('\n=== 29. Currency conversion and grouping ===');
+
+freshCalc(1000, 40, 25);
+w.DISPLAY_CCY = 'INR';
+w.FX.rates = { INR: 1 }; w.FX.manual = {}; w.FX.fetched = 0; w.FX.src = null;
+
+// ── Rupees are unchanged ──────────────────────────────────────────────────
+// INR is the base: everything is entered, stored and calculated in rupees, and
+// only the display converts. Rupee output must be byte-identical to before.
+ok('rupees still group Indian-style', w.INR(1234567.891) === '₹12,34,567.89', w.INR(1234567.891));
+ok('and at crore scale', w.INR(987654321.55) === '₹98,76,54,321.55', w.INR(987654321.55));
+ok('zero and negatives unchanged', w.INR(0) === '₹0.00' && w.INR(-500.5) === '₹-500.50');
+ok('NaN still dashes', w.INR(NaN) === '—');
+
+// ── Foreign currencies group in millions ──────────────────────────────────
+w.FX.rates = { INR: 1, USD: 1, EUR: 1, JPY: 1, AED: 1 };
+w.FX.fetched = w.nowMs(); w.FX.src = 'live';
+w.setDisplayCcy('USD');
+ok('a foreign currency groups in thousands, not lakhs',
+   w.INR(987654321.55) === '$987,654,321.55', w.INR(987654321.55));
+ok('and at a million exactly', w.INR(1000000) === '$1,000,000.00', w.INR(1000000));
+w.setDisplayCcy('EUR');
+ok('same for the euro', w.INR(1234567.891) === '€1,234,567.89', w.INR(1234567.891));
+w.setDisplayCcy('AED');
+ok('and for a code-prefixed symbol', w.INR(1234567.891) === 'AED 1,234,567.89', w.INR(1234567.891));
+// The manual fallback, used only when Intl is missing, must group the same way.
+ok('the non-Intl fallback groups in thousands too',
+   w.fmtWESTERN(1234567.891) === '1,234,567.89', w.fmtWESTERN(1234567.891));
+ok('and the Indian one still does not',
+   w.fmtINDIAN(1234567.891) === '12,34,567.89', w.fmtINDIAN(1234567.891));
+
+// ── Conversion maths ──────────────────────────────────────────────────────
+w.FX.rates = { INR: 1, USD: 0.01045 };
+w.setDisplayCcy('USD');
+ok('rate is units per rupee', Math.abs(w.fxRate('USD') - 0.01045) < 1e-9);
+ok('and is quoted back as rupees per unit',
+   Math.abs(w.inrPerUnit('USD') - 95.6938) < 0.001, 'got ' + w.inrPerUnit('USD'));
+ok('amounts convert', Math.abs(w.toDisplay(1000) - 10.45) < 1e-9, 'got ' + w.toDisplay(1000));
+ok('the summary converts too',
+   d.getElementById('s-cp').textContent.trim() === '$6.27',
+   d.getElementById('s-cp').textContent);
+// 600 INR x 0.01045 = 6.27; the underlying calculation is untouched
+ok('while the calculation stays in rupees', Math.abs(w.LAST_CP.e - 600) < 0.01,
+   'got ' + w.LAST_CP.e);
+ok('and effective CP is still rupees', Math.abs(w.effectiveCP(w.LAST_CP) - 600) < 0.01);
+
+// ── A missing rate must never print an unconverted number ─────────────────
+w.setDisplayCcy('BRL');
+ok('an unknown rate reads as null', w.fxRate('BRL') === null);
+ok('conversion refuses rather than guessing', w.toDisplay(1000) === null);
+ok('and the display dashes instead of showing rupees wearing a foreign symbol',
+   w.INR(1000) === '—', w.INR(1000));
+ok('the note says so', d.getElementById('fx-note').textContent.indexOf('no rate') !== -1,
+   d.getElementById('fx-note').textContent);
+
+// ── Manual override ───────────────────────────────────────────────────────
+const fxIn = d.getElementById('fx-manual');
+fxIn.value = '5.4'; w.onFxManual(fxIn);
+ok('a manual rate is stored as units per rupee',
+   Math.abs(w.fxRate('BRL') - 1 / 5.4) < 1e-9, 'got ' + w.fxRate('BRL'));
+ok('and quoted back as entered', Math.abs(w.inrPerUnit('BRL') - 5.4) < 1e-9);
+ok('amounts use it', w.INR(1000) === 'R$185.19', w.INR(1000));
+ok('the note credits you, not the feed',
+   d.getElementById('fx-note').textContent.indexOf('set by you') !== -1,
+   d.getElementById('fx-note').textContent);
+// A manual rate is usually contractual, so it must win over a fetched one.
+w.FX.rates.BRL = 0.02;
+ok('a manual rate beats a fetched one', Math.abs(w.fxRate('BRL') - 1 / 5.4) < 1e-9);
+fxIn.value = '0'; w.onFxManual(fxIn);
+ok('zero is refused', Math.abs(w.fxRate('BRL') - 1 / 5.4) < 1e-9, 'got ' + w.fxRate('BRL'));
+fxIn.value = '-3'; w.onFxManual(fxIn);
+ok('so is a negative', Math.abs(w.fxRate('BRL') - 1 / 5.4) < 1e-9);
+fxIn.value = ''; w.onFxManual(fxIn);
+ok('clearing it falls back to the fetched rate', Math.abs(w.fxRate('BRL') - 0.02) < 1e-9,
+   'got ' + w.fxRate('BRL'));
+
+// ── An unknown code cannot be forced in ───────────────────────────────────
+w.setDisplayCcy('XXX');
+ok('an unknown currency falls back to rupees', w.DISPLAY_CCY === 'INR', w.DISPLAY_CCY);
+
+// ── Persistence, and what a share link carries ────────────────────────────
+w.FX.rates = { INR: 1, USD: 0.01045 };
+w.FX.fetched = w.nowMs(); w.FX.src = 'live'; w.FX.manual = { USD: 0.011 };
+w.saveFx();
+w.FX = { rates: { INR: 1 }, fetched: 0, src: null, manual: {} };
+w.loadFx();
+ok('rates survive a reload', Math.abs(w.FX.rates.USD - 0.01045) < 1e-9);
+ok('so does a manual override', Math.abs(w.FX.manual.USD - 0.011) < 1e-9);
+// The cache is untrusted: it is localStorage, editable by anything on the origin.
+w.localStorage.setItem('pc-fx', JSON.stringify({
+  rates: { USD: 'abc', EUR: -4, GBP: 0, JPY: 0.0059, ZZZ: 5 }, manual: { USD: -1 }, fetched: 'soon'
+}));
+w.FX = { rates: { INR: 1 }, fetched: 0, src: null, manual: {} };
+w.loadFx();
+ok('a non-numeric rate is dropped', w.FX.rates.USD === undefined);
+ok('a negative rate is dropped', w.FX.rates.EUR === undefined);
+ok('a zero rate is dropped', w.FX.rates.GBP === undefined);
+ok('an unknown code is dropped', w.FX.rates.ZZZ === undefined);
+ok('a good rate in the same payload survives', Math.abs(w.FX.rates.JPY - 0.0059) < 1e-9);
+ok('a bad manual rate is dropped', w.FX.manual.USD === undefined);
+ok('a bad timestamp becomes zero', w.FX.fetched === 0, 'got ' + w.FX.fetched);
+ok('INR is always present', w.FX.rates.INR === 1);
+w.localStorage.removeItem('pc-fx');
+
+w.FX.rates = { INR: 1, USD: 0.01045 }; w.FX.manual = {};
+w.setDisplayCcy('USD');
+const fxShare = w.getShareState();
+ok('a share link carries the display currency', fxShare.ccy === 'USD', fxShare.ccy);
+w.setDisplayCcy('INR');
+w.applyShareState(fxShare);
+ok('and restores it', w.DISPLAY_CCY === 'USD', w.DISPLAY_CCY);
+ok('a share link with a bogus currency is rejected',
+   !('ccy' in (w.validateShareState({ m: '1', ccy: 'ZZZ' }) || {})));
+ok('but a real one is accepted',
+   (w.validateShareState({ m: '1', ccy: 'GBP' }) || {}).ccy === 'GBP');
+// The rate itself is deliberately not shared: the recipient should fetch a
+// current one rather than inherit whatever was cached when the link was made.
+ok('the rate is not carried in the link',
+   !('fx' in fxShare) && !('rate' in fxShare), JSON.stringify(Object.keys(fxShare)));
+
+// ── Age reporting ─────────────────────────────────────────────────────────
+ok('a fresh fetch reads as recent', w.fxAgeText(30 * 1000) === 'just now', w.fxAgeText(30 * 1000));
+ok('minutes', w.fxAgeText(45 * 60 * 1000) === '45m ago', w.fxAgeText(45 * 60 * 1000));
+ok('hours', w.fxAgeText(5 * 3600 * 1000) === '5h ago', w.fxAgeText(5 * 3600 * 1000));
+ok('days', w.fxAgeText(50 * 3600 * 1000) === '2d ago', w.fxAgeText(50 * 3600 * 1000));
+ok('never fetched', w.fxAgeText(null) === 'never');
+
+// ── The network layer ─────────────────────────────────────────────────────
+// Stubbed rather than live: a suite that depends on a third-party API is a
+// suite that goes red when someone else has an outage.
+const withFetch = (impl, fn) => {
+  const real = w.fetch;
+  w.fetch = impl;
+  return Promise.resolve(fn()).then(r => { w.fetch = real; return r; },
+                                    e => { w.fetch = real; throw e; });
+};
+const okPayload = {
+  result: 'success', base_code: 'INR',
+  rates: { USD: 0.0104, EUR: 0.0091, GBP: 0.0078, JPY: 1.69 }
+};
+const results = [];
+const runFetchCases = () => withFetch(() => Promise.resolve({ ok: true, json: () => Promise.resolve(okPayload) }),
+  () => { w.FX.rates = { INR: 1 }; w.FX.fetched = 0; w.FX.manual = {};
+          return w.fetchRates(true).then(r => results.push(['success', r, w.FX.rates.USD, w.FX.src])); })
+
+  .then(() => withFetch(() => Promise.resolve({ ok: false, status: 503 }),
+    () => { w.FX.rates = { INR: 1, USD: 0.0104 }; w.FX.fetched = w.nowMs();
+            return w.fetchRates(true).then(r => results.push(['http-error', r, w.FX.rates.USD])); }))
+
+  .then(() => withFetch(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ result: 'error' }) }),
+    () => { w.FX.rates = { INR: 1, USD: 0.0104 };
+            return w.fetchRates(true).then(r => results.push(['bad-payload', r, w.FX.rates.USD])); }))
+
+  .then(() => withFetch(() => Promise.resolve({ ok: true, json: () => Promise.resolve(
+      { result: 'success', base_code: 'USD', rates: { EUR: 0.9 } }) }),
+    () => { w.FX.rates = { INR: 1, USD: 0.0104 };
+            return w.fetchRates(true).then(r => results.push(['wrong-base', r, w.FX.rates.USD])); }))
+
+  .then(() => withFetch(() => Promise.reject(new Error('offline')),
+    () => { w.FX.rates = { INR: 1, USD: 0.0104 };
+            return w.fetchRates(true).then(r => results.push(['offline', r, w.FX.rates.USD])); }));
+
+runFetchCases().then(() => {
+  const byName = Object.fromEntries(results.map(r => [r[0], r]));
+  ok('a good payload updates the rates',
+     byName.success && byName.success[1] === true && Math.abs(byName.success[2] - 0.0104) < 1e-9,
+     JSON.stringify(byName.success));
+  ok('and marks them as live', byName.success && byName.success[3] === 'live');
+  // Every failure mode must leave the cached rates alone rather than wiping them.
+  ['http-error', 'bad-payload', 'wrong-base', 'offline'].forEach(k => {
+    ok(k + ' keeps the cached rate',
+       byName[k] && byName[k][1] === false && Math.abs(byName[k][2] - 0.0104) < 1e-9,
+       JSON.stringify(byName[k]));
+  });
+
+  // ── The one external origin is declared, and only that one ──────────────
+  ok('connect-src names the rates host',
+     /connect-src\s+'self'\s+https:\/\/open\.er-api\.com\s*;/.test(mk),
+     (mk.match(/connect-src[^;]*/) || [''])[0]);
+  // connect-src governs fetch/XHR, not navigation, so the WhatsApp share link
+  // (window.open to wa.me) is deliberately not in it. What matters is that the
+  // app makes exactly one network request, to the host that is declared.
+  const bundles = readAsset('assets/app.js') + readAsset('assets/app-extra.js');
+  // `typeof fetch` has no paren after it, so it never matches this.
+  const fetchCalls = (bundles.match(/(^|[^.\w])fetch\s*\(/g) || []).length;
+  ok('the app makes exactly one network request', fetchCalls === 1, 'found ' + fetchCalls);
+  ok('and it goes to the declared host',
+     /var FX_URL='https:\/\/open\.er-api\.com\//.test(bundles) &&
+     /fetch\(FX_URL/.test(bundles));
+  ok('every other external URL is a navigation, not a request',
+     bundles.match(/https:\/\/[a-z0-9.-]+/gi)
+       .filter(u => !/open\.er-api\.com/.test(u))
+       .every(u => new RegExp("(window\\.open|href|action)[^\\n]*" +
+         u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(bundles) ||
+         /exchangerate-api|calc\.sterlingspares|github\.com|sterlingspares\.com/.test(u)),
+     bundles.match(/https:\/\/[a-z0-9.-]+/gi).join(' '));
+  ok('rates are never fetched during init',
+     !/^\s*fetchRates\(/m.test(readAsset('assets/app.js').split('loadPresets();')[1] || ''),
+     'init calls fetchRates');
+  ok('the network call is in the deferred bundle',
+     /function _fetchRatesImpl\(/.test(readAsset('assets/app-extra.js')) &&
+     !/function _fetchRatesImpl\(/.test(readAsset('assets/app.js')));
+
+  w.setDisplayCcy('INR');
+  w.resetAll();
+  if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
+  R.finish();
+});
