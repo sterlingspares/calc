@@ -2078,22 +2078,24 @@ w.FX.rates = { INR: 1 }; w.FX.manual = {}; w.FX.fetched = 0; w.FX.src = null;
 // ── Rupees are unchanged ──────────────────────────────────────────────────
 // INR is the base: everything is entered, stored and calculated in rupees, and
 // only the display converts. Rupee output must be byte-identical to before.
-ok('rupees still group Indian-style', w.INR(1234567.891) === '₹12,34,567.89', w.INR(1234567.891));
-ok('and at crore scale', w.INR(987654321.55) === '₹98,76,54,321.55', w.INR(987654321.55));
-ok('zero and negatives unchanged', w.INR(0) === '₹0.00' && w.INR(-500.5) === '₹-500.50');
-ok('NaN still dashes', w.INR(NaN) === '—');
+ok('rupees still group Indian-style', w.SINR(1234567.891) === '₹12,34,567.89', w.SINR(1234567.891));
+ok('and at crore scale', w.SINR(987654321.55) === '₹98,76,54,321.55', w.SINR(987654321.55));
+ok('zero and negatives unchanged', w.SINR(0) === '₹0.00' && w.SINR(-500.5) === '₹-500.50');
+ok('NaN still dashes', w.SINR(NaN) === '—' && w.CINR(NaN) === '—' && w.INR(NaN) === '—');
 
 // ── Foreign currencies group in millions ──────────────────────────────────
 w.FX.rates = { INR: 1, USD: 1, EUR: 1, JPY: 1, AED: 1 };
 w.FX.fetched = w.nowMs(); w.FX.src = 'live';
 w.setDisplayCcy('USD');
 ok('a foreign currency groups in thousands, not lakhs',
-   w.INR(987654321.55) === '$987,654,321.55', w.INR(987654321.55));
-ok('and at a million exactly', w.INR(1000000) === '$1,000,000.00', w.INR(1000000));
+   w.SINR(987654321.55) === '$987,654,321.55', w.SINR(987654321.55));
+ok('and at a million exactly', w.SINR(1000000) === '$1,000,000.00', w.SINR(1000000));
+// MRP is never converted, so the base formatter stays in rupees throughout.
+ok('MRP stays in rupees even so', w.INR(1000000) === '₹10,00,000.00', w.INR(1000000));
 w.setDisplayCcy('EUR');
-ok('same for the euro', w.INR(1234567.891) === '€1,234,567.89', w.INR(1234567.891));
+ok('same for the euro', w.SINR(1234567.891) === '€1,234,567.89', w.SINR(1234567.891));
 w.setDisplayCcy('AED');
-ok('and for a code-prefixed symbol', w.INR(1234567.891) === 'AED 1,234,567.89', w.INR(1234567.891));
+ok('and for a code-prefixed symbol', w.SINR(1234567.891) === 'AED 1,234,567.89', w.SINR(1234567.891));
 // The manual fallback, used only when Intl is missing, must group the same way.
 ok('the non-Intl fallback groups in thousands too',
    w.fmtWESTERN(1234567.891) === '1,234,567.89', w.fmtWESTERN(1234567.891));
@@ -2101,12 +2103,17 @@ ok('and the Indian one still does not',
    w.fmtINDIAN(1234567.891) === '12,34,567.89', w.fmtINDIAN(1234567.891));
 
 // ── Conversion maths ──────────────────────────────────────────────────────
+// Back to rupees first: the amount fields hold display-currency values, so a
+// rate swapped in behind the app's back would restate what is in them.
+w.setDisplayCcy('INR');
 w.FX.rates = { INR: 1, USD: 0.01045 };
-w.setDisplayCcy('USD');
+w.setDisplayCcy('USD', 'both');
 ok('rate is units per rupee', Math.abs(w.fxRate('USD') - 0.01045) < 1e-9);
 ok('and is quoted back as rupees per unit',
    Math.abs(w.inrPerUnit('USD') - 95.6938) < 0.001, 'got ' + w.inrPerUnit('USD'));
 ok('amounts convert', Math.abs(w.toDisplay(1000) - 10.45) < 1e-9, 'got ' + w.toDisplay(1000));
+ok('and back again', Math.abs(w.fromDisplay(10.45, 'sale') - 1000) < 1e-6,
+   'got ' + w.fromDisplay(10.45, 'sale'));
 ok('the summary converts too',
    d.getElementById('s-cp').textContent.trim() === '$6.27',
    d.getElementById('s-cp').textContent);
@@ -2120,7 +2127,7 @@ w.setDisplayCcy('BRL');
 ok('an unknown rate reads as null', w.fxRate('BRL') === null);
 ok('conversion refuses rather than guessing', w.toDisplay(1000) === null);
 ok('and the display dashes instead of showing rupees wearing a foreign symbol',
-   w.INR(1000) === '—', w.INR(1000));
+   w.SINR(1000) === '—', w.SINR(1000));
 ok('the note says so', d.getElementById('fx-note').textContent.indexOf('no rate') !== -1,
    d.getElementById('fx-note').textContent);
 
@@ -2130,7 +2137,7 @@ fxIn.value = '5.4'; w.onFxManual(fxIn);
 ok('a manual rate is stored as units per rupee',
    Math.abs(w.fxRate('BRL') - 1 / 5.4) < 1e-9, 'got ' + w.fxRate('BRL'));
 ok('and quoted back as entered', Math.abs(w.inrPerUnit('BRL') - 5.4) < 1e-9);
-ok('amounts use it', w.INR(1000) === 'R$185.19', w.INR(1000));
+ok('amounts use it', w.SINR(1000) === 'R$185.19', w.SINR(1000));
 ok('the note credits you, not the feed',
    d.getElementById('fx-note').textContent.indexOf('set by you') !== -1,
    d.getElementById('fx-note').textContent);
@@ -2272,7 +2279,190 @@ runFetchCases().then(() => {
      /function _fetchRatesImpl\(/.test(readAsset('assets/app-extra.js')) &&
      !/function _fetchRatesImpl\(/.test(readAsset('assets/app.js')));
 
-  w.setDisplayCcy('INR');
+  R.section('\n=== 30. Currency scope: cost, sale or both ===');
+
+  // A field wearing a currency symbol must hold a number in that currency. The
+  // whole feature turns on that: showing '$' over a rupee value would misstate
+  // a quote by two orders of magnitude.
+  freshCalc(1000, 40, 25);
+  w.setDisplayCcy('INR', 'both');
+  d.getElementById('landed').value = '50';
+  d.getElementById('sp-landed').value = '30';
+  d.getElementById('it-eb').checked = true;
+  d.getElementById('iv-eb').value = '5';
+  w.syncToggle('eb');
+  w.FX.rates = { INR: 1, USD: 0.01 }; w.FX.manual = {}; w.FX.fetched = w.nowMs();
+  w.calc();
+
+  const baseline = { cp: w.LAST_CP.e, effCP: w.effectiveCP(w.LAST_CP), effSP: w.effectiveSP(w.LAST_SP) };
+  const sym = id => { const e = d.getElementById(id); return e ? e.textContent.trim() : null; };
+  const val = id => { const e = d.getElementById(id); return e ? e.value : null; };
+  const cell = id => d.getElementById(id).textContent.trim();
+  const startsRs = s => s.charAt(0) === '₹';
+  const startsUsd = s => s.charAt(0) === '$';
+
+  // ── The deal never moves, whatever you are looking at ───────────────────
+  ['cost', 'sale', 'both'].forEach(scope => {
+    w.setDisplayCcy('USD', scope);
+    ok(scope + ': cost price is unchanged internally',
+       Math.abs(w.LAST_CP.e - baseline.cp) < 0.01, 'got ' + w.LAST_CP.e);
+    ok(scope + ': effective CP is unchanged internally',
+       Math.abs(w.effectiveCP(w.LAST_CP) - baseline.effCP) < 0.01,
+       'got ' + w.effectiveCP(w.LAST_CP) + ' vs ' + baseline.effCP);
+    ok(scope + ': effective SP is unchanged internally',
+       Math.abs(w.effectiveSP(w.LAST_SP) - baseline.effSP) < 0.01,
+       'got ' + w.effectiveSP(w.LAST_SP) + ' vs ' + baseline.effSP);
+  });
+
+  // ── Cost only ───────────────────────────────────────────────────────────
+  w.setDisplayCcy('USD', 'cost');
+  ok('cost scope: CP shows the foreign symbol', startsUsd(cell('s-cp')), cell('s-cp'));
+  ok('cost scope: effective CP too', startsUsd(cell('s-ecp')), cell('s-ecp'));
+  ok('cost scope: CP incentives too', startsUsd(cell('s-inc')), cell('s-inc'));
+  ok('cost scope: the CP incentive label agrees', sym('sym-s-inc') === '$', sym('sym-s-inc'));
+  ok('cost scope: inbound landed cost too', sym('sym-landed') === '+$', sym('sym-landed'));
+  ok('cost scope: SP stays in rupees', startsRs(cell('s-sp')), cell('s-sp'));
+  ok('cost scope: profit stays in rupees', startsRs(cell('s-pr')), cell('s-pr'));
+  ok('cost scope: outbound landed cost stays in rupees',
+     sym('sym-sp-landed') === '−₹', sym('sym-sp-landed'));
+  ok('cost scope: break-even stays in rupees', startsRs(cell('s-be')), cell('s-be'));
+
+  // ── Sale only ───────────────────────────────────────────────────────────
+  w.setDisplayCcy('USD', 'sale');
+  ok('sale scope: SP shows the foreign symbol', startsUsd(cell('s-sp')), cell('s-sp'));
+  ok('sale scope: effective SP too', startsUsd(cell('s-esp')), cell('s-esp'));
+  ok('sale scope: profit follows the sale side', startsUsd(cell('s-pr')), cell('s-pr'));
+  ok('sale scope: the profit label agrees', sym('sym-s-pr') === '$', sym('sym-s-pr'));
+  ok('sale scope: break-even too', startsUsd(cell('s-be')), cell('s-be'));
+  ok('sale scope: SP incentive label too', sym('sym-sp-inc-tot') === '$', sym('sym-sp-inc-tot'));
+  ok('sale scope: outbound landed cost too', sym('sym-sp-landed') === '−$', sym('sym-sp-landed'));
+  ok('sale scope: CP stays in rupees', startsRs(cell('s-cp')), cell('s-cp'));
+  ok('sale scope: CP incentives stay in rupees', startsRs(cell('s-inc')), cell('s-inc'));
+  ok('sale scope: inbound landed cost stays in rupees',
+     sym('sym-landed') === '+₹', sym('sym-landed'));
+
+  // ── Both ────────────────────────────────────────────────────────────────
+  w.setDisplayCcy('USD', 'both');
+  ok('both: every side converts',
+     ['s-cp', 's-ecp', 's-inc', 's-sp', 's-esp', 's-pr', 's-be'].every(i => startsUsd(cell(i))),
+     ['s-cp', 's-ecp', 's-inc', 's-sp', 's-esp', 's-pr', 's-be'].map(i => cell(i)).join(' '));
+
+  // ── MRP is never converted ──────────────────────────────────────────────
+  // There is no dollar MRP: it is a rupee price fixed by law, and converting it
+  // would let a rate update restate the one figure that cannot move.
+  ['cost', 'sale', 'both'].forEach(scope => {
+    w.setDisplayCcy('USD', scope);
+    ok(scope + ': MRP stays in rupees', startsRs(cell('s-mrp')), cell('s-mrp'));
+    ok(scope + ': and so does its input prefix', sym('sym-mrp') === '₹', sym('sym-mrp'));
+  });
+
+  // ── Rounding follows the sticker price, i.e. the sale side ──────────────
+  w.setDisplayCcy('USD', 'sale');
+  ok('rounding chips take the sale currency',
+     [...d.querySelectorAll('.sym-rnd')].every(e => e.textContent === '$'),
+     [...d.querySelectorAll('.sym-rnd')].map(e => e.textContent).join(''));
+  w.setDisplayCcy('USD', 'cost');
+  ok('and go back to rupees when only cost converts',
+     [...d.querySelectorAll('.sym-rnd')].every(e => e.textContent === '₹'),
+     [...d.querySelectorAll('.sym-rnd')].map(e => e.textContent).join(''));
+  // A $1 step rounds the displayed price to whole dollars.
+  w.setDisplayCcy('USD', 'sale');
+  const rndIn2 = d.getElementById('rnd-custom');
+  rndIn2.value = '1'; w.onCustomRounding(rndIn2);
+  ok('a $1 step means 100 rupees at this rate', Math.abs(w.roundStep() - 100) < 1e-6,
+     'got ' + w.roundStep());
+  w.setRounding('off'); rndIn2.value = '';
+
+  // ── Typed values are re-expressed when the currency moves ───────────────
+  w.setDisplayCcy('INR', 'both');
+  d.getElementById('landed').value = '50';
+  d.getElementById('sp-landed').value = '30';
+  w.calc();
+  const inrLanded = w.getLandedCost(), inrSpLanded = w.getSPLandedCost();
+  w.setDisplayCcy('USD', 'both');
+  ok('the landed-cost field is rewritten into the new currency',
+     Math.abs(parseFloat(val('landed')) - 0.5) < 1e-6, 'got ' + val('landed'));
+  ok('and still means the same rupees',
+     Math.abs(w.getLandedCost() - inrLanded) < 0.01, 'got ' + w.getLandedCost());
+  ok('the outbound one too',
+     Math.abs(w.getSPLandedCost() - inrSpLanded) < 0.01, 'got ' + w.getSPLandedCost());
+  w.setDisplayCcy('INR', 'both');
+  ok('and it round-trips back exactly',
+     Math.abs(parseFloat(val('landed')) - 50) < 1e-6, 'got ' + val('landed'));
+
+  // A percentage is not money and must never be rescaled.
+  ok('a percentage incentive is left alone', val('iv-eb') === '5', 'got ' + val('iv-eb'));
+  ok('the maths and the repricing agree on what is an amount',
+     w.incIsAbsolute('cp', 'eb') === false && w.incIsAbsolute('cp', 'sc') === (w.SCM === 'abs'),
+     'eb=' + w.incIsAbsolute('cp', 'eb'));
+
+  // ── An absolute incentive is money, so it does move ─────────────────────
+  w.setSchemeMode('abs');
+  d.getElementById('it-sc').checked = true;
+  d.getElementById('iv-sc').value = '24';
+  w.syncToggle('sc'); w.calc();
+  const incRs = w.getIncentiveInr(w.LAST_CP);
+  w.setDisplayCcy('USD', 'cost');
+  ok('an absolute incentive is rewritten',
+     Math.abs(parseFloat(val('iv-sc')) - 0.24) < 1e-6, 'got ' + val('iv-sc'));
+  ok('and still means the same rupees',
+     Math.abs(w.getIncentiveInr(w.LAST_CP) - incRs) < 0.01,
+     'got ' + w.getIncentiveInr(w.LAST_CP) + ' vs ' + incRs);
+  ok('its unit shows the foreign symbol',
+     d.getElementById('sc-unit').textContent === '$',
+     d.getElementById('sc-unit').textContent);
+  w.setDisplayCcy('INR', 'both');
+  w.setSchemeMode('pct');
+  d.getElementById('it-sc').checked = false; w.syncToggle('sc');
+
+  // ── Every label agrees with the number under it ─────────────────────────
+  // A label saying $ over a value saying ₹ is the worst failure this feature
+  // can have, and it happened: the profit count-up rewrote the cell with the
+  // base formatter a frame after the conversion, so the label and the number
+  // disagreed. Walk the whole map rather than spot-checking.
+  const LABEL_VALUE = {
+    'sym-s-inc': 's-inc', 'sym-s-spinc': 's-spinc',
+    'sym-s-pr': 's-pr', 'sym-s-tpr': 's-tpr'
+  };
+  ['cost', 'sale', 'both', 'INR'].forEach(scope => {
+    if (scope === 'INR') w.setDisplayCcy('INR', 'both'); else w.setDisplayCcy('USD', scope);
+    d.getElementById('qty').value = '3';
+    w.calc();
+    const bad = [];
+    Object.keys(LABEL_VALUE).forEach(sy => {
+      const label = (d.getElementById(sy).textContent || '').replace(/[+−]/, '').trim();
+      const value = (d.getElementById(LABEL_VALUE[sy]).textContent || '').trim();
+      if (value === '—' || value === '') return;          // nothing to disagree with
+      if (value.charAt(0) !== label.charAt(0)) bad.push(sy + '="' + label + '" vs ' + value);
+    });
+    ok('every label matches its value (' + scope + ')', bad.length === 0, bad.join(' | '));
+  });
+  d.getElementById('qty').value = '1';
+
+  // The same must hold for the two places profit is repeated.
+  w.setDisplayCcy('USD', 'sale'); w.calc();
+  ok('the profit card agrees with the summary',
+     d.getElementById('pvv').textContent.charAt(0) === '$',
+     d.getElementById('pvv').textContent);
+  ok('and the count-up leaves it converted, not reset to rupees',
+     d.getElementById('s-pr').textContent.charAt(0) === '$',
+     d.getElementById('s-pr').textContent);
+
+  // ── The scope survives a reload and a share link ────────────────────────
+  w.setDisplayCcy('USD', 'sale');
+  const scopeShare = w.getShareState();
+  ok('the share link carries the scope', scopeShare.fxs === 'sale', scopeShare.fxs);
+  w.setDisplayCcy('INR', 'both');
+  w.applyShareState(scopeShare);
+  ok('and restores it', w.FX_SCOPE === 'sale' && w.DISPLAY_CCY === 'USD',
+     w.DISPLAY_CCY + '/' + w.FX_SCOPE);
+  ok('a bogus scope is rejected',
+     !('fxs' in (w.validateShareState({ m: '1', fxs: 'sideways' }) || {})));
+  w.setDisplayCcy('INR', 'both');
+  ok('an unknown scope leaves the current one alone',
+     (w.setDisplayCcy('USD', 'nonsense'), w.FX_SCOPE === 'both'), w.FX_SCOPE);
+
+  w.setDisplayCcy('INR', 'both');
   w.resetAll();
   if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
   R.finish();
