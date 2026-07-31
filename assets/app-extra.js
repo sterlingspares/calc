@@ -866,7 +866,12 @@ function qtBlank(){return{desc:'',mrp:'',qty:1,cpd:'',spd:''}}
  * @returns {Object|null} null when MRP or either discount is missing/invalid
  */
 function qtCalcLine(L){
-  var mrp=parseFloat(L.mrp),qty=parseInt(L.qty,10)||1;
+  // `parseInt(...)||1` let a negative through, since -4 is truthy — a line of
+  // -4 units produced negative line values, a negative order total and a
+  // negative unit count in the totals row. Clamp exactly as getQty() does on
+  // the main calculator, so the two agree.
+  var mrp=parseFloat(L.mrp),qty=parseInt(L.qty,10);
+  if(isNaN(qty)||qty<1)qty=1;
   if(isNaN(mrp)||mrp<=0)return null;
   var cpd=parseFloat(L.cpd),spd=parseFloat(L.spd);
   if(isNaN(cpd)||isNaN(spd))return null;

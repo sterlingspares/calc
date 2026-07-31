@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-910%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-79%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-985%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-79%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -318,15 +318,28 @@ so the quotable price is grossed back up accordingly.
 ### Target-margin solver
 
 Below the break-even rows, enter a **Target GP %** and it answers the question
-directly rather than making you converge on it by trial and error:
+directly rather than making you converge on it by trial and error. What it says
+depends on which side of the target you are on:
+
+**Short of it** — the incentive you would need, the effective CP that implies,
+and the gap from where you are now:
 
 > Needs 14.20% total CP incentive (₹514.80 eff. CP). You have 9.00% — ₹31.20 more
 > per unit. Currently 11.40%.
 
-It reports the total CP incentive required, the effective CP that implies, how
-far that is from where you are now, and your current GP %. If the target would
-need more incentive than the cost price itself, it says so instead of printing a
-nonsense figure. Landed costs are accounted for.
+**Already past it** — how much room you have before you lose it. Asking what
+incentive gets you *down* to a target has no useful answer, so it reports the
+cushion on effective CP instead:
+
+> Already there — GP is 25.00%, above the 12.00% target. Effective CP has ₹10.40
+> of room per unit (up to ₹70.40) before GP drops to 12.00%.
+
+**Sitting on it** — `Right on target — GP is 25.00%. No change needed.`
+
+Targets outside 0–99.9% are refused by name (`Target GP % must be between 0 and
+99.9`) rather than being mistaken for missing input, and if a reachable target
+would need more incentive than the cost price itself, it says so rather than
+printing a nonsense figure. Landed costs are accounted for throughout.
 
 ### What-if analysis
 
@@ -505,8 +518,12 @@ in — an unrecognised or malformed payload is discarded, not partially applied.
 Targets **WCAG 2.1 Level AA**, verified on every push. Lighthouse accessibility
 score: **100**.
 
-- **Contrast** — every text/background pair meets 4.5:1, and non-text UI meets
-  3:1, in both themes
+- **Contrast** — every text/background pair meets 4.5:1 in both themes, and
+  every interactive control is identifiable at 3:1 (WCAG 1.4.11) by its border
+  or its fill. Control boundaries use a dedicated `--border-ctrl` token rather
+  than the softer decorative `--border`, and the selected state of a pill is
+  held to the same bar — in the dark theme it was previously within 1.09:1 of
+  the surface behind it, so only the label brightness said it was chosen
 - **Structure** — one `h1`, section headings throughout, `main`/`nav`/`header`/
   `footer` landmarks, and a skip link as the first tab stop
 - **Names** — every input and button exposes an accessible name, and visible
@@ -561,8 +578,8 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 910 passing, 7 suites | `npm test` |
-| Statement coverage | **79.2%** (app.js 83.0%, app-extra.js 66.1%) | `npm run coverage` |
+| Tests | 985 passing, 7 suites | `npm test` |
+| Statement coverage | **79.5%** (app.js 83.3%, app-extra.js 66.3%) | `npm run coverage` |
 | Lighthouse Performance | **98** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
 | Lighthouse Best Practices | **100** | ” |
@@ -589,7 +606,7 @@ commands after significant changes.
 
 ## Tests
 
-910 assertions across seven suites. They load the real `index.html`,
+985 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -600,13 +617,13 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 511 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 581 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 69 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
 | `modes` | 85 | solve modes, price input modes, what-if, comparison, Quick mode, wizard, share-link round trip, theming, auto-save |
 | `a11y` | 101 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
-| `browser` | 61 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport, axe with layout |
+| `browser` | 66 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport, axe with layout |
 
 Individual suites: `npm run test:features`, `test:errors`, `test:mobile`,
 `test:fab`, `test:modes`, `test:a11y`, `test:browser`. Full assertion output:

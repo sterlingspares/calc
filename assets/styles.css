@@ -8,6 +8,11 @@
 :root{
   --bg:#f4f2ee;--surface:#fff;--surface2:#f9f8f6;
   --border:#e2ddd6;--border2:#ccc7be;
+  /* Boundary of an interactive control. WCAG 1.4.11 wants 3:1 against
+     every surface it can sit on; --border and --border2 are decorative
+     and manage 1.35:1 at best. Solved for the warm grey nearest the
+     palette that clears 3:1 on --bg, --surface and --surface2. */
+  --border-ctrl:#918b83;
   --text:#1a1916;--text2:#6b6760;--text3:#736e68;
   --accent:#1a1916;
   /* Focus ring: deliberately a mid grey rather than near-black. Verified >=3:1
@@ -34,7 +39,7 @@
 /* ── DARK MODE ── */
 html[data-theme="dark"]{
   --bg:#141412;--surface:#1e1d1b;--surface2:#252421;
-  --border:#2e2c29;--border2:#3d3a36;
+  --border:#2e2c29;--border2:#3d3a36;--border-ctrl:#716d66;
   --text:#f0ede8;--text2:#9a9590;--text3:#8e8a84;
   --accent:#252421;--accent-fg:#f0ede8;
   --green:#3dd68c;--green-bg:#0c261a;--green-border:#1a5235;
@@ -46,6 +51,18 @@ html[data-theme="dark"]{
   --shadow-modal:0 8px 40px rgba(0,0,0,0.6),0 2px 8px rgba(0,0,0,0.4);
 ;--accent-ink:#f0ede8}
 html[data-theme="dark"] .header{background:#111110}
+/* Selected state in the dark theme.
+   --accent is #252421 there, all but identical to the surfaces it sits on, so
+   a selected pill read 1.09:1 against its neighbours and the only cue that it
+   was chosen was the brightness of its label. WCAG 1.4.11 covers states, not
+   just controls. Solved for the warm grey that clears 3:1 against --bg,
+   --surface and --surface2 while keeping white label text at 4.5:1:
+   3.69 / 3.37 / 3.11 on the three surfaces, 5.00 for the text. */
+html[data-theme="dark"] .pill.on{background:#736f68;border-color:#736f68;color:#fff}
+html[data-theme="dark"] .rnd-custom-wrap.on,
+html[data-theme="dark"] .hist-fpill.on{background:#736f68;border-color:#736f68}
+html[data-theme="dark"] .rnd-custom-wrap.on input{color:#fff}
+html[data-theme="dark"] .hist-fpill.on{color:#fff}
 html[data-theme="dark"] .summary{background:#252421;border:1px solid var(--border)}
 /* 0.35 alpha over the dark card was 2.88:1. 0.62 gives 6.01:1 and keeps
    the label visually subordinate to the value beneath it. */
@@ -65,7 +82,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .header-brand{font-family:var(--font-heading);font-size:15px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin:0}
 .header-brand::before{content:'';width:8px;height:8px;border-radius:50%;background:#e8c840;display:inline-block}
 .header-actions{display:flex;gap:6px;align-items:center}
-.hbtn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.2);background:transparent;font-size:11px;font-weight:500;color:rgba(255,255,255,0.75);cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap}
+.hbtn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.35);background:transparent;font-size:11px;font-weight:500;color:rgba(255,255,255,0.75);cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap}
 .hbtn:hover{background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.4)}
 .hbtn-icon{width:30px;padding:0;justify-content:center;border-radius:50%;height:30px;flex-shrink:0}
 .hdivider{width:1px;height:20px;background:rgba(255,255,255,0.15);margin:0 2px}
@@ -77,12 +94,12 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .ctrl-group{display:flex;align-items:center;gap:8px}
 .ctrl-label{font-size:11px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
 .pill-group{display:flex;gap:3px}
-.pill{padding:5px 13px;border-radius:20px;border:1px solid var(--border);background:transparent;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap}
+.pill{padding:5px 13px;border-radius:20px;border:1px solid var(--border-ctrl);background:transparent;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap}
 .pill:hover{border-color:var(--border2);color:var(--text)}
 .pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .divider{width:1px;height:24px;background:var(--border);flex-shrink:0}
 .sep{flex:1;min-width:8px}
-.btn-reset{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);transition:all .15s}
+.btn-reset{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid var(--border-ctrl);background:transparent;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);transition:all .15s}
 .btn-reset:hover{background:var(--surface2);color:var(--text);border-color:var(--accent)}
 
 /* ── MRP BAR ── */
@@ -201,20 +218,20 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .inc-total-val{font-family:var(--font-mono);font-size:15px;font-weight:500;color:var(--amber)}
 .inc-note{font-size:10.5px;color:var(--text3);font-style:italic;line-height:1.4;margin-left:auto;text-align:right}
 /* Edit mode */
-.panel-edit-btn{font-size:11px;padding:6px 12px;min-height:24px;border-radius:12px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;margin-right:8px;font-family:var(--font-body);flex-shrink:0;line-height:1.4}
+.panel-edit-btn{font-size:11px;padding:6px 12px;min-height:24px;border-radius:12px;border:1px solid var(--border-ctrl);background:transparent;color:var(--text2);cursor:pointer;margin-right:8px;font-family:var(--font-body);flex-shrink:0;line-height:1.4}
 .panel-edit-btn:hover{border-color:var(--accent-ink);color:var(--accent-ink)}
 .inc-del-btn{display:none;align-items:center;justify-content:center;width:22px;height:22px;min-width:22px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:18px;line-height:1;cursor:pointer;margin-right:4px;padding:0;flex-shrink:0;font-weight:300}
 .inc-grid.edit-mode .inc-del-btn{display:flex}
 .inc-label-edit{font-size:12px;font-weight:500;font-family:var(--font-body);border:none;border-bottom:1px solid var(--accent);background:transparent;color:var(--text2);padding:0 0 1px;width:0;min-width:0;flex:1;outline:none}
 .inc-add-btn{width:100%;margin-top:6px;padding:8px;border:1.5px dashed var(--border2);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:var(--font-body);display:none}
 .inc-add-btn:hover{border-color:var(--accent-ink);color:var(--accent-ink)}
-.gst-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:20px;padding:1px 6px 1px 2px;background:var(--surface);transition:border-color .15s}
+.gst-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border-ctrl);border-radius:20px;padding:1px 6px 1px 2px;background:var(--surface);transition:border-color .15s}
 .gst-custom-wrap:focus-within{border-color:var(--accent)}
 .gst-custom-wrap input{border:none;background:transparent;width:38px;font-size:12px;font-family:var(--font-body);text-align:center;outline:none;color:var(--text);padding:2px;-moz-appearance:textfield}
 .gst-custom-wrap input::-webkit-outer-spin-button,.gst-custom-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .gst-custom-wrap span{font-size:11px;color:var(--text3)}
 /* Custom rounding step — same widget as the custom GST rate, prefix instead of suffix */
-.rnd-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:20px;padding:1px 2px 1px 8px;background:var(--surface);transition:background .15s,border-color .15s}
+.rnd-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border-ctrl);border-radius:20px;padding:1px 2px 1px 8px;background:var(--surface);transition:background .15s,border-color .15s}
 .rnd-custom-wrap:focus-within{border-color:var(--accent)}
 .rnd-custom-wrap input{border:none;background:transparent;width:44px;font-size:12px;font-family:var(--font-body);text-align:center;outline:none;color:var(--text);padding:2px;-moz-appearance:textfield}
 .rnd-custom-wrap input::-webkit-outer-spin-button,.rnd-custom-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -232,10 +249,10 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
    session (like the GST rate) so they sit in the control bar; the solver targets
    GP%, so it sits with the figures it targets. */
 .preset-bar{display:flex;gap:4px;align-items:center}
-.preset-select{min-width:104px;max-width:170px;padding:5px 8px;border:1px solid var(--border);border-radius:20px;background:transparent;font-size:11.5px;font-family:var(--font-body);color:var(--text2);cursor:pointer}
+.preset-select{min-width:104px;max-width:170px;padding:5px 8px;border:1px solid var(--border-ctrl);border-radius:20px;background:transparent;font-size:11.5px;font-family:var(--font-body);color:var(--text2);cursor:pointer}
 .preset-select:hover{border-color:var(--border2);color:var(--text)}
 .preset-select:focus{border-color:var(--accent);outline:none}
-.preset-btn{padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:transparent;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);white-space:nowrap}
+.preset-btn{padding:5px 11px;border-radius:20px;border:1px solid var(--border-ctrl);background:transparent;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);white-space:nowrap}
 .preset-btn:hover:not(:disabled){border-color:var(--accent-ink);color:var(--accent-ink)}
 .preset-btn:disabled{opacity:.4;cursor:default}
 .preset-btn.danger:hover:not(:disabled){border-color:var(--red);color:var(--red)}
@@ -243,7 +260,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 /* Inside the summary card, so it inherits the dark treatment */
 .solver{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .solver-lbl{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-weight:600;white-space:nowrap}
-.solver-input{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,0.28);border-radius:20px;padding:1px 9px;background:rgba(255,255,255,0.08)}
+.solver-input{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,0.42);border-radius:20px;padding:1px 9px;background:rgba(255,255,255,0.08)}
 .solver-input:focus-within{border-color:#fff;background:rgba(255,255,255,0.14)}
 .solver-input input{border:none;background:transparent;width:54px;text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:600;color:#fff;outline:none;padding:3px 0;-moz-appearance:textfield}
 .solver-input input::-webkit-outer-spin-button,.solver-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -263,7 +280,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .summary{background:var(--accent);color:#fff;border-radius:var(--radius);padding:18px 20px;box-shadow:0 4px 20px rgba(26,25,22,0.2)}
 .summary-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
 .summary-title{font-family:var(--font-heading);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,0.62)}
-.btn-whatif{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);font-size:11px;font-weight:500;color:rgba(255,255,255,0.85);cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap}
+.btn-whatif{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.42);background:rgba(255,255,255,0.08);font-size:11px;font-weight:500;color:rgba(255,255,255,0.85);cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap}
 .btn-whatif:hover{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.4);color:#fff}
 .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:16px 24px}
 /* 0.62 alpha over the accent card = 7.38:1. At 0.4 this was 3.81:1, below AA. */
@@ -356,7 +373,7 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
 @keyframes modalIn{0%{opacity:0;transform:translateY(-14px) scale(.97)}60%{opacity:1}100%{opacity:1;transform:none}}
 .modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
 .modal-title{font-family:var(--font-heading);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text)}
-.modal-close{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text3);transition:all .15s;font-size:16px;font-family:sans-serif;line-height:1}
+.modal-close{width:28px;height:28px;border-radius:50%;border:1px solid var(--border-ctrl);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text3);transition:all .15s;font-size:16px;font-family:sans-serif;line-height:1}
 .modal-close:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
 .modal-body{padding:20px}
 .modal-section{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)}
@@ -370,7 +387,7 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
 .settings-lbl span{font-size:13px;font-weight:500;color:var(--text)}
 .settings-lbl small{font-size:11px;color:var(--text3)}
 .settings-control{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.floor-input-wrap{display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2)}
+.floor-input-wrap{display:flex;align-items:center;border:1.5px solid var(--border-ctrl);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2)}
 .floor-input-wrap:focus-within{border-color:var(--accent)}
 .floor-input-wrap input{border:none;outline:none;background:transparent;padding:6px 8px;width:68px;font-size:14px;font-family:var(--font-mono);font-weight:500;color:var(--text);text-align:right}
 .floor-input-wrap span{padding:6px 9px 6px 2px;font-size:13px;color:var(--text3)}

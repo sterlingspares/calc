@@ -509,6 +509,128 @@ async function launchChromium(chromium) {
     await p4.close();
   }
 
+  /* ── 7g. Non-text contrast, WCAG 1.4.11 ───────────────────────────── */
+  R.section('\n=== 7g. Control boundaries (WCAG 1.4.11) ===');
+  {
+    // axe's colour-contrast rule only judges TEXT. The outline that tells you
+    // where a pill button ends is not text, so nothing in the suite looked at
+    // it — and every bordered control in the dark theme sat between 1:1 and
+    // 2.38:1 against its surroundings. Reported as "outlines on pill shaped
+    // buttons have no contrast", which was exactly right.
+    //
+    // 1.4.11 wants 3:1 for the visual information that identifies a control or
+    // its state. A control passes on EITHER its border or its own fill: a
+    // filled button is identified by the fill, so its border may be soft.
+    const p5 = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+    await p5.goto(origin + '/');
+    await p5.waitForTimeout(500);
+    await p5.evaluate(() => {
+      const g = id => document.getElementById(id);
+      g('mrp').value = '1000'; window.setCM('excl'); g('cpd').value = '40';
+      window.setSM('excl'); g('spd').value = '25'; window.calc();
+      window.openModal('settings');
+    });
+    await p5.waitForTimeout(300);
+
+    const measure = () => p5.evaluate(() => {
+      const px = c => { const m = c.match(/[\d.]+/g) || [0, 0, 0, 1];
+        return { r: +m[0], g: +m[1], b: +m[2], a: m[3] === undefined ? 1 : +m[3] }; };
+      const over = (f, b) => ({ r: f.r * f.a + b.r * (1 - f.a), g: f.g * f.a + b.g * (1 - f.a),
+                                b: f.b * f.a + b.b * (1 - f.a), a: 1 });
+      const lum = c => { const s = [c.r, c.g, c.b].map(v => { v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+        return 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2]; };
+      const ratio = (a, b) => { const x = lum(a), y = lum(b);
+        return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+      // First painted colour behind the element, compositing any translucency
+      const behind = el => { let n = el.parentElement, acc = null;
+        while (n) { const c = px(getComputedStyle(n).backgroundColor);
+          if (c.a > 0) { acc = acc ? over(acc, c) : c; if (c.a === 1) return acc; }
+          n = n.parentElement; }
+        return acc || { r: 255, g: 255, b: 255, a: 1 }; };
+
+      const SEL = 'button,select,.pill,.preset-btn,.preset-select,.btn-reset,' +
+                  '.panel-edit-btn,.modal-close,.hbtn,.btn-whatif,.solver-input,' +
+                  '.floor-input-wrap,.gst-custom-wrap,.rnd-custom-wrap';
+      const bad = [];
+      let checked = 0;
+      document.querySelectorAll(SEL).forEach(el => {
+        const r = el.getBoundingClientRect();
+        if (r.width < 2 || r.height < 2) return;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity < 0.5) return;
+        if ((parseFloat(cs.borderTopWidth) || 0) < 0.5) return;
+        const bc = px(cs.borderTopColor);
+        if (bc.a === 0) return;
+        const bg = behind(el);
+        const own = px(cs.backgroundColor);
+        const adj = own.a > 0 ? over(own, bg) : bg;
+        checked++;
+        const borderCr = ratio(bc.a < 1 ? over(bc, adj) : bc, adj);
+        const fillCr = own.a > 0 ? ratio(over(own, bg), bg) : 1;
+        if (borderCr < 3 && fillCr < 3) {
+          bad.push((el.id || el.className || el.tagName) + ' ' +
+                   borderCr.toFixed(2) + '/' + fillCr.toFixed(2));
+        }
+      });
+      return { checked, bad };
+    });
+
+    const darkNT = await measure();
+    ok('every bordered control is identifiable in dark theme',
+       darkNT.bad.length === 0 && darkNT.checked > 8,
+       'checked ' + darkNT.checked + '; below 3:1 -> ' + darkNT.bad.slice(0, 6).join(' | '));
+
+    await p5.evaluate(() => window.toggleDarkMode(false));
+    await p5.waitForTimeout(250);
+    const lightNT = await measure();
+    ok('and in light theme',
+       lightNT.bad.length === 0 && lightNT.checked > 8,
+       'checked ' + lightNT.checked + '; below 3:1 -> ' + lightNT.bad.slice(0, 6).join(' | '));
+
+    // The selected state is information too — in dark theme a chosen pill was
+    // filled with --accent, which is within 1.09:1 of the surfaces around it,
+    // so the only cue was how bright its label was.
+    const selectedFill = () => p5.evaluate(() => {
+      const on = document.querySelector('.pill.on');
+      if (!on) return null;
+      const px = c => { const m = c.match(/[\d.]+/g) || [0, 0, 0, 1];
+        return { r: +m[0], g: +m[1], b: +m[2], a: m[3] === undefined ? 1 : +m[3] }; };
+      const lum = c => { const s = [c.r, c.g, c.b].map(v => { v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+        return 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2]; };
+      const ratio = (a, b) => { const x = lum(a), y = lum(b);
+        return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+      let n = on.parentElement, bg = null;
+      while (n && !bg) { const c = px(getComputedStyle(n).backgroundColor); if (c.a === 1) bg = c; n = n.parentElement; }
+      return ratio(px(getComputedStyle(on).backgroundColor), bg || { r: 255, g: 255, b: 255 });
+    });
+    const lightSel = await selectedFill();
+    ok('a selected pill is distinguishable in light theme', lightSel !== null && lightSel >= 3,
+       lightSel === null ? 'no .pill.on found' : lightSel.toFixed(2) + ':1');
+    await p5.evaluate(() => window.toggleDarkMode(true));
+    await p5.waitForTimeout(250);
+    const darkSel = await selectedFill();
+    ok('and in dark theme', darkSel !== null && darkSel >= 3,
+       darkSel === null ? 'no .pill.on found' : darkSel.toFixed(2) + ':1');
+
+    // White label on the dark selected fill must still be readable as text.
+    const selectedLabel = await p5.evaluate(() => {
+      const on = document.querySelector('.pill.on');
+      if (!on) return null;
+      const px = c => (c.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+      const lum = a => { const s = a.map(v => { v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+        return 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2]; };
+      const x = lum(px(getComputedStyle(on).color)), y = lum(px(getComputedStyle(on).backgroundColor));
+      return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+    });
+    ok('and its label still meets 4.5:1', selectedLabel !== null && selectedLabel >= 4.5,
+       selectedLabel === null ? 'no .pill.on' : selectedLabel.toFixed(2) + ':1');
+
+    await p5.close();
+  }
+
   /* ── 8. Mobile viewport ───────────────────────────────────────────── */
   R.section('\n=== 8. Mobile viewport ===');
   await page.setViewportSize({ width: 390, height: 780 });
