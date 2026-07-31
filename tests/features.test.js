@@ -1574,5 +1574,178 @@ void beforeSwap;
 w.clearHistory();
 w.resetAll();
 
+R.section('\n=== 26. Edge cases and degenerate input ===');
+
+// ── Solver target range ────────────────────────────────────────────────────
+// solveForGp returned null both for an impossible target and for "nothing
+// calculated yet", and renderSolver reported every null as "Enter MRP, CP and
+// SP first" — telling you to fill in fields that were already full. It also had
+// no lower bound, so -20 was accepted as a GP target.
+freshCalc(1000, 40, 25);
+ok('a target of 100% is rejected', w.solveForGp(100) === null);
+ok('a target above 100% is rejected', w.solveForGp(100000) === null);
+ok('a negative target is rejected', w.solveForGp(-20) === null);
+ok('0% is a legitimate target', w.solveForGp(0) !== null);
+ok('99.9% is a legitimate target', w.solveForGp(99.9) !== null);
+
+const solverFor = v => {
+  d.getElementById('solver-gp').value = v;
+  w.renderSolver();
+  return d.getElementById('solver-out');
+};
+let o = solverFor('100');
+ok('100% explains the range, not missing input',
+   o.textContent.indexOf('between 0 and 99.9') !== -1, o.textContent);
+ok('and does not blame the inputs',
+   o.textContent.indexOf('Enter MRP') === -1, o.textContent);
+ok('an impossible target reads as bad', o.className.indexOf('bad') !== -1, o.className);
+o = solverFor('-20');
+ok('a negative target is refused too',
+   o.textContent.indexOf('between 0 and 99.9') !== -1, o.textContent);
+o = solverFor('1e5');
+ok('so is an absurd one', o.textContent.indexOf('between 0 and 99.9') !== -1, o.textContent);
+o = solverFor('');
+ok('an empty target still prompts', o.textContent.indexOf('Enter a target') !== -1, o.textContent);
+ok('99.9 is still solvable',
+   solverFor('99.9').textContent.indexOf('Needs') === 0, solverFor('99.9').textContent);
+// The genuine "no calculation" case must keep its own message.
+d.getElementById('mrp').value = ''; w.calc();
+ok('missing inputs keep their own message',
+   solverFor('30').textContent.indexOf('Enter MRP') !== -1, solverFor('30').textContent);
+
+// ── Break-even must go blank, never stale ──────────────────────────────────
+// breakEven() returns null when effective CP is zero or negative. The row keeps
+// its last text, so what matters is that it is hidden — a visible figure from a
+// previous calculation would be read as belonging to this one.
+const beShown = () => {
+  const row = d.getElementById('s-item-be');
+  return row && row.style.display !== 'none';
+};
+freshCalc(1000, 40, 25);
+ok('break-even shows for a normal calculation', beShown() === true);
+ok('and has a value', w.breakEven(w.LAST_CP, w.LAST_SP) !== null);
+d.getElementById('mrp').value = ''; w.calc();
+ok('break-even is null with no MRP', w.breakEven(w.LAST_CP, w.LAST_SP) === null);
+ok('and the row is hidden rather than left stale', beShown() === false);
+ok('the floor row is hidden too',
+   d.getElementById('s-item-bef').style.display === 'none');
+ok('as is the separator', d.getElementById('s-be-sep').style.display === 'none');
+
+// Incentives exceeding CP drive effective CP negative — same requirement.
+freshCalc(1000, 40, 25);
+['cd', 'eb', 'qt', 'an', 'sc'].forEach(k => {
+  d.getElementById('it-' + k).checked = true;
+  d.getElementById('iv-' + k).value = '40';
+  w.syncToggle(k);
+});
+w.calc();
+ok('incentives above 100% give a negative effective CP', w.effectiveCP(w.LAST_CP) < 0,
+   'got ' + w.effectiveCP(w.LAST_CP));
+ok('break-even refuses to answer', w.breakEven(w.LAST_CP, w.LAST_SP) === null);
+ok('and hides rather than showing a stale price', beShown() === false);
+
+// ── Division-by-zero display ───────────────────────────────────────────────
+// Zero effective SP or CP must render an em dash, never Infinity or NaN.
+const dashOrNumber = id => {
+  const t = d.getElementById(id).textContent.trim();
+  return t === '—' || /^-?₹?[\d,]/.test(t);
+};
+freshCalc(1000, 100, 25);           // CP 100% off -> effective CP zero
+ok('a zero cost price gives no Margin %',
+   d.getElementById('s-mg').textContent.trim() === '—',
+   d.getElementById('s-mg').textContent);
+ok('but GP % is still real', d.getElementById('s-gp').textContent.indexOf('100.00') !== -1,
+   d.getElementById('s-gp').textContent);
+freshCalc(1000, 40, 100);           // SP 100% off -> effective SP zero
+ok('a zero selling price gives no GP %',
+   d.getElementById('s-gp').textContent.trim() === '—',
+   d.getElementById('s-gp').textContent);
+freshCalc(1000, 100, 100);
+ok('both zero leaves both blank',
+   d.getElementById('s-gp').textContent.trim() === '—' &&
+   d.getElementById('s-mg').textContent.trim() === '—');
+ok('and never prints Infinity or NaN',
+   ['s-gp', 's-mg', 's-pr', 's-ecp', 's-esp'].every(dashOrNumber),
+   ['s-gp', 's-mg', 's-pr', 's-ecp', 's-esp']
+     .map(i => i + '=' + d.getElementById(i).textContent.trim()).join(' '));
+
+// ── Quantity: what is shown must be what is used ───────────────────────────
+freshCalc(1000, 40, 25);
+const qty = d.getElementById('qty');
+qty.value = '2.5'; w.calc();
+ok('a fractional quantity computes on the whole part', w.getQty() === 2, 'got ' + w.getQty());
+w.normalizeQty();
+ok('and the field is corrected to match', qty.value === '2', 'got ' + qty.value);
+qty.value = '0'; w.calc(); w.normalizeQty();
+ok('zero normalises to one', qty.value === '1' && w.getQty() === 1, 'got ' + qty.value);
+qty.value = '-5'; w.calc(); w.normalizeQty();
+ok('a negative normalises to one', qty.value === '1', 'got ' + qty.value);
+qty.value = '7'; w.calc(); w.normalizeQty();
+ok('a valid quantity is left alone', qty.value === '7', 'got ' + qty.value);
+qty.value = ''; w.normalizeQty();
+ok('an empty field is left empty to type into', qty.value === '', 'got ' + qty.value);
+qty.value = '1'; w.calc();
+w.stepQty(-1);
+ok('stepping down from 1 stays at 1', qty.value === '1', 'got ' + qty.value);
+
+// ── Quote lines: a negative quantity is not a negative order ───────────────
+// parseInt(L.qty,10)||1 let -4 through, since -4 is truthy. The quote then
+// reported negative units, a negative order value and a negative profit.
+w.QUOTE.length = 0;
+w.qtAddLine();
+w.qtSet(0, 'mrp', '1000'); w.qtSet(0, 'cpd', '40'); w.qtSet(0, 'spd', '25');
+w.qtSet(0, 'qty', '3');
+let qt = w.qtTotals();
+ok('a normal quote line totals correctly', qt.units === 3 && Math.abs(qt.pr - 450) < 0.01,
+   JSON.stringify(qt));
+w.qtSet(0, 'qty', '-4');
+qt = w.qtTotals();
+ok('a negative quantity cannot make negative units', qt.units >= 1, JSON.stringify(qt));
+ok('nor a negative order value', qt.val > 0, JSON.stringify(qt));
+ok('nor a negative profit on a profitable line', qt.pr > 0, JSON.stringify(qt));
+w.qtSet(0, 'qty', '0');
+ok('zero clamps the same way as the calculator', w.qtTotals().units === 1,
+   JSON.stringify(w.qtTotals()));
+w.qtSet(0, 'qty', 'abc');
+ok('so does a non-number', w.qtTotals().units === 1, JSON.stringify(w.qtTotals()));
+w.qtSet(0, 'qty', '2.5');
+ok('a fractional quantity floors', w.qtTotals().units === 2, JSON.stringify(w.qtTotals()));
+w.QUOTE.length = 0;
+qt = w.qtTotals();
+ok('an empty quote totals zero, not NaN',
+   qt.units === 0 && qt.val === 0 && qt.lines === 0, JSON.stringify(qt));
+ok('and blended GP is null rather than a division by zero',
+   qt.gp === null && qt.mg === null, JSON.stringify(qt));
+
+// ── Custom GST and rounding reject out-of-range input ──────────────────────
+freshCalc(1000, 40, 25);
+const gstIn = d.getElementById('gst-custom');
+gstIn.value = '0'; w.onCustomGST(gstIn);
+ok('0% GST is allowed', w.G === 0, 'got ' + w.G);
+gstIn.value = '100'; w.onCustomGST(gstIn);
+ok('100% GST is allowed', Math.abs(w.G - 1) < 1e-9, 'got ' + w.G);
+gstIn.value = '-5'; w.onCustomGST(gstIn);
+ok('a negative rate is refused', Math.abs(w.G - 1) < 1e-9, 'got ' + w.G);
+ok('and the field is put back', gstIn.value === '100', 'got ' + gstIn.value);
+gstIn.value = '200'; w.onCustomGST(gstIn);
+ok('a rate above 100 is refused', Math.abs(w.G - 1) < 1e-9, 'got ' + w.G);
+gstIn.value = ''; w.setGST(18);
+
+const rndIn = d.getElementById('rnd-custom');
+rndIn.value = '0.5'; w.onCustomRounding(rndIn);
+ok('a fractional rounding step is allowed', w.roundStep() === 0.5, 'got ' + w.roundStep());
+rndIn.value = '0'; w.onCustomRounding(rndIn);
+ok('a zero step is refused', w.roundStep() === 0.5, 'got ' + w.roundStep());
+ok('and the field is put back', rndIn.value === '0.5', 'got ' + rndIn.value);
+rndIn.value = '-3'; w.onCustomRounding(rndIn);
+ok('a negative step is refused', w.roundStep() === 0.5, 'got ' + w.roundStep());
+rndIn.value = '100001'; w.onCustomRounding(rndIn);
+ok('an absurd step is refused', w.roundStep() === 0.5, 'got ' + w.roundStep());
+w.setRounding('off'); rndIn.value = '';
+ok('rounding off means no step', w.roundStep() === 0, 'got ' + w.roundStep());
+
+w.QUOTE.length = 0;
+w.resetAll();
+
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

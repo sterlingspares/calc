@@ -145,6 +145,7 @@ ACT.a29 = function(self, event){ onMrpInput(self) };
 ACT.a30 = function(self, event){ nextFrom('mrp') };
 ACT.a31 = function(self, event){ stepQty(-1) };
 ACT.a32 = function(self, event){ calc();debouncedSaveCalcState() };
+ACT.qtyBlur = function(){ normalizeQty(); };
 ACT.a33 = function(self, event){ stepQty(1) };
 ACT.a34 = function(self, event){ setCM('excl') };
 ACT.a35 = function(self, event){ setCM('incl') };
@@ -742,6 +743,20 @@ function stepQty(d){
   var e=el('qty');if(!e)return;
   e.value=Math.max(1,getQty()+d);
   haptic('light');calc();debouncedSaveCalcState();
+}
+/**
+ * Write the quantity actually being used back into the field.
+ *
+ * getQty() floors and clamps to 1, but nothing put that value on screen, so
+ * typing 2.5 left the field reading 2.5 while every total was for 2 units, and
+ * 0 or -5 sat there looking accepted while 1 was used. Normalising on blur
+ * rather than on input means it does not fight someone midway through typing.
+ */
+function normalizeQty(){
+  var e=el('qty');if(!e)return;
+  if(e.value==='')return;                   // empty is the placeholder state
+  var q=String(getQty());
+  if(e.value!==q){e.value=q;calc();debouncedSaveCalcState()}
 }
 
 /* ── Rounding ──
@@ -1976,7 +1991,10 @@ function deletePreset(){
  * @returns {Object|null} null when the inputs cannot support an answer
  */
 function solveForGp(targetGp){
-  if(isNaN(targetGp)||targetGp>=100)return null;
+  // A GP target below 0 is as meaningless as one at or above 100: you cannot
+  // aim to lose a proportion of your own selling price. Without the lower
+  // bound, -20 flowed through as a legitimate target.
+  if(isNaN(targetGp)||targetGp<0||targetGp>=100)return null;
   var cp=LAST_CP, sp=LAST_SP;
   if(!cp||!sp||cp.e<=0||sp.e<=0)return null;
 
@@ -2016,6 +2034,15 @@ function renderSolver(){
   var raw=el('solver-gp');
   var target=raw?parseFloat(raw.value):NaN;
   if(isNaN(target)){out.textContent='Enter a target GP % to see what it needs.';out.className='solver-out';return}
+  // Check the target before the inputs. solveForGp returns null for two
+  // unrelated reasons — an impossible target, and no calculation to work from —
+  // and reporting both as "Enter MRP, CP and SP first" told people to fill in
+  // fields that were already full whenever they typed 100 or more.
+  if(target<0||target>=100){
+    out.className='solver-out bad';
+    out.textContent='Target GP % must be between 0 and 99.9 — '+PCT(target)+' is not reachable at any price.';
+    return;
+  }
   var r=solveForGp(target);
   if(!r){out.textContent='Enter MRP, CP and SP first.';out.className='solver-out';return}
   if(!r.reachable){

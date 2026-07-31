@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-926%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-79%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-980%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-79%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -336,9 +336,10 @@ cushion on effective CP instead:
 
 **Sitting on it** — `Right on target — GP is 25.00%. No change needed.`
 
-If the target would need more incentive than the cost price itself, it says so
-rather than printing a nonsense figure. Landed costs are accounted for
-throughout.
+Targets outside 0–99.9% are refused by name (`Target GP % must be between 0 and
+99.9`) rather than being mistaken for missing input, and if a reachable target
+would need more incentive than the cost price itself, it says so rather than
+printing a nonsense figure. Landed costs are accounted for throughout.
 
 ### What-if analysis
 
@@ -573,8 +574,8 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 926 passing, 7 suites | `npm test` |
-| Statement coverage | **79.2%** (app.js 83.0%, app-extra.js 66.1%) | `npm run coverage` |
+| Tests | 980 passing, 7 suites | `npm test` |
+| Statement coverage | **79.5%** (app.js 83.3%, app-extra.js 66.3%) | `npm run coverage` |
 | Lighthouse Performance | **98** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
 | Lighthouse Best Practices | **100** | ” |
@@ -601,7 +602,7 @@ commands after significant changes.
 
 ## Tests
 
-926 assertions across seven suites. They load the real `index.html`,
+980 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -612,7 +613,7 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 527 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 581 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 69 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
