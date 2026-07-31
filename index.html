@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- Pinch-zoom stays available (WCAG 1.4.4). Accidental double-tap zoom is
+     suppressed per-control with `touch-action:manipulation` instead of by
+     disabling zoom globally. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
 <meta name="description" content="Pricing calculator for automotive parts distribution. Calculate cost price, selling price, GP%, margin%, GST, and incentives on MRP.">
 <meta name="keywords" content="pricing calculator, automotive parts, MRP, GST, margin, GP, distributor, Sterling Spares">
 <meta name="author" content="Sterling Spares">
@@ -309,7 +312,9 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
 .cmp-hist-btn:hover{background:var(--blue);color:#fff}
 
 /* ── MODAL BASE ── */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,10,8,0.55);z-index:300;align-items:flex-start;justify-content:center;padding:clamp(1rem,3vw,2rem);overflow-y:auto;backdrop-filter:blur(2px)}
+/* z-index must beat .bottom-nav (500), or the nav renders over the dialog on
+   mobile and can obstruct its buttons. */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,10,8,0.55);z-index:600;align-items:flex-start;justify-content:center;padding:clamp(1rem,3vw,2rem);overflow-y:auto;backdrop-filter:blur(2px)}
 .modal-overlay.open{display:flex}
 .modal{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-modal);width:100%;max-width:720px;margin:auto;animation:modalIn .2s ease}
 @keyframes modalIn{from{opacity:0;transform:translateY(-12px) scale(0.98)}to{opacity:1;transform:none}}
@@ -643,6 +648,20 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .sum-item.sum-order .sum-val{color:#fff}
 .sum-order-sep{grid-column:1/-1;height:1px;background:rgba(255,255,255,0.18);margin:2px 0}
 
+/* ── STICKY MOBILE RESULT BAR ──
+   Phones can't show the inputs and the summary at once, which turned "tweak a
+   discount, read the profit" into a scroll round-trip. This pins the three
+   figures that matter directly above the bottom nav. Desktop keeps the full
+   summary and never shows this. */
+.mini-result{display:none;position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:450;background:var(--accent);color:#fff;padding:7px calc(10px + env(safe-area-inset-left,0px)) 7px calc(10px + env(safe-area-inset-right,0px));box-shadow:0 -2px 10px rgba(0,0,0,0.14);align-items:center;justify-content:space-around;gap:6px}
+.mini-item{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;flex:1}
+.mini-lbl{font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:600;opacity:.72;white-space:nowrap}
+.mini-val{font-family:var(--font-mono);font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.mini-val.neg{color:#ffb4ab}
+.mini-val.warn{color:#ffd479}
+.mini-sep{width:1px;align-self:stretch;background:rgba(255,255,255,0.22);flex:0 0 1px}
+@media(max-width:800px){.mini-result.show{display:flex}}
+
 /* ── TOAST ── */
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--surface);padding:10px 16px;border-radius:22px;font-size:12.5px;font-family:var(--font-body);box-shadow:0 6px 24px rgba(0,0,0,0.25);z-index:400;opacity:0;transition:transform .25s cubic-bezier(.2,.9,.3,1),opacity .25s;pointer-events:none;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px)}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
@@ -697,18 +716,82 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
 .qt-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
 .qt-empty{text-align:center;padding:26px;color:var(--text3);font-size:12px;font-style:italic}
 .qt-note{font-size:10.5px;color:var(--text3);font-style:italic;margin-top:10px;line-height:1.5}
+/* Quote card layout — used below 800px instead of the 720px-wide table */
+.qt-cards{display:flex;flex-direction:column;gap:10px}
+.qtc{border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);padding:10px 12px}
+.qtc-head{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.qtc-num{font-size:10px;font-weight:700;color:var(--text3);min-width:16px;font-family:var(--font-mono)}
+.qtc-desc{flex:1;width:auto;min-width:0}
+.qtc-inputs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.qtc-f{display:flex;flex-direction:column;gap:3px}
+.qtc-f>span{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:600}
+.qtc-f .qt-in{width:100%;text-align:left;font-size:15px;padding:9px 10px}
+.qtc-out{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 10px;margin-top:10px;padding-top:9px;border-top:1px dashed var(--border)}
+.qtc-o{display:flex;flex-direction:column;gap:1px;font-family:var(--font-mono);font-size:13px;min-width:0}
+.qtc-ol{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:600;font-family:var(--font-body)}
+.qtc-total{background:var(--accent);color:#fff;border-color:var(--accent)}
+.qtc-total .qtc-ol{color:rgba(255,255,255,0.75)}
+.qtc-total .qtc-out{border-top-color:rgba(255,255,255,0.25);grid-template-columns:repeat(3,1fr)}
+.qtc-thead{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.85}
+.qtc-total .qt-pos{color:#a7f3d0}
+.qtc-total .qt-neg{color:#ffb4ab}
 
 /* ── MOBILE-ONLY OVERRIDES (must come after base rules) ── */
 @media(max-width:800px){
-  /* Footer: enough space below bottom nav */
-  .footer{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px) + 1.5rem)}
-  /* Settings modal: constrain height so bottom nav doesn't cover it */
-  #overlay-settings{padding-bottom:calc(60px + env(safe-area-inset-bottom,0px))}
-  #overlay-settings .modal{max-height:calc(100svh - 60px - env(safe-area-inset-bottom,0px) - 2rem);display:flex;flex-direction:column}
-  #overlay-settings .modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
+  /* Footer clears the bottom nav AND the sticky result bar above it */
+  .footer{padding-bottom:calc(126px + env(safe-area-inset-bottom,0px) + 1.5rem)}
+
+  /* Every dialog — not just Settings — must fit the viewport with a scrolling
+     body, so its action buttons stay reachable. */
+  .modal-overlay{align-items:center;padding:0.75rem;padding-bottom:calc(0.75rem + env(safe-area-inset-bottom,0px))}
+  .modal-overlay .modal{max-height:calc(100svh - 1.5rem - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column}
+  /* min-height:0 lets a flex child actually scroll instead of growing */
+  .modal-overlay .modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
   /* Hide keyboard shortcuts row — not useful on phones */
   #settings-kb-row{display:none}
+
+  /* Quote actions pinned to the bottom of the dialog — they are the primary
+     controls and were previously below the fold on a phone. */
+  .qt-actions{position:sticky;bottom:0;background:var(--surface);margin:14px -20px -20px;padding:11px 20px calc(11px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);z-index:2}
+  .qt-note{display:none}
+
+  /* Confirm actions pinned so the destructive choice is never scrolled away */
+  .confirm-actions{position:sticky;bottom:0;background:var(--surface);padding-top:14px;margin-bottom:-4px}
+  .confirm-btn{padding:11px 20px;font-size:13px}
+
+  /* ── Touch targets: Apple HIG asks for 44×44; these were 22–28px ── */
+  .inc-del-btn{width:30px;height:30px;min-width:30px;font-size:21px;margin-right:8px}
+  .qt-del{width:34px;height:34px}
+  .hist-del-btn{width:36px;height:36px}
+  .cmp-hist-btn{padding:8px 14px}
+  .qty-box button{width:40px;height:40px;font-size:19px}
+  .qty-box input{width:54px;font-size:15px;padding:8px 0}
+  .modal-close{width:40px;height:40px;font-size:20px}
+  .stab{padding:9px 8px}
+  .hist-fpill{padding:7px 13px;font-size:11.5px}
+  .hist-tag,.hist-tag.empty{padding:5px 10px;font-size:11px}
+  .pill{padding:8px 15px;font-size:12.5px}
+  .hist-btn{padding:9px 15px;font-size:12px}
+  .inc-add-btn{padding:12px}
+  .hmenu-item{padding:12px 14px}
+
+  /* ── Type scale: nothing below ~10.5px on a phone ── */
+  .badge,.hist-k,.hist-inc-k{font-size:10.5px}
+  .bnav-item,.fc-result-lbl,.wz-res-lbl{font-size:10.5px}
+  .hist-v{font-size:12px}
+  .inc-note,.qt-note{font-size:11.5px}
+  .sum-lbl{font-size:10.5px}
 }
+
+/* Suppress double-tap zoom on controls without disabling pinch-zoom page-wide */
+button,.pill,.stab,.mtab,.fc-tab,.bnav-item,.toggle,.hist-tag,.inc-row-main,
+.hmenu-item,.modal-close,.hist-fpill,label{touch-action:manipulation}
+
+/* Press feedback for touch, where :hover never fires */
+.inc-del-btn:active,.qt-del:active,.hist-tag:active,.qty-box button:active{
+  transform:scale(0.88);opacity:.75
+}
+.inc-del-btn,.qt-del,.hist-tag,.qty-box button{transition:transform .1s,opacity .1s}
 @media print{
   .header,.control-bar,.mrp-bar,.cards,.panel,.footer,
   .hist-actions,.hbtn,.btn-reset,.modal-overlay{display:none!important}
@@ -1334,6 +1417,12 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
       <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h12M4 10h8M4 15h10"/></svg>
       History
     </button>
+    <!-- Action rather than a scroll anchor: the quote builder was otherwise
+         two taps deep in the hamburger on mobile. -->
+    <button class="bnav-item" id="bnav-quote" onclick="openModal('quote')">
+      <svg class="bnav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2.5" width="14" height="15" rx="2"/><path d="M6.5 7h7M6.5 10h7M6.5 13h4"/></svg>
+      Quote
+    </button>
   </div>
 </nav>
 
@@ -1525,7 +1614,9 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
       <button class="modal-close" onclick="closeModal('quote')" aria-label="Close quote builder">×</button>
     </div>
     <div class="modal-body">
+      <!-- Wide screens use the table; phones use the card list (see qtRender) -->
       <div class="qt-wrap"><table class="qt-table" id="qt-table"></table></div>
+      <div class="qt-cards" id="qt-cards" style="display:none"></div>
       <div class="qt-actions">
         <button class="hist-btn save" onclick="qtAddLine()">+ Add line</button>
         <button class="hist-btn" onclick="qtAddFromCalc()">Add current calculation</button>
@@ -1554,6 +1645,15 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
       </div>
     </div>
   </div>
+</div>
+
+<!-- ═══ STICKY MOBILE RESULT BAR (mobile only, see .mini-result) ═══ -->
+<div class="mini-result" id="mini-result" role="status" aria-live="polite" aria-label="Live result">
+  <div class="mini-item"><span class="mini-lbl">Profit</span><span class="mini-val" id="mini-pr">—</span></div>
+  <div class="mini-sep"></div>
+  <div class="mini-item"><span class="mini-lbl">GP %</span><span class="mini-val" id="mini-gp">—</span></div>
+  <div class="mini-sep"></div>
+  <div class="mini-item"><span class="mini-lbl">Margin %</span><span class="mini-val" id="mini-mg">—</span></div>
 </div>
 
 <!-- ═══ TOAST ═══ -->
@@ -2991,7 +3091,7 @@ function fillSummary(cp,sp){
   ['s-mrp','s-cp','s-ecp','s-sp','s-esp','s-inc','s-spinc','s-pr','s-gp','s-mg','s-dcp','s-dsp'].forEach(function(id){sumSet(id,'—','dim')});
   var mrpV=parseMRP();
   if(mrpV&&mrpV>0)sumSet('s-mrp',INR(mrpV),'');
-  if(!cp||!sp)return;
+  if(!cp||!sp){updateMiniResult(null,null,null);return}
   var floor=getFloor();
   var cpInc=getIncentiveInr(cp),eff=cp.e-cpInc;
   var spInc=getSPIncentiveInr(sp),effSP=sp.e-spInc;
@@ -3014,8 +3114,28 @@ function fillSummary(cp,sp){
     sumSet('s-order',INR(sp.i*q),'');
     sumSet('s-tpr',INR(pr*q),pr>=0?'pos':'neg');
   }
+  updateMiniResult(pr,gp,mg);
   // Flash key values
   ['s-pr','s-gp','s-mg'].forEach(flashSumVal);
+}
+/**
+ * Update the sticky mobile result bar. Hidden entirely when the calculation is
+ * incomplete, or in Quick mode which shows its own result card.
+ * @param {number|null} pr profit in rupees
+ * @param {number|null} gp gross profit %
+ * @param {number|null} mg margin %
+ */
+function updateMiniResult(pr,gp,mg){
+  var bar=el('mini-result');
+  if(!bar)return;
+  var ready=(pr!==null&&pr!==undefined&&!isNaN(pr)&&APP_MODE==='default');
+  bar.className='mini-result'+(ready?' show':'');
+  if(!ready)return;
+  var floor=getFloor();
+  var prEl=el('mini-pr'),gpEl=el('mini-gp'),mgEl=el('mini-mg');
+  if(prEl){prEl.textContent=INR(pr);prEl.className='mini-val'+(pr<0?' neg':'')}
+  if(gpEl){gpEl.textContent=PCT(gp);gpEl.className='mini-val'+(belowFloor(gp,floor.gp)?' warn':(gp<0?' neg':''))}
+  if(mgEl){mgEl.textContent=PCT(mg);mgEl.className='mini-val'+(belowFloor(mg,floor.mg)?' warn':(mg<0?' neg':''))}
 }
 
 /* ── What-if modal renderer ── */
@@ -3935,6 +4055,8 @@ function setMode(m){
   document.querySelector('.page').style.display = (m==='default') ? '' : 'none';
   document.querySelector('.footer').style.display = (m==='default') ? '' : 'none';
   if(el('wizard-mode'))el('wizard-mode').style.display='none';
+  // The sticky result bar belongs to Default mode only; Quick has its own card
+  if(m!=='default'){var mb=el('mini-result');if(mb)mb.className='mini-result'}
   if(m==='quick'){
     FC_STEP=0;
     // Phase 1: restore FC_* vars before building cards (FC_T drives card layout)
@@ -5044,15 +5166,68 @@ function qtTotals(){
   return t;
 }
 /**
- * Rebuild the quote table and its totals row.
+ * Rebuild the quote view, choosing the layout that fits the viewport.
  */
 function qtRender(){
-  var tbl=el('qt-table');
+  if(qtIsMobile())qtRenderCards();else qtRenderTable();
+}
+/**
+ * Whether the quote should use the stacked card layout.
+ * The table needs 720px of width; anything narrower gets cards instead so the
+ * user never has to scroll sideways while typing.
+ * @returns {boolean}
+ */
+function qtIsMobile(){return window.innerWidth<=800}
+/**
+ * Markup for one editable quote field, shared by both layouts.
+ * @param {number} i line index
+ * @param {string} field property on the line record
+ * @param {*} val current value
+ * @param {Object} [opts] type, mode, ph, cls, style, min, max, step, label
+ * @returns {string} HTML
+ */
+function qtField(i,field,val,opts){
+  opts=opts||{};
+  var esc=String(val==null?'':val).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+  return '<input class="qt-in '+(opts.cls||'')+'"'
+    +(opts.type?' type="'+opts.type+'"':'')
+    +(opts.mode?' inputmode="'+opts.mode+'"':'')
+    +' value="'+esc+'" placeholder="'+(opts.ph||'')+'"'
+    +(opts.min!==undefined?' min="'+opts.min+'"':'')
+    +(opts.max!==undefined?' max="'+opts.max+'"':'')
+    +(opts.step?' step="'+opts.step+'"':'')
+    +(opts.style?' style="'+opts.style+'"':'')
+    +(opts.label?' aria-label="'+opts.label+'"':'')
+    +' onfocus="pushUndo(\'edit quote line\')"'
+    +' oninput="qtSet('+i+',\''+field+'\',this.value)" autocomplete="off">';
+}
+/**
+ * Remove-line button, shared by both layouts.
+ * @param {number} i line index
+ * @returns {string} HTML
+ */
+function qtDelBtnHTML(i){
+  return '<button class="qt-del" onclick="qtDelLine('+i+')" title="Remove line" aria-label="Remove line '+(i+1)+'">'
+    +'<svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>';
+}
+/**
+ * Empty-state markup, shared by both layouts.
+ * @returns {string} HTML
+ */
+function qtEmptyHTML(){
+  return '<div class="qt-empty">No lines yet — add one, or pull in the current calculation.</div>';
+}
+/**
+ * Wide layout: one table row per line.
+ * Derived cells carry stable qtd-* ids so qtRefreshDerived never has to depend
+ * on column positions.
+ */
+function qtRenderTable(){
+  var tbl=el('qt-table'),wrap=el('qt-cards');
   if(!tbl)return;
-  if(QUOTE.length===0){
-    tbl.innerHTML='<tr><td class="qt-empty">No lines yet — add one, or pull in the current calculation.</td></tr>';
-    return;
-  }
+  if(wrap){wrap.innerHTML='';wrap.style.display='none'}
+  tbl.style.display='';
+  if(QUOTE.length===0){tbl.innerHTML='<tr><td>'+qtEmptyHTML()+'</td></tr>';return}
   var g=Math.round(G*100),floor=getFloor();
   var h='<thead><tr>'
     +'<th>#</th><th>Description</th><th class="num">MRP</th><th class="num">Qty</th>'
@@ -5066,30 +5241,75 @@ function qtRender(){
     var gpCls=r&&belowFloor(r.gp,floor.gp)?'qt-neg':prCls;
     h+='<tr>'
       +'<td>'+(i+1)+'</td>'
-      +'<td><input class="qt-in desc" value="'+String(L.desc||'').replace(/"/g,'&quot;')+'" placeholder="Part / description" onfocus="pushUndo(\'edit quote line\')" oninput="qtSet('+i+',\'desc\',this.value)" autocomplete="off"></td>'
-      +'<td class="num"><input class="qt-in" type="number" inputmode="decimal" value="'+(L.mrp||'')+'" placeholder="0" min="0" step="0.01" onfocus="pushUndo(\'edit quote line\')" oninput="qtSet('+i+',\'mrp\',this.value)" autocomplete="off"></td>'
-      +'<td class="num"><input class="qt-in" type="number" inputmode="numeric" value="'+(L.qty||1)+'" min="1" step="1" style="width:52px" onfocus="pushUndo(\'edit quote line\')" oninput="qtSet('+i+',\'qty\',this.value)" autocomplete="off"></td>'
-      +'<td class="num"><input class="qt-in" type="number" inputmode="decimal" value="'+(L.cpd||'')+'" placeholder="0" min="0" max="100" step="0.01" style="width:62px" onfocus="pushUndo(\'edit quote line\')" oninput="qtSet('+i+',\'cpd\',this.value)" autocomplete="off"></td>'
-      +'<td class="num"><input class="qt-in" type="number" inputmode="decimal" value="'+(L.spd||'')+'" placeholder="0" min="0" max="100" step="0.01" style="width:62px" onfocus="pushUndo(\'edit quote line\')" oninput="qtSet('+i+',\'spd\',this.value)" autocomplete="off"></td>'
-      +'<td class="num">'+(r?INR(r.spI):'—')+'</td>'
-      +'<td class="num">'+(r?INR(r.lineVal):'—')+'</td>'
-      +'<td class="num '+prCls+'">'+(r?INR(r.linePr):'—')+'</td>'
-      +'<td class="num '+gpCls+'">'+(r?PCT(r.gp):'—')+'</td>'
-      +'<td><button class="qt-del" onclick="qtDelLine('+i+')" title="Remove line" aria-label="Remove line '+(i+1)+'"><svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button></td>'
+      +'<td>'+qtField(i,'desc',L.desc,{cls:'desc',ph:'Part / description',label:'Description for line '+(i+1)})+'</td>'
+      +'<td class="num">'+qtField(i,'mrp',L.mrp,{type:'number',mode:'decimal',ph:'0',min:0,step:'0.01',label:'MRP for line '+(i+1)})+'</td>'
+      +'<td class="num">'+qtField(i,'qty',L.qty,{type:'number',mode:'numeric',min:1,step:'1',style:'width:52px',label:'Quantity for line '+(i+1)})+'</td>'
+      +'<td class="num">'+qtField(i,'cpd',L.cpd,{type:'number',mode:'decimal',ph:'0',min:0,max:100,step:'0.01',style:'width:62px',label:'CP discount for line '+(i+1)})+'</td>'
+      +'<td class="num">'+qtField(i,'spd',L.spd,{type:'number',mode:'decimal',ph:'0',min:0,max:100,step:'0.01',style:'width:62px',label:'SP discount for line '+(i+1)})+'</td>'
+      +'<td class="num" id="qtd-spi-'+i+'">'+(r?INR(r.spI):'—')+'</td>'
+      +'<td class="num" id="qtd-val-'+i+'">'+(r?INR(r.lineVal):'—')+'</td>'
+      +'<td class="num '+prCls+'" id="qtd-pr-'+i+'">'+(r?INR(r.linePr):'—')+'</td>'
+      +'<td class="num '+gpCls+'" id="qtd-gp-'+i+'">'+(r?PCT(r.gp):'—')+'</td>'
+      +'<td>'+qtDelBtnHTML(i)+'</td>'
       +'</tr>';
   });
   var t=qtTotals();
   h+='</tbody><tfoot><tr class="qt-foot">'
     +'<td colspan="3">Total — '+t.lines+' line'+(t.lines===1?'':'s')+'</td>'
-    +'<td class="num">'+t.units+'</td>'
-    +'<td colspan="2"></td>'
-    +'<td></td>'
+    +'<td class="num" id="qt-total-units">'+t.units+'</td>'
+    +'<td colspan="2"></td><td></td>'
     +'<td class="num" id="qt-total-val">'+INR(t.val)+'</td>'
     +'<td class="num '+(t.pr>=0?'qt-pos':'qt-neg')+'" id="qt-total-pr">'+INR(t.pr)+'</td>'
     +'<td class="num" id="qt-total-gp">'+PCT(t.gp)+'</td>'
-    +'<td></td>'
-    +'</tr></tfoot>';
+    +'<td></td></tr></tfoot>';
   tbl.innerHTML=h;
+}
+/**
+ * Narrow layout: one card per line, so nothing scrolls sideways.
+ * Reuses the same qtd-* ids as the table, so both share one refresh path.
+ */
+function qtRenderCards(){
+  var tbl=el('qt-table'),wrap=el('qt-cards');
+  if(!wrap)return;
+  if(tbl){tbl.innerHTML='';tbl.style.display='none'}
+  wrap.style.display='';
+  if(QUOTE.length===0){wrap.innerHTML=qtEmptyHTML();return}
+  var g=Math.round(G*100),floor=getFloor();
+  var h='';
+  QUOTE.forEach(function(L,i){
+    var r=qtCalcLine(L);
+    var prCls=r?(r.linePr>=0?'qt-pos':'qt-neg'):'';
+    var gpCls=r&&belowFloor(r.gp,floor.gp)?'qt-neg':prCls;
+    h+='<div class="qtc">'
+      +'<div class="qtc-head">'
+        +'<span class="qtc-num">'+(i+1)+'</span>'
+        +qtField(i,'desc',L.desc,{cls:'desc qtc-desc',ph:'Part / description',label:'Description for line '+(i+1)})
+        +qtDelBtnHTML(i)
+      +'</div>'
+      +'<div class="qtc-inputs">'
+        +'<label class="qtc-f"><span>MRP</span>'+qtField(i,'mrp',L.mrp,{type:'number',mode:'decimal',ph:'0',min:0,step:'0.01',label:'MRP for line '+(i+1)})+'</label>'
+        +'<label class="qtc-f"><span>Qty</span>'+qtField(i,'qty',L.qty,{type:'number',mode:'numeric',min:1,step:'1',label:'Quantity for line '+(i+1)})+'</label>'
+        +'<label class="qtc-f"><span>CP disc %</span>'+qtField(i,'cpd',L.cpd,{type:'number',mode:'decimal',ph:'0',min:0,max:100,step:'0.01',label:'CP discount for line '+(i+1)})+'</label>'
+        +'<label class="qtc-f"><span>SP disc %</span>'+qtField(i,'spd',L.spd,{type:'number',mode:'decimal',ph:'0',min:0,max:100,step:'0.01',label:'SP discount for line '+(i+1)})+'</label>'
+      +'</div>'
+      +'<div class="qtc-out">'
+        +'<span class="qtc-o"><span class="qtc-ol">SP incl '+g+'%</span><span id="qtd-spi-'+i+'">'+(r?INR(r.spI):'—')+'</span></span>'
+        +'<span class="qtc-o"><span class="qtc-ol">Line value</span><span id="qtd-val-'+i+'">'+(r?INR(r.lineVal):'—')+'</span></span>'
+        +'<span class="qtc-o"><span class="qtc-ol">Profit</span><span class="'+prCls+'" id="qtd-pr-'+i+'">'+(r?INR(r.linePr):'—')+'</span></span>'
+        +'<span class="qtc-o"><span class="qtc-ol">GP %</span><span class="'+gpCls+'" id="qtd-gp-'+i+'">'+(r?PCT(r.gp):'—')+'</span></span>'
+      +'</div>'
+    +'</div>';
+  });
+  var t=qtTotals();
+  h+='<div class="qtc qtc-total">'
+    +'<div class="qtc-thead">Total — '+t.lines+' line'+(t.lines===1?'':'s')+' · <span id="qt-total-units">'+t.units+'</span> units</div>'
+    +'<div class="qtc-out">'
+      +'<span class="qtc-o"><span class="qtc-ol">Order value</span><span id="qt-total-val">'+INR(t.val)+'</span></span>'
+      +'<span class="qtc-o"><span class="qtc-ol">Total profit</span><span class="'+(t.pr>=0?'qt-pos':'qt-neg')+'" id="qt-total-pr">'+INR(t.pr)+'</span></span>'
+      +'<span class="qtc-o"><span class="qtc-ol">Blended GP</span><span id="qt-total-gp">'+PCT(t.gp)+'</span></span>'
+    +'</div>'
+  +'</div>';
+  wrap.innerHTML=h;
 }
 /**
  * Update one field of one quote line.
@@ -5103,31 +5323,35 @@ function qtSet(i,field,val){
   if(!QUOTE[i])return;
   QUOTE[i][field]=val;
   saveQuote();
-  // Recompute derived cells without rebuilding the row (keeps focus/caret intact)
   qtRefreshDerived();
 }
 /**
  * Recompute the calculated cells and totals without rebuilding the inputs.
+ * Targets elements by id rather than by cell position, so the table and card
+ * layouts share a single implementation.
  */
 function qtRefreshDerived(){
-  var rowsEls=document.querySelectorAll('#qt-table tbody tr');
-  var floor=getFloor();
+  var floor=getFloor(),inTable=!qtIsMobile();
+  function put(id,txt,cls){
+    var e=document.getElementById(id);
+    if(!e)return;
+    e.textContent=txt;
+    if(cls!==undefined)e.className=cls;
+  }
   QUOTE.forEach(function(L,i){
-    var tr=rowsEls[i];if(!tr)return;
-    var cells=tr.children;
     var r=qtCalcLine(L);
     var prCls=r?(r.linePr>=0?'qt-pos':'qt-neg'):'';
     var gpCls=r&&belowFloor(r.gp,floor.gp)?'qt-neg':prCls;
-    if(cells[6])cells[6].textContent=r?INR(r.spI):'—';
-    if(cells[7])cells[7].textContent=r?INR(r.lineVal):'—';
-    if(cells[8]){cells[8].textContent=r?INR(r.linePr):'—';cells[8].className='num '+prCls}
-    if(cells[9]){cells[9].textContent=r?PCT(r.gp):'—';cells[9].className='num '+gpCls}
+    put('qtd-spi-'+i, r?INR(r.spI):'—');
+    put('qtd-val-'+i, r?INR(r.lineVal):'—');
+    put('qtd-pr-'+i,  r?INR(r.linePr):'—', inTable?('num '+prCls):prCls);
+    put('qtd-gp-'+i,  r?PCT(r.gp):'—',     inTable?('num '+gpCls):gpCls);
   });
   var t=qtTotals();
-  var tv=el('qt-total-val'),tp=el('qt-total-pr'),tg=el('qt-total-gp');
-  if(tv)tv.textContent=INR(t.val);
-  if(tp){tp.textContent=INR(t.pr);tp.className='num '+(t.pr>=0?'qt-pos':'qt-neg')}
-  if(tg)tg.textContent=PCT(t.gp);
+  put('qt-total-units',String(t.units));
+  put('qt-total-val',INR(t.val));
+  put('qt-total-pr',INR(t.pr),(inTable?'num ':'')+(t.pr>=0?'qt-pos':'qt-neg'));
+  put('qt-total-gp',PCT(t.gp));
 }
 /**
  * Append a blank quote line.
@@ -5262,6 +5486,22 @@ function fallbackCopyQuote(txt,done){
     toast('Copy failed');
   }
 }
+
+/* Rotating a phone or resizing a window can cross the table/card threshold.
+   Re-render the open quote so the layout matches, and refresh the sticky result
+   bar since it only applies below 800px. */
+var _qtResizeTimer=null,_qtWasMobile=null;
+window.addEventListener('resize',function(){
+  clearTimeout(_qtResizeTimer);
+  _qtResizeTimer=setTimeout(function(){
+    var nowMobile=qtIsMobile();
+    if(nowMobile!==_qtWasMobile){
+      _qtWasMobile=nowMobile;
+      var ov=el('overlay-quote');
+      if(ov&&ov.classList.contains('open'))qtRender();
+    }
+  },150);
+});
 
 /* ── Share as link ── */
 function getShareState(){
