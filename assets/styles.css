@@ -15,6 +15,10 @@
      including the dark summary bar, where a darker grey would disappear —
      so one value serves light and dark and no theme override is needed. */
   --focus-ring:#8a857c;--accent-fg:#fff;
+  /* Foreground counterpart to --accent. --accent is a fill (white text sits on
+     it); used as a text or icon colour it turns near-black on near-black in the
+     dark theme. Anything drawn ON a surface uses this instead. */
+  --accent-ink:#1a1916;
   --green:#1a6b45;--green-bg:#e8f5ef;--green-border:#a8d9bc;
   --red:#8b2020;--red-bg:#faeaea;
   --blue:#1a4a8b;--blue-bg:#e8eef8;--blue-border:#b8cbec;
@@ -40,10 +44,12 @@ html[data-theme="dark"]{
   --shadow:0 1px 3px rgba(0,0,0,0.3),0 4px 16px rgba(0,0,0,0.2);
   --shadow-card:0 2px 8px rgba(0,0,0,0.3),0 8px 32px rgba(0,0,0,0.2);
   --shadow-modal:0 8px 40px rgba(0,0,0,0.6),0 2px 8px rgba(0,0,0,0.4);
-}
+;--accent-ink:#f0ede8}
 html[data-theme="dark"] .header{background:#111110}
 html[data-theme="dark"] .summary{background:#252421;border:1px solid var(--border)}
-html[data-theme="dark"] .summary .sum-lbl{color:rgba(240,237,232,0.35)}
+/* 0.35 alpha over the dark card was 2.88:1. 0.62 gives 6.01:1 and keeps
+   the label visually subordinate to the value beneath it. */
+html[data-theme="dark"] .summary .sum-lbl{color:rgba(240,237,232,0.62)}
 html[data-theme="dark"] .summary .sum-val{color:rgba(240,237,232,0.9)}
 html[data-theme="dark"] .modal-overlay{background:rgba(0,0,0,0.75)}
 html[data-theme="dark"] .mtab.on{box-shadow:0 1px 3px rgba(0,0,0,0.4)}
@@ -195,13 +201,13 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .inc-total-val{font-family:var(--font-mono);font-size:15px;font-weight:500;color:var(--amber)}
 .inc-note{font-size:10.5px;color:var(--text3);font-style:italic;line-height:1.4;margin-left:auto;text-align:right}
 /* Edit mode */
-.panel-edit-btn{font-size:11px;padding:3px 10px;border-radius:12px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;margin-right:8px;font-family:var(--font-body);flex-shrink:0;line-height:1.4}
-.panel-edit-btn:hover{border-color:var(--accent);color:var(--accent)}
+.panel-edit-btn{font-size:11px;padding:6px 12px;min-height:24px;border-radius:12px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;margin-right:8px;font-family:var(--font-body);flex-shrink:0;line-height:1.4}
+.panel-edit-btn:hover{border-color:var(--accent-ink);color:var(--accent-ink)}
 .inc-del-btn{display:none;align-items:center;justify-content:center;width:22px;height:22px;min-width:22px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:18px;line-height:1;cursor:pointer;margin-right:4px;padding:0;flex-shrink:0;font-weight:300}
 .inc-grid.edit-mode .inc-del-btn{display:flex}
 .inc-label-edit{font-size:12px;font-weight:500;font-family:var(--font-body);border:none;border-bottom:1px solid var(--accent);background:transparent;color:var(--text2);padding:0 0 1px;width:0;min-width:0;flex:1;outline:none}
 .inc-add-btn{width:100%;margin-top:6px;padding:8px;border:1.5px dashed var(--border2);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:var(--font-body);display:none}
-.inc-add-btn:hover{border-color:var(--accent);color:var(--accent)}
+.inc-add-btn:hover{border-color:var(--accent-ink);color:var(--accent-ink)}
 .gst-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:20px;padding:1px 6px 1px 2px;background:var(--surface);transition:border-color .15s}
 .gst-custom-wrap:focus-within{border-color:var(--accent)}
 .gst-custom-wrap input{border:none;background:transparent;width:38px;font-size:12px;font-family:var(--font-body);text-align:center;outline:none;color:var(--text);padding:2px;-moz-appearance:textfield}
@@ -220,35 +226,48 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .rnd-custom-wrap.on input{color:var(--accent-fg);font-weight:600}
 .rnd-custom-wrap.on span{color:rgba(255,255,255,0.72)}
 
-/* ── PRESETS + SOLVER ── */
-.preset-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-.preset-select{flex:1;min-width:120px;max-width:230px;padding:6px 10px;border:1.5px solid var(--border2);border-radius:20px;background:var(--surface);font-size:11.5px;font-family:var(--font-body);color:var(--text);cursor:pointer}
-.preset-select:focus-within,.preset-select:focus{border-color:var(--accent);outline:none}
-.preset-btn{padding:6px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);white-space:nowrap}
-.preset-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
-.preset-btn:disabled{opacity:.45;cursor:default}
+/* ── PRESETS + SOLVER ──
+   Both used to live inside the incentives panel, which is collapsed by default,
+   so neither was reachable without expanding it first. Presets scope the whole
+   session (like the GST rate) so they sit in the control bar; the solver targets
+   GP%, so it sits with the figures it targets. */
+.preset-bar{display:flex;gap:4px;align-items:center}
+.preset-select{min-width:104px;max-width:170px;padding:5px 8px;border:1px solid var(--border);border-radius:20px;background:transparent;font-size:11.5px;font-family:var(--font-body);color:var(--text2);cursor:pointer}
+.preset-select:hover{border-color:var(--border2);color:var(--text)}
+.preset-select:focus{border-color:var(--accent);outline:none}
+.preset-btn{padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:transparent;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);white-space:nowrap}
+.preset-btn:hover:not(:disabled){border-color:var(--accent-ink);color:var(--accent-ink)}
+.preset-btn:disabled{opacity:.4;cursor:default}
 .preset-btn.danger:hover:not(:disabled){border-color:var(--red);color:var(--red)}
-.solver{margin-top:12px;padding-top:10px;border-top:1px dashed var(--border2)}
-.solver-row{display:flex;align-items:center;gap:8px}
-.solver-lbl{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);font-weight:600;white-space:nowrap}
-.solver-input{display:inline-flex;align-items:center;border:1.5px solid var(--border2);border-radius:20px;padding:1px 8px;background:var(--surface)}
-.solver-input:focus-within{border-color:var(--accent)}
-.solver-input input{border:none;background:transparent;width:56px;text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--text);outline:none;padding:3px 0;-moz-appearance:textfield}
+
+/* Inside the summary card, so it inherits the dark treatment */
+.solver{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.solver-lbl{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-weight:600;white-space:nowrap}
+.solver-input{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,0.28);border-radius:20px;padding:1px 9px;background:rgba(255,255,255,0.08)}
+.solver-input:focus-within{border-color:#fff;background:rgba(255,255,255,0.14)}
+.solver-input input{border:none;background:transparent;width:54px;text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:600;color:#fff;outline:none;padding:3px 0;-moz-appearance:textfield}
 .solver-input input::-webkit-outer-spin-button,.solver-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.solver-input::after{content:'%';font-size:11px;color:var(--text3);margin-left:3px}
-.solver-out{margin-top:7px;font-size:11.5px;line-height:1.5;color:var(--text2)}
-.solver-out.ok{color:var(--green)}
-.solver-out.bad{color:var(--red)}
+.solver-input input::placeholder{color:rgba(255,255,255,0.55)}
+.solver-input::after{content:'%';font-size:11px;color:rgba(255,255,255,0.55);margin-left:3px}
+.solver-out{flex:1;min-width:220px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,0.75)}
+.solver-out.ok{color:#8fe3b0}
+.solver-out.bad{color:#ffb4ab}
+@media(max-width:800px){
+  .solver{gap:8px}
+  .solver-out{min-width:100%;order:3}
+  .preset-select{min-width:88px;font-size:12px}
+}
 
 /* ── SUMMARY ── */
 .summary-wrap{margin-bottom:1.25rem}
 .summary{background:var(--accent);color:#fff;border-radius:var(--radius);padding:18px 20px;box-shadow:0 4px 20px rgba(26,25,22,0.2)}
 .summary-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
-.summary-title{font-family:var(--font-heading);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,0.45)}
+.summary-title{font-family:var(--font-heading);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,0.62)}
 .btn-whatif{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);font-size:11px;font-weight:500;color:rgba(255,255,255,0.85);cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap}
 .btn-whatif:hover{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.4);color:#fff}
 .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:16px 24px}
-.sum-lbl{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,0.4);font-weight:500;margin-bottom:3px}
+/* 0.62 alpha over the accent card = 7.38:1. At 0.4 this was 3.81:1, below AA. */
+.sum-lbl{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,0.62);font-weight:500;margin-bottom:3px}
 .sum-val{font-family:var(--font-mono);font-size:17px;font-weight:500;color:rgba(255,255,255,0.95)}
 .sum-val.pos{color:#6ee9a8}
 .sum-val.neg{color:#f87a7a}
@@ -314,6 +333,9 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
 .cmp-cell.lbl{font-family:var(--font-body);font-size:11.5px;color:var(--text2);font-weight:400;background:var(--surface2)}
 .cmp-row:last-child .cmp-cell{border-bottom:none}
 .cmp-pos{color:var(--green)}
+/* Direction glyphs so a rise or fall is not signalled by colour alone. */
+.dv.up::after{content:' \2191';font-size:.85em}
+.dv.dn::after{content:' \2193';font-size:.85em}
 .cmp-neg{color:var(--red)}
 .cmp-warn{color:var(--red)}
 .cmp-warn::after{content:' ▼';font-size:8px}
@@ -400,8 +422,11 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
 .ob-overlay.show{opacity:1;pointer-events:all}
 .ob-card{background:var(--surface);border-radius:20px;width:100%;max-width:420px;padding:32px 28px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.3);display:flex;flex-direction:column;gap:16px;position:relative}
 .ob-step-dots{display:flex;gap:6px;justify-content:center}
-.ob-dot{appearance:none;-webkit-appearance:none;padding:0;width:6px;height:6px;border-radius:50%;background:var(--border2);transition:all .25s}
-.ob-dot.cur{background:var(--accent);width:18px;border-radius:3px}
+/* The visible dot stays 6px; the button around it is 24px so it meets the
+   minimum target size (WCAG 2.5.8) without changing the design. */
+.ob-dot{appearance:none;-webkit-appearance:none;padding:0;width:24px;height:24px;border:none;background:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.ob-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--border2);transition:all .25s}
+.ob-dot.cur::before{background:var(--accent);width:18px;border-radius:3px}
 .ob-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;margin:0 auto}
 .ob-title{font-family:var(--font-heading);font-size:20px;font-weight:700;text-align:center;line-height:1.2;color:var(--text)}
 .ob-body{font-size:13.5px;color:var(--text2);line-height:1.65;text-align:center}
@@ -561,7 +586,7 @@ html[data-theme="dark"] .fc-dot.cur{background:var(--text)}
 @media(max-width:800px){.bottom-nav{display:flex}}
 .bnav-items{display:flex;width:100%;justify-content:space-around;padding-left:env(safe-area-inset-left,8px);padding-right:env(safe-area-inset-right,8px)}
 .bnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 8px;border:none;background:none;cursor:pointer;font-family:var(--font-body);color:var(--text3);font-size:9.5px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;min-width:0;flex:1;transition:color .15s}
-.bnav-item:hover,.bnav-item.active{color:var(--accent)}
+.bnav-item:hover,.bnav-item.active{color:var(--accent-ink)}
 html[data-theme="dark"] .bnav-item:hover,html[data-theme="dark"] .bnav-item.active{color:var(--text)}
 .bnav-icon{width:20px;height:20px;flex-shrink:0}
 
@@ -655,13 +680,19 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 /* ── QUANTITY ── */
 .landed-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:1px 4px 1px 7px;background:var(--surface);transition:border-color .15s}
 .landed-wrap:focus-within{border-color:var(--accent)}
+/* Direction is in the prefix (+₹ / −₹), not only the colour, so it reads the
+   same to anyone who cannot distinguish the two tints. */
+.landed-wrap>span{font-variant-numeric:tabular-nums}
+.landed-wrap.out{border-color:var(--green-border)}
+.landed-wrap.out>span{color:var(--green)}
+.landed-wrap.out:focus-within{border-color:var(--green)}
 .landed-wrap>span{font-size:11px;color:var(--text3)}
 .landed-wrap input{border:none;background:transparent;width:62px;font-size:13px;font-family:var(--font-mono);font-weight:500;text-align:right;outline:none;color:var(--text);padding:3px 2px;-moz-appearance:textfield}
 .landed-wrap input::-webkit-outer-spin-button,.landed-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .qty-wrap{display:flex;align-items:center;gap:6px}
 .qty-box{display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface)}
 .qty-box button{width:26px;height:28px;border:none;background:transparent;color:var(--text2);font-size:15px;cursor:pointer;line-height:1;font-family:var(--font-body)}
-.qty-box button:hover{background:var(--surface2);color:var(--accent)}
+.qty-box button:hover{background:var(--surface2);color:var(--accent-ink)}
 .qty-box input{width:46px;border:none;outline:none;background:transparent;text-align:center;font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--text);padding:4px 0;-moz-appearance:textfield}
 .qty-box input::-webkit-outer-spin-button,.qty-box input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .sum-item.sum-order .sum-val{color:#fff}
@@ -717,7 +748,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .fab-menu{display:flex;flex-direction:column;align-items:flex-end;gap:9px;pointer-events:none}
 .fab-wrap.open .fab-menu{pointer-events:auto}
 .fab-item{display:flex;align-items:center;gap:10px;background:var(--surface);color:var(--text);border:1px solid var(--border2);border-radius:24px;padding:10px 16px;font-size:12.5px;font-weight:500;font-family:var(--font-body);cursor:pointer;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,0.16);opacity:0;transform:translateY(12px) scale(.92);transition:opacity var(--dur-fast),transform var(--dur) var(--ease-spring)}
-.fab-item svg{flex-shrink:0;color:var(--accent)}
+.fab-item svg{flex-shrink:0;color:var(--accent-ink)}
 .fab-wrap.open .fab-item{opacity:1;transform:none}
 /* Stagger so the stack unfurls rather than appearing all at once */
 .fab-wrap.open .fab-item:nth-child(6){transition-delay:0s}
@@ -756,10 +787,10 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .hist-tag{font-family:var(--font-body);appearance:none;-webkit-appearance:none;display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:1px 7px;border-radius:9px;background:var(--blue-bg);color:var(--blue);border:1px solid transparent;cursor:pointer;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
 .hist-tag:hover{border-color:var(--blue)}
 .hist-tag.empty{background:transparent;color:var(--text3);border:1px dashed var(--border2)}
-.hist-tag.empty:hover{color:var(--accent);border-color:var(--accent)}
+.hist-tag.empty:hover{color:var(--accent-ink);border-color:var(--accent-ink)}
 .hist-tag-input{font-size:10px;font-family:var(--font-body);border:1px solid var(--accent);border-radius:9px;padding:1px 6px;outline:none;background:var(--surface);color:var(--text);width:110px}
 .hist-more{display:block;width:100%;margin-top:8px;padding:10px;border:1px dashed var(--border2);border-radius:var(--radius-sm);background:transparent;color:var(--text2);font-size:12px;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:border-color .15s,color .15s}
-.hist-more:hover{border-color:var(--accent);color:var(--accent)}
+.hist-more:hover{border-color:var(--accent-ink);color:var(--accent-ink)}
 .hist-more span{color:var(--text3);font-weight:400}
 .hist-none{text-align:center;padding:22px;color:var(--text3);font-size:12px;font-style:italic}
 

@@ -192,6 +192,18 @@
         <button class="pill"    id="tcp"     data-click="a27">Cost Price</button>
       </div>
     </div>
+    <div class="divider"></div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Preset</span>
+      <div class="preset-bar">
+        <label class="sr-only" for="preset-select">Incentive preset</label>
+        <select id="preset-select" class="preset-select" data-change="presetPick">
+          <option value="">None</option>
+        </select>
+        <button class="preset-btn" data-click="presetSave" title="Save the current incentive setup as a preset">Save</button>
+        <button class="preset-btn danger" id="preset-del" data-click="presetDel" title="Delete the selected preset" disabled>Delete</button>
+      </div>
+    </div>
     <div class="sep"></div>
     <button class="btn-reset" data-click="a28">
       <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2C4.24 2 2 4.24 2 7s2.24 5 5 5 5-2.24 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 1.5l2 1.2-2 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -216,8 +228,12 @@
       <div class="mrp-stat"><span class="mrp-stat-lbl">GST Amount</span><span class="mrp-stat-val" id="mg">—</span></div>
       <div class="mrp-stat"><span class="mrp-stat-lbl">GST Rate</span><span class="mrp-stat-val" id="grate">18%</span></div>
       <div class="mrp-stat">
-        <span class="mrp-stat-lbl" title="Freight, insurance, handling — added to effective CP">Landed ₹/unit</span>
-        <span class="landed-wrap"><span>₹</span><input type="number" id="landed" value="" placeholder="0" min="0" step="0.01" inputmode="decimal" data-input="calc" data-change="saveState" autocomplete="off" aria-label="Landed cost per unit in rupees, excluding GST"></span>
+        <span class="mrp-stat-lbl" title="Inbound freight, insurance and handling — added to effective CP">Landed CP ₹</span>
+        <span class="landed-wrap"><span>+₹</span><input type="number" id="landed" value="" placeholder="0" min="0" step="0.01" inputmode="decimal" data-input="calc" data-change="saveState" autocomplete="off" aria-label="Inbound landed cost per unit in rupees, excluding GST — added to effective cost price"></span>
+      </div>
+      <div class="mrp-stat">
+        <span class="mrp-stat-lbl" title="Outbound delivery, packing and freight to the customer — deducted from effective SP">Landed SP ₹</span>
+        <span class="landed-wrap out"><span>−₹</span><input type="number" id="sp-landed" value="" placeholder="0" min="0" step="0.01" inputmode="decimal" data-input="calc" data-change="saveState" autocomplete="off" aria-label="Outbound landed cost per unit in rupees, excluding GST — deducted from effective selling price"></span>
       </div>
       <div class="mrp-stat">
         <span class="mrp-stat-lbl">Quantity</span>
@@ -359,14 +375,6 @@
       </div>
     </div>
     <div class="panel-body" id="body-inc">
-      <div class="preset-bar">
-        <label class="sr-only" for="preset-select">Incentive preset</label>
-        <select id="preset-select" class="preset-select" data-change="presetPick">
-          <option value="">Presets…</option>
-        </select>
-        <button class="preset-btn" data-click="presetSave" title="Save the current incentives as a preset">Save as…</button>
-        <button class="preset-btn danger" id="preset-del" data-click="presetDel" title="Delete the selected preset" disabled>Delete</button>
-      </div>
       <div class="inc-grid" id="cp-inc-grid"></div>
       <button class="inc-add-btn" id="cp-inc-add-btn" data-click="a57">+ Add incentive</button>
       <div class="inc-footer">
@@ -375,12 +383,6 @@
         <div class="inc-total-item"><span class="inc-total-lbl" id="lbl-inc-eff-cp">Effective CP excl 18% GST</span><span class="inc-total-val" id="inc-eff-cp">—</span></div>
         <p class="inc-note">CD can be on CP excl or incl GST.<br>Scheme can be % or fixed ₹. All others on CP excl GST.</p>
       </div>
-      <div class="solver">
-        <div class="solver-row">
-          <label class="solver-lbl" for="solver-gp">Target GP %</label>
-          <span class="solver-input"><input type="number" id="solver-gp" placeholder="12" min="0" max="99.9" step="0.1" inputmode="decimal" data-input="solve" autocomplete="off" aria-describedby="solver-out"></span>
-        </div>
-        <p class="solver-out" id="solver-out" role="status" aria-live="polite">Enter a target GP % to see what it needs.</p>
       </div>
     </div>
   </div>
@@ -443,6 +445,11 @@
         <div class="sum-item sum-order" id="s-item-qty" style="display:none"><div class="sum-lbl">Quantity</div><div class="sum-val dim" id="s-qty">—</div></div>
         <div class="sum-item sum-order" id="s-item-order" style="display:none"><div class="sum-lbl">Order Value (incl GST)</div><div class="sum-val dim" id="s-order">—</div></div>
         <div class="sum-item sum-order" id="s-item-tpr" style="display:none"><div class="sum-lbl">Total Profit ₹</div><div class="sum-val dim" id="s-tpr">—</div></div>
+      </div>
+      <div class="solver" id="solver">
+        <label class="solver-lbl" for="solver-gp">Target GP %</label>
+        <span class="solver-input"><input type="number" id="solver-gp" placeholder="12" min="0" max="99.9" step="0.1" inputmode="decimal" data-input="solve" autocomplete="off" aria-describedby="solver-out"></span>
+        <p class="solver-out" id="solver-out" role="status" aria-live="polite">Enter a target GP % to see the incentive it needs.</p>
       </div>
     </div>
   </div>
@@ -721,7 +728,7 @@
 <footer class="footer">
   <div>All profit/margin figures on excl-GST basis. Incentives on CP excl GST (CD optionally on incl GST). GST is a pass-through.</div>
   <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px;flex-wrap:wrap">
-    <a href="https://github.com/sterlingspares/calc" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;color:var(--text3);text-decoration:none;font-size:11px;transition:color .15s" aria-label="View source on GitHub">
+    <a href="https://github.com/sterlingspares/calc" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;color:var(--text3);text-decoration:none;font-size:11px;transition:color .15s">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
       github.com/sterlingspares/calc
     </a>
