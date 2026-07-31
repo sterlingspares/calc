@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1125%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1184%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -203,10 +203,30 @@ Grouping follows the currency, not the app. Rupees group Indian-style
 
 ### Currency
 
-Everything is entered, stored and calculated in **rupees** — MRP is an Indian
-legal construct and the incentives are quoted against it. The **Show in** picker
-converts only what is displayed, which is what you want for an export quote.
-Twenty currencies are available.
+Rupees are the unit everything is *stored and calculated* in. The **Show in**
+control picks which side of the deal a foreign currency applies to, and in which
+currency — twenty are available:
+
+| Scope | What changes |
+|---|---|
+| **Cost** | CP, effective CP, CP incentives, inbound landed cost |
+| **Sale** | SP, effective SP, SP incentives, outbound landed cost, profit, break-even, order value, rounding |
+| **Cost & Sale** | both of the above |
+
+Profit follows the **sale** side, because that is the currency the money arrives
+in. **MRP is never converted** under any scope: it is a rupee price fixed by law,
+and converting it would let a rate update restate the one figure in the deal that
+cannot move.
+
+Fields on a converted side are **entered in that currency too** — a box showing
+`$` holds dollars. Switching currency re-expresses what you typed, so a ₹50
+landed cost becomes `$0.52` rather than silently becoming fifty dollars.
+Percentages are left alone. Whatever is on screen, the underlying deal is
+unchanged: effective CP and SP in rupees are identical across all three scopes.
+
+Rounding rounds the sticker price, so its step follows the sale side: a `$1`
+step rounds the quote to whole dollars, and the rupee figure behind it is then
+not round — which is the point when quoting abroad.
 
 | | |
 |---|---|
@@ -214,6 +234,7 @@ Twenty currencies are available.
 | **When** | Never on load. Only when you first switch to a foreign currency, or press **Rates** |
 | **Offline** | The last fetch is cached and reused, labelled with its age (`1 USD = ₹95.69 · 4h ago`) |
 | **Override** | Settings → Currency takes a rate you type, for a contracted rate or no connection. Yours wins over the feed |
+| **Scope** | Carried in share links along with the currency, so a link opens the way it was sent |
 | **No rate** | Amounts show `—`. A rupee figure is never shown wearing a foreign symbol |
 
 The rate is deliberately **not** carried in share links — only the currency is,
@@ -620,8 +641,8 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 1125 passing, 7 suites | `npm test` |
-| Statement coverage | **80.8%** (app.js 84.4%, app-extra.js 67.6%) | `npm run coverage` |
+| Tests | 1184 passing, 7 suites | `npm test` |
+| Statement coverage | **81.3%** (app.js 85.0%, app-extra.js 67.2%) | `npm run coverage` |
 | Lighthouse Performance | **98** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
 | Lighthouse Best Practices | **100** | ” |
@@ -648,7 +669,7 @@ commands after significant changes.
 
 ## Tests
 
-1125 assertions across seven suites. They load the real `index.html`,
+1184 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -659,7 +680,7 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 715 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 774 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 69 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |

@@ -70,7 +70,7 @@ function fcSetPM(m){
   ['val','gp','margin'].forEach(function(k){
     var b=el('fc-pm-'+k);if(b)b.className='fc-tab'+(m===k?' on':'');
   });
-  var s=el('fc-pr-sym');if(s)s.textContent=m==='val'?'₹':'%';
+  var s=el('fc-pr-sym');if(s)s.textContent=m==='val'?symFor('sale'):'%';
   var i2=el('fc-pr-val');
   if(i2){
     i2.value='';
@@ -224,20 +224,20 @@ function fcCalc(){
     var me=mrpV/(1+FC_G);
     var mxw=el('fc-mx-wrap'),mgw=el('fc-mg-wrap');
     if(mxw)mxw.style.display='';if(mgw)mgw.style.display='';
-    if(el('fc-mx'))el('fc-mx').textContent=fcINR(me);
-    if(el('fc-mg'))el('fc-mg').textContent=fcINR(mrpV-me);
+    if(el('fc-mx'))el('fc-mx').textContent=INR(me);
+    if(el('fc-mg'))el('fc-mg').textContent=INR(mrpV-me);
   }
   // Update CP preview if visible
   if(el('fc-cp-e')||el('fc-cp-i')){
     var cpPrev=mrpV>0?fcResolveCP(mrpV):null;
-    if(el('fc-cp-e'))el('fc-cp-e').textContent=cpPrev?fcINR(cpPrev.e):'—';
-    if(el('fc-cp-i'))el('fc-cp-i').textContent=cpPrev?fcINR(cpPrev.i):'—';
+    if(el('fc-cp-e'))el('fc-cp-e').textContent=cpPrev?CINR(cpPrev.e):'—';
+    if(el('fc-cp-i'))el('fc-cp-i').textContent=cpPrev?CINR(cpPrev.i):'—';
   }
   // Update SP preview if visible
   if(el('fc-sp-e')||el('fc-sp-i')){
     var spPrev=mrpV>0?fcResolveSP(mrpV):null;
-    if(el('fc-sp-e'))el('fc-sp-e').textContent=spPrev?fcINR(spPrev.e):'—';
-    if(el('fc-sp-i'))el('fc-sp-i').textContent=spPrev?fcINR(spPrev.i):'—';
+    if(el('fc-sp-e'))el('fc-sp-e').textContent=spPrev?SINR(spPrev.e):'—';
+    if(el('fc-sp-i'))el('fc-sp-i').textContent=spPrev?SINR(spPrev.i):'—';
   }
   if(FC_STEP===3)fcRenderResult();
   debouncedSaveQState();
@@ -270,7 +270,7 @@ function fcBuildCards(){
  * @returns {HTMLElement}
  */
 function fcMkField(symTxt,inputId,placeholder,extraStyle,sufId){
-  var isRupee=(symTxt==='₹');
+  var isRupee=(symTxt!=='%');
   var wrap=document.createElement('div');wrap.className='fc-input-wrap';if(extraStyle)wrap.style.cssText=extraStyle;
   var sym=document.createElement('span');sym.className='fc-input-sym';sym.textContent=symTxt;
   var inp=document.createElement('input');inp.className='fc-input';inp.inputMode='decimal';inp.autocomplete='off';
@@ -337,7 +337,7 @@ function fcBuildCPCard(){
     b.id='fc-cpms-'+s.k;b.textContent=s.l;b.onclick=function(){fcSetCPMS(s.k)};subTabs.appendChild(b);
   });
   manWrap.appendChild(subTabs);
-  manWrap.appendChild(fcMkField('₹','fc-cpv',FC_CPMS==='incl'?'CP incl GST':'CP excl GST'));
+  manWrap.appendChild(fcMkField(symFor('cost'),'fc-cpv',FC_CPMS==='incl'?'CP incl GST':'CP excl GST'));
   card.appendChild(manWrap);
 
   // output preview
@@ -393,7 +393,7 @@ function fcBuildSPCard(){
     b.id='fc-spms-'+s.k;b.textContent=s.l;b.onclick=function(){fcSetSPMS(s.k)};subTabs.appendChild(b);
   });
   manWrap.appendChild(subTabs);
-  manWrap.appendChild(fcMkField('₹','fc-spv',FC_SPMS==='incl'?'SP incl GST':'SP excl GST'));
+  manWrap.appendChild(fcMkField(symFor('sale'),'fc-spv',FC_SPMS==='incl'?'SP incl GST':'SP excl GST'));
   card.appendChild(manWrap);
 
   var preview=document.createElement('div');preview.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
@@ -441,7 +441,7 @@ function fcBuildProfitCard(solveFor){
   // input
   var fld=document.createElement('div');fld.className='fc-input-wrap';
   var sym=document.createElement('span');sym.className='fc-input-sym';
-  sym.id='fc-pr-sym';sym.textContent=FC_PM==='val'?'₹':'%';
+  sym.id='fc-pr-sym';sym.textContent=FC_PM==='val'?symFor('sale'):'%';
   var isVal=FC_PM==='val';
   var inp=document.createElement('input');inp.className='fc-input';inp.inputMode='decimal';
   inp.id='fc-pr-val';inp.placeholder=isVal?'e.g. 10':'e.g. 15';inp.autocomplete='off';
@@ -500,13 +500,13 @@ function fcRenderResult(){
     +'</div>';
 
   html+='<div class="fc-result-grid">';
-  html+=fcRItem('MRP (incl GST)', fcINR(mrpV), '', '');
-  html+=fcRItem('MRP excl GST',   fcINR(me),   '', '');
-  html+=fcRItem('CP excl GST'+(FC_T==='cp'?calcdBadge:''), cp?fcINR(cp.e):'—', cpOver?'warn':'', '');
-  html+=fcRItem('CP incl GST',  cp?fcINR(cp.i):'—', cpOver?'warn':'', '');
-  html+=fcRItem('SP excl GST'+(FC_T==='sp'?calcdBadge:''), sp?fcINR(sp.e):'—', spOver?'warn':'', '');
-  html+=fcRItem('SP incl GST',  sp?fcINR(sp.i):'—', spOver?'warn':'', '');
-  html+=fcRItem('Profit ₹', pr!==null?fcINR(pr):'—', pr!==null?(pr>=0?'pos':'neg'):'', pr!==null&&pr<0?'profit-neg':pr!==null&&pr>=0?'profit-pos':'');
+  html+=fcRItem('MRP (incl GST)', INR(mrpV), '', '');
+  html+=fcRItem('MRP excl GST',   INR(me),   '', '');
+  html+=fcRItem('CP excl GST'+(FC_T==='cp'?calcdBadge:''), cp?CINR(cp.e):'—', cpOver?'warn':'', '');
+  html+=fcRItem('CP incl GST',  cp?CINR(cp.i):'—', cpOver?'warn':'', '');
+  html+=fcRItem('SP excl GST'+(FC_T==='sp'?calcdBadge:''), sp?SINR(sp.e):'—', spOver?'warn':'', '');
+  html+=fcRItem('SP incl GST',  sp?SINR(sp.i):'—', spOver?'warn':'', '');
+  html+=fcRItem('Profit', pr!==null?SINR(pr):'—', pr!==null?(pr>=0?'pos':'neg'):'', pr!==null&&pr<0?'profit-neg':pr!==null&&pr>=0?'profit-pos':'');
   html+=fcRItem('GP %',     gp!==null?fcPCT(gp):'—', gp!==null?(gp>=0?'pos':'neg'):'', '');
   html+=fcRItem('Margin %', mg!==null?fcPCT(mg):'—', mg!==null?(mg>=0?'pos':'neg'):'', '');
   html+='</div>';
@@ -717,7 +717,7 @@ function wzSetScMode(m){
   WZ_SCM=m;
   el('wz-scm-pct').className='stab'+(m==='pct'?' on':'');
   el('wz-scm-abs').className='stab'+(m==='abs'?' on':'');
-  el('wz-sc-unit').textContent=m==='abs'?'₹':'%';
+  el('wz-sc-unit').textContent=m==='abs'?symFor('cost'):'%';
   if(m==='abs')el('wz-iv-sc').removeAttribute('max');
   else el('wz-iv-sc').max='100';
   wzCalc();
@@ -805,7 +805,7 @@ function wzCalc(){
   var di=(1-price.i/mrp)*100;
 
   var rv=function(id,val,cls){var e=el(id);if(e){e.textContent=val;e.className='row-val'+(cls?' '+cls:'')}};
-  rv('wz-rde','₹'+fmtINDIAN(price.e)+' / '+de.toFixed(2)+'%',de<0?'neg':'');
+  rv('wz-rde',CINR(price.e)+' / '+de.toFixed(2)+'%',de<0?'neg':'');
   rv('wz-rdi',di.toFixed(2)+'%',di<0?'neg':'');
   rv('wz-rve','₹'+fmtINDIAN(price.e),overMRP?'neg':'');
   rv('wz-rvi','₹'+fmtINDIAN(price.i),overMRP?'neg':'');
@@ -993,9 +993,9 @@ function qtRenderTable(){
       +'<td class="num">'+qtField(i,'qty',L.qty,{type:'number',mode:'numeric',min:1,step:'1',style:'width:52px',label:'Quantity for line '+(i+1)})+'</td>'
       +'<td class="num">'+qtField(i,'cpd',L.cpd,{type:'number',mode:'decimal',ph:'0',min:0,max:100,step:'0.01',style:'width:62px',label:'CP discount for line '+(i+1)})+'</td>'
       +'<td class="num">'+qtField(i,'spd',L.spd,{type:'number',mode:'decimal',ph:'0',min:0,max:100,step:'0.01',style:'width:62px',label:'SP discount for line '+(i+1)})+'</td>'
-      +'<td class="num" id="qtd-spi-'+i+'">'+(r?INR(r.spI):'—')+'</td>'
-      +'<td class="num" id="qtd-val-'+i+'">'+(r?INR(r.lineVal):'—')+'</td>'
-      +'<td class="num '+prCls+'" id="qtd-pr-'+i+'">'+(r?INR(r.linePr):'—')+'</td>'
+      +'<td class="num" id="qtd-spi-'+i+'">'+(r?SINR(r.spI):'—')+'</td>'
+      +'<td class="num" id="qtd-val-'+i+'">'+(r?SINR(r.lineVal):'—')+'</td>'
+      +'<td class="num '+prCls+'" id="qtd-pr-'+i+'">'+(r?SINR(r.linePr):'—')+'</td>'
       +'<td class="num '+gpCls+'" id="qtd-gp-'+i+'">'+(r?PCT(r.gp):'—')+'</td>'
       +'<td>'+qtDelBtnHTML(i)+'</td>'
       +'</tr>';
@@ -1005,8 +1005,8 @@ function qtRenderTable(){
     +'<td colspan="3">Total — '+t.lines+' line'+(t.lines===1?'':'s')+'</td>'
     +'<td class="num" id="qt-total-units">'+t.units+'</td>'
     +'<td colspan="2"></td><td></td>'
-    +'<td class="num" id="qt-total-val">'+INR(t.val)+'</td>'
-    +'<td class="num '+(t.pr>=0?'qt-pos':'qt-neg')+'" id="qt-total-pr">'+INR(t.pr)+'</td>'
+    +'<td class="num" id="qt-total-val">'+SINR(t.val)+'</td>'
+    +'<td class="num '+(t.pr>=0?'qt-pos':'qt-neg')+'" id="qt-total-pr">'+SINR(t.pr)+'</td>'
     +'<td class="num" id="qt-total-gp">'+PCT(t.gp)+'</td>'
     +'<td></td></tr></tfoot>';
   tbl.innerHTML=h;
@@ -1041,9 +1041,9 @@ function qtRenderCards(){
         +'<label class="qtc-f"><span>SP disc %</span>'+qtField(i,'spd',L.spd,{type:'number',mode:'decimal',ph:'0',min:0,max:100,step:'0.01',label:'SP discount for line '+(i+1)})+'</label>'
       +'</div>'
       +'<div class="qtc-out">'
-        +'<span class="qtc-o"><span class="qtc-ol">SP incl '+g+'%</span><span id="qtd-spi-'+i+'">'+(r?INR(r.spI):'—')+'</span></span>'
-        +'<span class="qtc-o"><span class="qtc-ol">Line value</span><span id="qtd-val-'+i+'">'+(r?INR(r.lineVal):'—')+'</span></span>'
-        +'<span class="qtc-o"><span class="qtc-ol">Profit</span><span class="'+prCls+'" id="qtd-pr-'+i+'">'+(r?INR(r.linePr):'—')+'</span></span>'
+        +'<span class="qtc-o"><span class="qtc-ol">SP incl '+g+'%</span><span id="qtd-spi-'+i+'">'+(r?SINR(r.spI):'—')+'</span></span>'
+        +'<span class="qtc-o"><span class="qtc-ol">Line value</span><span id="qtd-val-'+i+'">'+(r?SINR(r.lineVal):'—')+'</span></span>'
+        +'<span class="qtc-o"><span class="qtc-ol">Profit</span><span class="'+prCls+'" id="qtd-pr-'+i+'">'+(r?SINR(r.linePr):'—')+'</span></span>'
         +'<span class="qtc-o"><span class="qtc-ol">GP %</span><span class="'+gpCls+'" id="qtd-gp-'+i+'">'+(r?PCT(r.gp):'—')+'</span></span>'
       +'</div>'
     +'</div>';
@@ -1052,8 +1052,8 @@ function qtRenderCards(){
   h+='<div class="qtc qtc-total">'
     +'<div class="qtc-thead">Total — '+t.lines+' line'+(t.lines===1?'':'s')+' · <span id="qt-total-units">'+t.units+'</span> units</div>'
     +'<div class="qtc-out">'
-      +'<span class="qtc-o"><span class="qtc-ol">Order value</span><span id="qt-total-val">'+INR(t.val)+'</span></span>'
-      +'<span class="qtc-o"><span class="qtc-ol">Total profit</span><span class="'+(t.pr>=0?'qt-pos':'qt-neg')+'" id="qt-total-pr">'+INR(t.pr)+'</span></span>'
+      +'<span class="qtc-o"><span class="qtc-ol">Order value</span><span id="qt-total-val">'+SINR(t.val)+'</span></span>'
+      +'<span class="qtc-o"><span class="qtc-ol">Total profit</span><span class="'+(t.pr>=0?'qt-pos':'qt-neg')+'" id="qt-total-pr">'+SINR(t.pr)+'</span></span>'
       +'<span class="qtc-o"><span class="qtc-ol">Blended GP</span><span id="qt-total-gp">'+PCT(t.gp)+'</span></span>'
     +'</div>'
   +'</div>';
@@ -1092,15 +1092,15 @@ function qtRefreshDerived(){
     var r=qtCalcLine(L);
     var prCls=r?(r.linePr>=0?'qt-pos':'qt-neg'):'';
     var gpCls=r&&belowFloor(r.gp,floor.gp)?'qt-neg':prCls;
-    put('qtd-spi-'+i, r?INR(r.spI):'—');
-    put('qtd-val-'+i, r?INR(r.lineVal):'—');
-    put('qtd-pr-'+i,  r?INR(r.linePr):'—', inTable?('num '+prCls):prCls);
+    put('qtd-spi-'+i, r?SINR(r.spI):'—');
+    put('qtd-val-'+i, r?SINR(r.lineVal):'—');
+    put('qtd-pr-'+i,  r?SINR(r.linePr):'—', inTable?('num '+prCls):prCls);
     put('qtd-gp-'+i,  r?PCT(r.gp):'—',     inTable?('num '+gpCls):gpCls);
   });
   var t=qtTotals();
   put('qt-total-units',String(t.units));
-  put('qt-total-val',INR(t.val));
-  put('qt-total-pr',INR(t.pr),(inTable?'num ':'')+(t.pr>=0?'qt-pos':'qt-neg'));
+  put('qt-total-val',SINR(t.val));
+  put('qt-total-pr',SINR(t.pr),(inTable?'num ':'')+(t.pr>=0?'qt-pos':'qt-neg'));
   put('qt-total-gp',PCT(t.gp));
 }
 

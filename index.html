@@ -208,6 +208,13 @@
     <div class="ctrl-group">
       <span class="ctrl-label">Show in</span>
       <div class="fx-bar">
+        <label class="sr-only" for="fx-scope">Which side of the deal the currency applies to</label>
+        <select id="fx-scope" class="preset-select fx-select fx-scope" data-change="fxScopePick">
+          <option value="cost">Cost</option>
+          <option value="sale">Sale</option>
+          <option value="both" selected>Cost &amp; Sale</option>
+        </select>
+        <span class="fx-in">in</span>
         <label class="sr-only" for="ccy-select">Display currency</label>
         <select id="ccy-select" class="preset-select fx-select" data-change="ccyPick"></select>
         <button class="preset-btn" id="fx-refresh" data-click="fxRefresh"
@@ -227,7 +234,7 @@
     <div class="mrp-main">
       <span class="mrp-label">MRP (incl. GST)</span>
       <div class="big-input">
-        <span class="sym">₹</span>
+        <span class="sym" id="sym-mrp">₹</span>
         <input type="text" inputmode="decimal" id="mrp" value="100" autocomplete="off" data-input="a29" placeholder="0" style="font-variant-numeric:tabular-nums" aria-label="Maximum Retail Price, inclusive of GST">
         <button class="big-input-next" data-click="a30" title="Next" aria-label="Go to the next field after MRP" tabindex="-1">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -240,11 +247,11 @@
       <div class="mrp-stat"><span class="mrp-stat-lbl">GST Rate</span><span class="mrp-stat-val" id="grate">18%</span></div>
       <div class="mrp-stat">
         <span class="mrp-stat-lbl" title="Inbound freight, insurance and handling — added to effective CP">Landed CP ₹</span>
-        <span class="landed-wrap"><span>+₹</span><input type="number" id="landed" value="" placeholder="0" min="0" step="0.01" inputmode="decimal" data-input="calc" data-change="saveState" autocomplete="off" aria-label="Inbound landed cost per unit in rupees, excluding GST — added to effective cost price"></span>
+        <span class="landed-wrap"><span id="sym-landed">+₹</span><input type="number" id="landed" value="" placeholder="0" min="0" step="0.01" inputmode="decimal" data-input="calc" data-change="saveState" autocomplete="off" aria-label="Inbound landed cost per unit in rupees, excluding GST — added to effective cost price"></span>
       </div>
       <div class="mrp-stat">
         <span class="mrp-stat-lbl" title="Outbound delivery, packing and freight to the customer — deducted from effective SP">Landed SP ₹</span>
-        <span class="landed-wrap out"><span>−₹</span><input type="number" id="sp-landed" value="" placeholder="0" min="0" step="0.01" inputmode="decimal" data-input="calc" data-change="saveState" autocomplete="off" aria-label="Outbound landed cost per unit in rupees, excluding GST — deducted from effective selling price"></span>
+        <span class="landed-wrap out"><span id="sym-sp-landed">−₹</span><input type="number" id="sp-landed" value="" placeholder="0" min="0" step="0.01" inputmode="decimal" data-input="calc" data-change="saveState" autocomplete="off" aria-label="Outbound landed cost per unit in rupees, excluding GST — deducted from effective selling price"></span>
       </div>
       <div class="mrp-stat">
         <span class="mrp-stat-lbl">Quantity</span>
@@ -268,7 +275,7 @@
       <div class="mode-tabs" id="cp-mode-tabs">
         <button class="mtab on" id="cme"  data-click="a34">Discount<br>+ GST</button>
         <button class="mtab"    id="cmi"  data-click="a35">Nett<br>Discount %</button>
-        <button class="mtab"    id="cmm"  data-click="a36">Enter ₹<br>directly</button>
+        <button class="mtab"    id="cmm"  data-click="a36">Enter <span id="sym-cmm">₹</span><br>directly</button>
       </div>
       <div class="field" id="cpf-disc">
         <span class="sym">Disc</span>
@@ -283,7 +290,7 @@
           <button class="stab on" id="cpm-incl" data-click="a39">CP incl 18% GST</button>
           <button class="stab"    id="cpm-excl" data-click="a40">CP excl 18% GST</button>
         </div>
-        <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="cpv" placeholder="e.g. 77.88" data-input="a41" autocomplete="off" aria-label="Cost price amount in rupees">
+        <div class="field"><span class="sym" id="sym-cpv">₹</span><input type="text" inputmode="decimal" id="cpv" placeholder="e.g. 77.88" data-input="a41" autocomplete="off" aria-label="Cost price amount in rupees">
           <button class="field-next" data-click="a42" title="Next" aria-label="Go to the next field after cost price amount" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
       </div>
@@ -312,7 +319,7 @@
       <div class="mode-tabs" id="sp-mode-tabs">
         <button class="mtab on" id="sme" data-click="a44">Discount<br>+ GST</button>
         <button class="mtab"    id="smi" data-click="a45">Nett<br>Discount %</button>
-        <button class="mtab"    id="smm" data-click="a46">Enter ₹<br>directly</button>
+        <button class="mtab"    id="smm" data-click="a46">Enter <span id="sym-smm">₹</span><br>directly</button>
       </div>
       <div class="field" id="spf-disc">
         <span class="sym">Disc</span>
@@ -327,7 +334,7 @@
           <button class="stab on" id="spm-incl" data-click="a48">SP incl 18% GST</button>
           <button class="stab"    id="spm-excl" data-click="a49">SP excl 18% GST</button>
         </div>
-        <div class="field"><span class="sym">₹</span><input type="text" inputmode="decimal" id="spv" placeholder="e.g. 90.00" data-input="a41" autocomplete="off" aria-label="Selling price amount in rupees">
+        <div class="field"><span class="sym" id="sym-spv">₹</span><input type="text" inputmode="decimal" id="spv" placeholder="e.g. 90.00" data-input="a41" autocomplete="off" aria-label="Selling price amount in rupees">
           <button class="field-next" data-click="a50" title="Next" aria-label="Go to the next field after selling price amount" tabindex="-1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
       </div>
@@ -352,7 +359,7 @@
     <div class="card computed" id="prc">
       <div class="card-head"><h2 class="card-title">Profit</h2><span class="badge b-calc" id="prb">Calculated</span></div>
       <div class="mode-tabs" id="pmt" style="display:none">
-        <button class="mtab on" id="pmv" data-click="a52">₹ Value</button>
+        <button class="mtab on" id="pmv" data-click="a52"><span id="sym-pmv">₹</span> Value</button>
         <button class="mtab"    id="pmg" data-click="a53">GP %</button>
         <button class="mtab"    id="pmm" data-click="a54">Margin %</button>
       </div>
@@ -389,10 +396,10 @@
       <div class="inc-grid" id="cp-inc-grid"></div>
       <button class="inc-add-btn" id="cp-inc-add-btn" data-click="a57">+ Add incentive</button>
       <div class="inc-footer">
-        <div class="inc-total-item"><span class="inc-total-lbl">Total incentive ₹</span><span class="inc-total-val" id="inc-total-inr">—</span></div>
+        <div class="inc-total-item"><span class="inc-total-lbl">Total incentive <span id="sym-inc-tot">₹</span></span><span class="inc-total-val" id="inc-total-inr">—</span></div>
         <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on CP</span><span class="inc-total-val" id="inc-total-pct">0.00%</span></div>
         <div class="inc-total-item"><span class="inc-total-lbl" id="lbl-inc-eff-cp">Effective CP excl 18% GST</span><span class="inc-total-val" id="inc-eff-cp">—</span></div>
-        <p class="inc-note">CD can be on CP excl or incl GST.<br>Scheme can be % or fixed ₹. All others on CP excl GST.</p>
+        <p class="inc-note">CD can be on CP excl or incl GST.<br>Scheme can be % or a fixed amount. All others on CP excl GST.</p>
       </div>
       </div>
     </div>
@@ -418,10 +425,10 @@
       <div class="inc-grid" id="sp-inc-grid"></div>
       <button class="inc-add-btn" id="sp-inc-add-btn" data-click="a60">+ Add incentive</button>
       <div class="inc-footer">
-        <div class="inc-total-item"><span class="inc-total-lbl">Total SP incentive ₹</span><span class="inc-total-val" id="sp-inc-total-inr">—</span></div>
+        <div class="inc-total-item"><span class="inc-total-lbl">Total SP incentive <span id="sym-sp-inc-tot">₹</span></span><span class="inc-total-val" id="sp-inc-total-inr">—</span></div>
         <div class="inc-total-item"><span class="inc-total-lbl">Eff. incentive % on SP</span><span class="inc-total-val" id="sp-inc-total-pct">0.00%</span></div>
         <div class="inc-total-item"><span class="inc-total-lbl" id="lbl-sp-inc-eff-sp">Effective SP excl 18% GST</span><span class="inc-total-val" id="sp-inc-eff-sp">—</span></div>
-        <p class="inc-note">CD can be on SP excl or incl GST.<br>Scheme can be % or fixed ₹. All others on SP excl GST.</p>
+        <p class="inc-note">CD can be on SP excl or incl GST.<br>Scheme can be % or a fixed amount. All others on SP excl GST.</p>
       </div>
     </div>
   </div>
@@ -442,9 +449,9 @@
         <div class="sum-item"><div class="sum-lbl" id="s-lbl-ecp">Effective CP excl 18% GST</div><div class="sum-val dim" id="s-ecp">—</div></div>
         <div class="sum-item"><div class="sum-lbl" id="s-lbl-sp">SP excl 18% GST</div><div class="sum-val dim" id="s-sp">—</div></div>
         <div class="sum-item"><div class="sum-lbl" id="s-lbl-esp">Effective SP excl 18% GST</div><div class="sum-val dim" id="s-esp">—</div></div>
-        <div class="sum-item"><div class="sum-lbl">CP Incentives ₹</div><div class="sum-val dim" id="s-inc">—</div></div>
-        <div class="sum-item"><div class="sum-lbl">SP Incentives ₹</div><div class="sum-val dim" id="s-spinc">—</div></div>
-        <div class="sum-item"><div class="sum-lbl">Profit ₹</div><div class="sum-val dim" id="s-pr">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">CP Incentives <span id="sym-s-inc">₹</span></div><div class="sum-val dim" id="s-inc">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">SP Incentives <span id="sym-s-spinc">₹</span></div><div class="sum-val dim" id="s-spinc">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">Profit <span id="sym-s-pr">₹</span></div><div class="sum-val dim" id="s-pr">—</div></div>
         <div class="sum-item"><div class="sum-lbl">GP %</div><div class="sum-val dim" id="s-gp">—</div></div>
         <div class="sum-item"><div class="sum-lbl">Margin %</div><div class="sum-val dim" id="s-mg">—</div></div>
         <div class="sum-item"><div class="sum-lbl">CP Discount + GST %</div><div class="sum-val dim" id="s-dcp">—</div></div>
@@ -455,7 +462,7 @@
         <div class="sum-order-sep" id="s-order-sep" style="display:none"></div>
         <div class="sum-item sum-order" id="s-item-qty" style="display:none"><div class="sum-lbl">Quantity</div><div class="sum-val dim" id="s-qty">—</div></div>
         <div class="sum-item sum-order" id="s-item-order" style="display:none"><div class="sum-lbl">Order Value (incl GST)</div><div class="sum-val dim" id="s-order">—</div></div>
-        <div class="sum-item sum-order" id="s-item-tpr" style="display:none"><div class="sum-lbl">Total Profit ₹</div><div class="sum-val dim" id="s-tpr">—</div></div>
+        <div class="sum-item sum-order" id="s-item-tpr" style="display:none"><div class="sum-lbl">Total Profit <span id="sym-s-tpr">₹</span></div><div class="sum-val dim" id="s-tpr">—</div></div>
       </div>
       <div class="solver" id="solver">
         <label class="solver-lbl" for="solver-gp">Target GP %</label>
@@ -804,9 +811,9 @@
           <div class="settings-control">
             <div class="pill-group">
               <button class="pill on" id="rnd-off" data-click="a107">Off</button>
-              <button class="pill"    id="rnd-1"   data-click="a108">₹1</button>
-              <button class="pill"    id="rnd-5"   data-click="a109">₹5</button>
-              <span class="rnd-custom-wrap" id="rnd-custom-wrap"><span>₹</span><input type="number" id="rnd-custom" value="" placeholder="Other" min="0" step="0.5" inputmode="decimal" data-change="a110" autocomplete="off" aria-label="Custom rounding step in rupees"></span>
+              <button class="pill"    id="rnd-1"   data-click="a108"><span class="sym-rnd">₹</span>1</button>
+              <button class="pill"    id="rnd-5"   data-click="a109"><span class="sym-rnd">₹</span>5</button>
+              <span class="rnd-custom-wrap" id="rnd-custom-wrap"><span class="sym-rnd">₹</span><input type="number" id="rnd-custom" value="" placeholder="Other" min="0" step="0.5" inputmode="decimal" data-change="a110" autocomplete="off" aria-label="Custom rounding step in rupees"></span>
             </div>
           </div>
         </div>
@@ -834,7 +841,7 @@
         <div class="settings-row">
           <div class="settings-lbl">
             <span>Exchange rates</span>
-            <small id="fx-status">Amounts are entered in rupees; the display currency converts what is shown.</small>
+            <small id="fx-status">Everything is in rupees.</small>
           </div>
           <div class="settings-control">
             <button class="pill" data-click="fxRefresh" style="font-size:11px;padding:5px 12px">Update now</button>

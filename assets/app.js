@@ -392,7 +392,9 @@ function fmtWESTERN(n){
  */
 function parseMRP(){
   var raw=el('mrp').value.replace(/,/g,'');
-  return parseFloat(raw)||0;
+  var v=parseFloat(raw)||0;
+  var r=fromDisplay(v,'base');
+  return (r===null)?0:r;
 }
 /**
  * Live-format the MRP field as the user types, preserving a decimal point
@@ -420,10 +422,17 @@ function onMrpInput(inp){
   calc();
 }
 /* ── Shared ₹ amount input formatter ── */
-function parseAmt(id){
+function parseAmt(id,side){
   var e=el(id);if(!e)return NaN;
-  return parseFloat(e.value.replace(/,/g,''));
+  var v=parseFloat(e.value.replace(/,/g,''));
+  if(isNaN(v))return NaN;
+  // These fields carry a currency symbol, so their contents are in that
+  // currency. cpv is cost-side, spv and pri are sale-side.
+  var r=fromDisplay(v,side||AMT_SIDE[id]||'base');
+  return (r===null)?NaN:r;
 }
+/** Which side of the deal each amount field belongs to. */
+var AMT_SIDE={cpv:'cost',spv:'sale',pri:'sale',mrp:'base'};
 /**
  * Live-format any ₹ amount field. Same rules as onMrpInput.
  * @param {HTMLInputElement} inp
@@ -650,6 +659,108 @@ function onFxManual(inp){
   if(typeof _onFxManualImpl==='function')return _onFxManualImpl(inp);
   withExtras(function(){ _onFxManualImpl(inp) });
 }
+/* Which side every symbol on screen belongs to. Kept as data rather than a
+   run of if-statements so that adding a field is one line, and so the tests can
+   walk it and assert that nothing shows the wrong symbol. */
+var SYM_SIDES={
+  'sym-mrp':'base','sym-cmm':'cost','sym-cpv':'cost','sym-landed':'cost',
+  'sym-inc-tot':'cost','sym-s-inc':'cost',
+  'sym-smm':'sale','sym-spv':'sale','sym-sp-landed':'sale','sym-pmv':'sale',
+  'sym-sp-inc-tot':'sale','sym-s-spinc':'sale','sym-s-pr':'sale','sym-s-tpr':'sale'
+};
+/** Fields whose typed value is an amount, and the side it is quoted in. */
+var MONEY_FIELDS=[
+  {id:'cpv',side:'cost'},{id:'spv',side:'sale'},
+  {id:'pri',side:'sale'},{id:'landed',side:'cost'},{id:'sp-landed',side:'sale'}
+];
+/**
+ * Put the right symbol on every label, prefix and unit.
+ * The landed-cost fields keep their +/− prefix: direction is not carried by
+ * colour alone, and that still has to hold in another currency.
+ */
+function refreshCurrencySymbols(){
+  Object.keys(SYM_SIDES).forEach(function(id){
+    var e=el(id);if(!e)return;
+    var sym=symFor(SYM_SIDES[id]);
+    if(id==='sym-landed')e.textContent='+'+sym;
+    else if(id==='sym-sp-landed')e.textContent='−'+sym;
+    else e.textContent=sym;
+  });
+  // Rounding rounds the sticker price, so its chips follow the sale side.
+  var rs=document.querySelectorAll('.sym-rnd');
+  for(var i=0;i<rs.length;i++)rs[i].textContent=symFor('sale');
+  // Profit-mode unit, and the incentive rows' own % / amount units.
+  var pru=el('pru');if(pru&&PM==='val')pru.textContent=symFor('sale');
+  INC_KEYS.forEach(function(k){ applyIncModeVisuals('cp',k) });
+  SP_INC_KEYS.forEach(function(k){ applyIncModeVisuals('sp',k) });
+  if(INC_KEYS.indexOf('sc')!==-1)   { var su=el('sc-unit');  if(su&&SCM==='abs') su.textContent=symFor('cost'); }
+  if(SP_INC_KEYS.indexOf('sc')!==-1){ var ssu=el('ssc-unit');if(ssu&&SSCM==='abs')ssu.textContent=symFor('sale'); }
+}
+/**
+ * Rewrite what is in the amount fields so it reads in the new currency.
+ *
+ * The stored value is rupees; the field shows a currency. When that currency
+ * changes the number has to move with it, or a field that said 1000 rupees
+ * would silently start claiming 1000 dollars.
+ *
+ * @param {Object} prev map of field id -> rupee value captured before the switch
+ */
+function repriceInputs(prev){
+  MONEY_FIELDS.forEach(function(f){
+    var e=el(f.id);
+    if(!e||prev[f.id]===null||prev[f.id]===undefined)return;
+    var v=forDisplay(prev[f.id],f.side);
+    if(v===null){e.value='';return}
+    // Rupee amounts are whole more often than not; foreign ones need decimals.
+    e.value=isForeign(f.side)?String(+v.toFixed(4)):String(+v.toFixed(2));
+  });
+  var rc=el('rnd-custom');
+  if(rc&&prev._rnd!==null&&prev._rnd!==undefined){
+    var rv=forDisplay(prev._rnd,'sale');
+    if(rv!==null){
+      rc.value=String(+rv.toFixed(4));
+      if(isCustomRounding())ROUND_MODE=rc.value;
+    }
+  }
+  ['cp','sp'].forEach(function(panel){
+    (panel==='cp'?INC_KEYS:SP_INC_KEYS).forEach(function(k){
+      if(!incIsAbsolute(panel,k))return;
+      var id=(panel==='cp'?'iv-':'siv-')+k;
+      var e=el(id);
+      if(!e||prev[id]===null||prev[id]===undefined)return;
+      var av=forDisplay(prev[id],panel==='cp'?'cost':'sale');
+      e.value=av===null?'':String(+av.toFixed(4));
+    });
+  });
+}
+/** Snapshot every amount field in rupees, before the currency moves under it. */
+function captureInputRupees(){
+  var out={};
+  MONEY_FIELDS.forEach(function(f){
+    var e=el(f.id);
+    if(!e||String(e.value).trim()===''){out[f.id]=null;return}
+    var v=parseFloat(String(e.value).replace(/,/g,''));
+    out[f.id]=isNaN(v)?null:fromDisplay(v,f.side);
+  });
+  var rc=el('rnd-custom');
+  out._rnd=null;
+  if(rc&&String(rc.value).trim()!==''){
+    var rv=parseFloat(rc.value);
+    if(!isNaN(rv))out._rnd=fromDisplay(rv,'sale');
+  }
+  ['cp','sp'].forEach(function(panel){
+    (panel==='cp'?INC_KEYS:SP_INC_KEYS).forEach(function(k){
+      if(!incIsAbsolute(panel,k))return;
+      var id=(panel==='cp'?'iv-':'siv-')+k;
+      var e=el(id);
+      if(!e||String(e.value).trim()===''){out[id]=null;return}
+      var v=parseFloat(e.value);
+      out[id]=isNaN(v)?null:fromDisplay(v,panel==='cp'?'cost':'sale');
+    });
+  });
+  return out;
+}
+
 /** Fill the currency dropdown once. */
 function renderCcyList(){
   var sel=el('ccy-select');
@@ -678,9 +789,13 @@ function renderFxNote(){
   }
   var st=el('fx-status');
   if(st){
-    st.textContent = FX.fetched
-      ? 'Last updated '+fxAgeText(fxAge())+', from open.er-api.com. Amounts are entered in rupees; the display currency converts what is shown.'
-      : 'Not fetched yet. Amounts are entered in rupees; the display currency converts what is shown.';
+    var where=FX_SCOPE==='cost'?'the cost side':(FX_SCOPE==='sale'?'the sale side':'both sides');
+    var tail=DISPLAY_CCY==='INR'
+      ? 'Everything is in rupees.'
+      : 'Showing '+where+' in '+DISPLAY_CCY+'. Fields on that side are entered in '+DISPLAY_CCY+' too; MRP always stays in rupees.';
+    st.textContent = (FX.fetched
+      ? 'Rates last updated '+fxAgeText(fxAge())+', from open.er-api.com. '
+      : 'Rates not fetched yet. ')+tail;
   }
   var row=el('fx-manual-row'),pre=el('fx-manual-pre'),inp=el('fx-manual');
   if(row)row.style.display=DISPLAY_CCY==='INR'?'none':'';
@@ -700,14 +815,27 @@ function renderFxNote(){
  * Switch the display currency. Fetches rates the first time one is needed.
  * @param {string} c currency code
  */
-function setDisplayCcy(c){
+function setDisplayCcy(c,scope){
   if(CCY_CODES.indexOf(c)===-1){
     logWarn('ignoring unknown currency '+JSON.stringify(c));
     c='INR';
   }
+  // Capture BEFORE anything moves. The fields hold values in whatever currency
+  // each side is currently showing, so reading them after the scope changes
+  // reinterprets them under the new one — a ₹50 landed cost read as $50.
+  var prev=captureInputRupees();
+  if(scope!==undefined){
+    if(FX_SCOPES.indexOf(scope)===-1){
+      logWarn('ignoring unknown currency scope '+JSON.stringify(scope));
+    } else FX_SCOPE=scope;
+  }
   DISPLAY_CCY=c;
   var sel=el('ccy-select');
   if(sel&&sel.value!==c)sel.value=c;
+  var ssel=el('fx-scope');
+  if(ssel&&ssel.value!==FX_SCOPE)ssel.value=FX_SCOPE;
+  repriceInputs(prev);
+  refreshCurrencySymbols();
   renderFxNote();
   calc();
   debouncedSaveCalcState();
@@ -719,22 +847,108 @@ function setDisplayCcy(c){
 }
 
 ACT.ccyPick   = function(self){ setDisplayCcy(self.value) };
+ACT.fxScopePick = function(self){ setDisplayCcy(DISPLAY_CCY, self.value) };
 ACT.fxRefresh = function(){ fetchRates(false) };
 ACT.fxManual  = function(self){ onFxManual(self) };
 
 /** Kept for callers that want rupees regardless of the display currency. */
 function _getInrFmt(){return _getFmt('INR')}
+/* Which side of the deal a currency applies to.
+   'cost' — you buy abroad: CP, CP incentives and inbound landed cost convert.
+   'sale' — you sell abroad: SP, SP incentives, outbound landed cost, profit,
+            break-even and order value convert.
+   'both' — both sides of the deal.
+   MRP is never converted under any scope: it is a rupee price fixed by law, and
+   converting it would let a rate update restate the one figure that cannot
+   move. Profit follows the sale side, because that is the currency the money
+   actually arrives in. */
+var FX_SCOPE='both';
+var FX_SCOPES=['cost','sale','both'];
+
 /**
- * Format a rupee amount in the display currency.
- * @param {number} n amount in INR
+ * The currency a given side of the deal is displayed in.
+ * @param {string} side 'cost', 'sale' or 'base'
+ * @returns {string} currency code
+ */
+function ccyFor(side){
+  if(DISPLAY_CCY==='INR')return'INR';
+  // MRP is a rupee price printed on the pack by law — there is no dollar MRP —
+  // so it and the figures derived straight from it stay in rupees under every
+  // scope. Converting it would also mean a rate update silently restating the
+  // one number in the deal that cannot move.
+  if(side==='base')return'INR';
+  if(side==='cost')return(FX_SCOPE==='cost'||FX_SCOPE==='both')?DISPLAY_CCY:'INR';
+  return(FX_SCOPE==='sale'||FX_SCOPE==='both')?DISPLAY_CCY:'INR';
+}
+/** The symbol to put in front of an amount, or in a field's prefix. */
+function symFor(side){ return ccyInfo(ccyFor(side)).s }
+/**
+ * Whether an incentive row holds a rupee amount rather than a percentage.
+ *
+ * Only Scheme and user-added rows can be absolute; the other built-ins are
+ * always a percentage of the base price, whatever INC_MODE happens to hold for
+ * them. The conversion code and the maths must agree on this exactly, or a
+ * percentage gets rescaled as if it were money.
+ * @param {'cp'|'sp'} panel
+ * @param {string} k incentive key
+ */
+function incIsAbsolute(panel,k){
+  if(k==='sc')return(panel==='cp'?SCM:SSCM)==='abs';
+  return isCustomInc(k)&&incModeOf(panel,k)==='abs';
+}
+/** 'cp' panel is the cost side, 'sp' panel the sale side. */
+function sideOfPanel(p){ return p==='cp'?'cost':'sale' }
+/** Whether a side is showing something other than rupees. */
+function isForeign(side){ return ccyFor(side)!=='INR' }
+
+/**
+ * Format a rupee amount for one side of the deal.
+ * @param {number} n amount in INR — always INR, whatever is on screen
+ * @param {string} side 'cost', 'sale' or 'base'
  * @returns {string} e.g. '₹1,23,456.78' or '$1,234.56', '—' when not finite
  */
-function INR(n){
+function money(n,side){
   if(n===null||n===undefined||isNaN(n))return'—';
-  if(DISPLAY_CCY==='INR')return'₹'+_getFmt('INR').format(parseFloat(n.toFixed(2)));
-  var v=toDisplay(n);
-  if(v===null)return'—';
-  return ccyInfo(DISPLAY_CCY).s+_getFmt(DISPLAY_CCY).format(parseFloat(v.toFixed(2)));
+  var c=ccyFor(side);
+  if(c==='INR')return'₹'+_getFmt('INR').format(parseFloat(n.toFixed(2)));
+  var r=fxRate(c);
+  if(r===null)return'—';
+  return ccyInfo(c).s+_getFmt(c).format(parseFloat((n*r).toFixed(2)));
+}
+/** Cost-side amount: CP, CP incentives, inbound landed cost. */
+function CINR(n){ return money(n,'cost') }
+/** Sale-side amount: SP, SP incentives, profit, break-even, order value. */
+function SINR(n){ return money(n,'sale') }
+/** The shared anchor: MRP and figures derived straight from it. */
+function INR(n){ return money(n,'base') }
+
+/**
+ * Convert a number the user typed in a side's currency into rupees.
+ * Inputs carry a currency symbol, so the number in them must be in that
+ * currency — showing '$' over a rupee value would misstate a quote.
+ * @param {number} v as typed
+ * @param {string} side
+ * @returns {number|null} rupees, or null when the rate is unknown
+ */
+function fromDisplay(v,side){
+  if(v===null||v===undefined||isNaN(v))return v;
+  var c=ccyFor(side);
+  if(c==='INR')return v;
+  var r=fxRate(c);
+  return r===null?null:v/r;
+}
+/**
+ * Convert a rupee amount into what a side's input field should show.
+ * @param {number} v rupees
+ * @param {string} side
+ * @returns {number|null}
+ */
+function forDisplay(v,side){
+  if(v===null||v===undefined||isNaN(v))return v;
+  var c=ccyFor(side);
+  if(c==='INR')return v;
+  var r=fxRate(c);
+  return r===null?null:v*r;
 }
 /** Format a rupee amount as rupees, whatever the display currency is set to. */
 function INR_RS(n){
@@ -1015,7 +1229,12 @@ function normalizeQty(){
 function roundStep(){
   if(ROUND_MODE==='off')return 0;
   var v=parseFloat(ROUND_MODE);
-  return (isNaN(v)||v<=0)?0:v;
+  if(isNaN(v)||v<=0)return 0;
+  // The step is entered against the sticker price, so it is in whatever
+  // currency the sale side is showing: a $1 step rounds to whole dollars, and
+  // the rupee figure behind it is then not round. That is the point.
+  var r=fromDisplay(v,'sale');
+  return (r===null)?0:r;
 }
 /**
  * Apply the current rounding setting to a price pair.
@@ -1575,7 +1794,7 @@ function _incRowHTML(k,panel,editMode){
     var m1='im-'+panel+'-'+k+'-pct',m2='im-'+panel+'-'+k+'-abs';
     var lm='lbl-im-'+panel+'-'+k;
     var cp2=isCP?'CP':'SP';
-    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Incentive type:</div><div class="sub-tabs" style="width:100%"><button class="stab'+(cAbs?'':' on')+'" id="'+m1+'" data-click="incMode" data-p="'+panel+'" data-q="'+k+'" data-r="pct" style="padding:6px 8px;line-height:1.3"><span id="'+lm+'">% of '+cp2+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab'+(cAbs?' on':'')+'" id="'+m2+'" data-click="incMode" data-p="'+panel+'" data-q="'+k+'" data-r="abs" style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
+    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Incentive type:</div><div class="sub-tabs" style="width:100%"><button class="stab'+(cAbs?'':' on')+'" id="'+m1+'" data-click="incMode" data-p="'+panel+'" data-q="'+k+'" data-r="pct" style="padding:6px 8px;line-height:1.3"><span id="'+lm+'">% of '+cp2+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab'+(cAbs?' on':'')+'" id="'+m2+'" data-click="incMode" data-p="'+panel+'" data-q="'+k+'" data-r="abs" style="padding:6px 8px;line-height:1.3">'+escHtml(symFor(sideOfPanel(panel)))+' Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
   }
   return '<div class="inc-row" id="'+rowId+'">'+mainRow+subRow+'</div>';
 }
@@ -1587,7 +1806,7 @@ function applyIncModeVisuals(panel,k){
   if(b1)b1.className=(m==='pct')?'stab on':'stab';
   if(b2)b2.className=(m==='abs')?'stab on':'stab';
   var u=document.getElementById('unit-'+panel+'-'+k);
-  if(u)u.textContent=(m==='abs')?'₹':'%';
+  if(u)u.textContent=(m==='abs')?symFor(sideOfPanel(panel)):'%';
   var iv=document.getElementById((panel==='cp'?'iv-':'siv-')+k);
   if(iv){iv.placeholder=(m==='abs')?'0.00':'0';if(m==='abs'){iv.removeAttribute('max')}else{iv.max='100'}}
 }
@@ -1606,7 +1825,7 @@ function setIncMode(panel,k,m){
   if(b1)b1.className=(m==='pct')?'stab on':'stab';
   if(b2)b2.className=(m==='abs')?'stab on':'stab';
   var u=el('unit-'+panel+'-'+k);
-  if(u)u.textContent=(m==='abs')?'₹':'%';
+  if(u)u.textContent=(m==='abs')?symFor(sideOfPanel(panel)):'%';
   var iv=el((panel==='cp'?'iv-':'siv-')+k);
   if(iv){iv.placeholder=(m==='abs')?'0.00':'0';if(m==='abs'){iv.removeAttribute('max')}else{iv.max='100'}}
   saveLabels();
@@ -1655,13 +1874,13 @@ function _restoreInc(panel,snap){
     var ca=document.getElementById('cdm-after');if(ca)ca.className=(CDM==='after')?'stab on':'stab';
     var sp=document.getElementById('scm-pct');if(sp)sp.className=(SCM==='pct')?'stab on':'stab';
     var sa=document.getElementById('scm-abs');if(sa)sa.className=(SCM==='abs')?'stab on':'stab';
-    var su=document.getElementById('sc-unit');if(su)su.textContent=(SCM==='abs')?'₹':'%';
+    var su=document.getElementById('sc-unit');if(su)su.textContent=(SCM==='abs')?symFor('cost'):'%';
   } else {
     var scb=document.getElementById('scdm-before');if(scb)scb.className=(SCDM==='before')?'stab on':'stab';
     var sca=document.getElementById('scdm-after');if(sca)sca.className=(SCDM==='after')?'stab on':'stab';
     var ssp=document.getElementById('sscm-pct');if(ssp)ssp.className=(SSCM==='pct')?'stab on':'stab';
     var ssa=document.getElementById('sscm-abs');if(ssa)ssa.className=(SSCM==='abs')?'stab on':'stab';
-    var ssu=document.getElementById('ssc-unit');if(ssu)ssu.textContent=(SSCM==='abs')?'₹':'%';
+    var ssu=document.getElementById('ssc-unit');if(ssu)ssu.textContent=(SSCM==='abs')?symFor('sale'):'%';
   }
 }
 
@@ -1863,7 +2082,9 @@ function getLandedCost(){
   var e=el('landed');
   if(!e)return 0;
   var v=parseFloat(String(e.value).replace(/,/g,''));
-  return (isNaN(v)||v<0)?0:v;
+  if(isNaN(v)||v<0)return 0;
+  var r=fromDisplay(v,'cost');
+  return (r===null)?0:r;
 }
 
 /**
@@ -1876,7 +2097,9 @@ function getSPLandedCost(){
   var e=el('sp-landed');
   if(!e)return 0;
   var v=parseFloat(String(e.value).replace(/,/g,''));
-  return (isNaN(v)||v<0)?0:v;
+  if(isNaN(v)||v<0)return 0;
+  var r=fromDisplay(v,'sale');
+  return (r===null)?0:r;
 }
 
 /**
@@ -1921,12 +2144,13 @@ function getIncentiveInr(cp){
     var inp=document.getElementById('iv-'+k);
     var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
-    if(k==='sc'){
-      t+=(SCM==='abs')?v:(cp.e*v/100);
-    } else if(isCustomInc(k)){
-      t+=(incModeOf('cp',k)==='abs')?v:(cp.e*v/100);
+    if(incIsAbsolute('cp',k)){
+      var r=fromDisplay(v,'cost');
+      t+=(r===null)?0:r;
+    } else if(k==='cd'&&CDM==='after'){
+      t+=cp.i*v/100;
     } else {
-      t+=(k==='cd'&&CDM==='after')?(cp.i*v/100):(cp.e*v/100);
+      t+=cp.e*v/100;
     }
   });
   return t;
@@ -1986,12 +2210,13 @@ function getSPIncentiveInr(sp){
     var inp=document.getElementById('siv-'+k);
     var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
-    if(k==='sc'){
-      t+=(SSCM==='abs')?v:(sp.e*v/100);
-    } else if(isCustomInc(k)){
-      t+=(incModeOf('sp',k)==='abs')?v:(sp.e*v/100);
+    if(incIsAbsolute('sp',k)){
+      var r=fromDisplay(v,'sale');
+      t+=(r===null)?0:r;
+    } else if(k==='cd'&&SCDM==='after'){
+      t+=sp.i*v/100;
     } else {
-      t+=(k==='cd'&&SCDM==='after')?(sp.i*v/100):(sp.e*v/100);
+      t+=sp.e*v/100;
     }
   });
   return t;
@@ -2056,8 +2281,8 @@ function fillSpIncPanel(sp){
   updateSpIncSummaryTag();
   var inc=getSPIncentiveInr(sp),eff=effectiveSP(sp);
   R('sp-inc-total-pct',(inc>0&&sp)?PCT((inc/sp.e)*100):'0.00%');
-  R('sp-inc-total-inr',inc>0?INR(inc):'—');
-  R('sp-inc-eff-sp',INR(eff));
+  R('sp-inc-total-inr',inc>0?SINR(inc):'—');
+  R('sp-inc-eff-sp',SINR(eff));
 }
 /* ── Dynamic GST label updater ── */
 function updateGSTLabels(){
@@ -2549,14 +2774,14 @@ function renderSolver(){
   if(r.cushionInr>0){
     out.className='solver-out ok';
     out.textContent='Already there — GP is '+PCT(r.gpNow)+', above the '+PCT(r.targetGp)+' target. '
-      +'Effective CP has '+INR(r.cushionInr)+' of room per unit (up to '+INR(r.needEffCP)+') '
+      +'Effective CP has '+CINR(r.cushionInr)+' of room per unit (up to '+CINR(r.needEffCP)+') '
       +'before GP drops to '+PCT(r.targetGp)+'.';
     return;
   }
   // Short of the target: the original reading, which only ever applied here.
   out.className='solver-out';
-  out.textContent='Needs '+PCT(r.needIncPct)+' total CP incentive ('+INR(r.needEffCP)+' eff. CP). '
-    +'You have '+PCT(r.havePct)+' — '+INR(Math.abs(r.extraInr))+' more per unit'
+  out.textContent='Needs '+PCT(r.needIncPct)+' total CP incentive ('+CINR(r.needEffCP)+' eff. CP). '
+    +'You have '+PCT(r.havePct)+' — '+CINR(Math.abs(r.extraInr))+' more per unit'
     +(r.gpNow!==null?'. Currently '+PCT(r.gpNow)+'.':'.');
 }
 
@@ -2789,7 +3014,7 @@ function fillCP(cp){
   }
   var d=discFromPrice(cp.e);
   var overMRP=MI>0&&cp.i>MI;
-  R('cde',PCT(d.de));R('cdi',PCT(d.di));R('cve',INR(cp.e));R('cvi',INR(cp.i));R('cga',INR(cp.i-cp.e));
+  R('cde',PCT(d.de));R('cdi',PCT(d.di));R('cve',CINR(cp.e));R('cvi',CINR(cp.i));R('cga',CINR(cp.i-cp.e));
   el('cvi').className='row-val'+(overMRP?' neg':'');
   el('cdi').className='row-val'+(d.di<0?' neg':'');
   var card=el('cpc');
@@ -2814,7 +3039,7 @@ function fillSP(sp){
   }
   var d=discFromPrice(sp.e);
   var overMRP=MI>0&&sp.i>MI;
-  R('sde',PCT(d.de));R('sdi',PCT(d.di));R('sve',INR(sp.e));R('svi',INR(sp.i));R('sga',INR(sp.i-sp.e));
+  R('sde',PCT(d.de));R('sdi',PCT(d.di));R('sve',SINR(sp.e));R('svi',SINR(sp.i));R('sga',SINR(sp.i-sp.e));
   el('svi').className='row-val'+(overMRP?' neg':'');
   el('sdi').className='row-val'+(d.di<0?' neg':'');
   var card=el('spc');
@@ -2835,7 +3060,7 @@ function fillProfit(effCPE,spe){
     ['pvv','pgp','pmrg','pspd'].forEach(function(id){R(id,'—')});pvEl.className='row-val big';return;
   }
   var pr=spe-effCPE,gp=(spe>0)?(pr/spe)*100:null,mg=(effCPE>0)?(pr/effCPE)*100:null;
-  R('pvv',INR(pr));R('pgp',PCT(gp));R('pmrg',PCT(mg));R('pspd',INR(pr));
+  R('pvv',SINR(pr));R('pgp',PCT(gp));R('pmrg',PCT(mg));R('pspd',SINR(pr));
   pvEl.className='row-val big '+(pr>=0?'pos':'neg');
   el('pgp').className='row-val '+gpCls(gp,floor);
   el('pmrg').className='row-val '+mgCls(mg,floor);
@@ -2848,7 +3073,7 @@ function fillIncPanel(cp){
   updateIncSummaryTag();
   var inc=getIncentiveInr(cp),eff=effectiveCP(cp);
   R('inc-total-pct',(inc>0&&cp)?PCT((inc/cp.e)*100):'0.00%');
-  R('inc-total-inr',inc>0?INR(inc):'—');R('inc-eff-cp',INR(eff));
+  R('inc-total-inr',inc>0?CINR(inc):'—');R('inc-eff-cp',CINR(eff));
 }
 /**
  * Set one summary cell's text and state class.
@@ -2879,15 +3104,18 @@ function fillSummary(cp,sp){
   var spInc=getSPIncentiveInr(sp),effSP=effectiveSP(sp);
   var pr=effSP-eff,gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
   var dcp=discFromPrice(cp.e),dsp=discFromPrice(sp.e);
-  sumSet('s-cp',INR(cp.e),'');sumSet('s-ecp',INR(eff),cpInc>0?'amber':'');
-  sumSet('s-sp',INR(sp.e),'');sumSet('s-esp',INR(effSP),spInc>0?'pos':'');
-  sumSet('s-inc',cpInc>0?INR(cpInc):'—',cpInc>0?'amber':'dim');
-  sumSet('s-spinc',spInc>0?INR(spInc):'—',spInc>0?'pos':'dim');
+  sumSet('s-cp',CINR(cp.e),'');sumSet('s-ecp',CINR(eff),cpInc>0?'amber':'');
+  sumSet('s-sp',SINR(sp.e),'');sumSet('s-esp',SINR(effSP),spInc>0?'pos':'');
+  sumSet('s-inc',cpInc>0?CINR(cpInc):'—',cpInc>0?'amber':'dim');
+  sumSet('s-spinc',spInc>0?SINR(spInc):'—',spInc>0?'pos':'dim');
   // Headline figures ease toward their new value; the class still updates now
   // so colour and floor warnings are never late.
-  sumSet('s-pr',INR(pr),pr>=0?'pos':'neg');
+  sumSet('s-pr',SINR(pr),pr>=0?'pos':'neg');
   sumSet('s-gp',PCT(gp),gpCls(gp,floor));sumSet('s-mg',PCT(mg),mgCls(mg,floor));
-  animateValue('s-pr',pr,INR,{minDelta:1});
+  // SINR, not INR: the count-up rewrites the cell, so a base-currency
+  // formatter here would undo the sale-side conversion a frame later — the
+  // label said $ while the number underneath it said ₹.
+  animateValue('s-pr',pr,SINR,{minDelta:1});
   animateValue('s-gp',gp,PCT,{minDelta:0.5});
   animateValue('s-mg',mg,PCT,{minDelta:0.5});
   sumSet('s-dcp',PCT(dcp.de),'');sumSet('s-dsp',PCT(dsp.de),'');
@@ -2898,16 +3126,16 @@ function fillSummary(cp,sp){
   });
   if(multi){
     sumSet('s-qty',q+' units','');
-    sumSet('s-order',INR(sp.i*q),'');
-    sumSet('s-tpr',INR(pr*q),pr>=0?'pos':'neg');
+    sumSet('s-order',SINR(sp.i*q),'');
+    sumSet('s-tpr',SINR(pr*q),pr>=0?'pos':'neg');
   }
   // Break-even: how far SP can fall before profit or the GP floor is breached
   var be=breakEven(cp,sp);
   var beEls=['s-be-sep','s-item-be','s-item-bef'];
   if(be){
-    sumSet('s-be',INR(be.zeroI),sp&&sp.i<=be.zeroI?'neg':'');
+    sumSet('s-be',SINR(be.zeroI),sp&&sp.i<=be.zeroI?'neg':'');
     if(be.floorI!==null){
-      sumSet('s-bef',INR(be.floorI),sp&&sp.i<be.floorI?'warn':'');
+      sumSet('s-bef',SINR(be.floorI),sp&&sp.i<be.floorI?'warn':'');
       el('s-item-bef').style.display='';
     } else {
       el('s-item-bef').style.display='none';
@@ -2941,9 +3169,9 @@ function updateA11yStatus(pr,gp,mg){
       msg='';
     }else{
       var floor=getFloor();
-      msg='Profit '+INR(pr)+', GP '+PCT(gp)+', Margin '+PCT(mg);
+      msg='Profit '+SINR(pr)+', GP '+PCT(gp)+', Margin '+PCT(mg);
       var q=getQty();
-      if(q>1)msg+='. Total for '+q+' units '+INR(pr*q);
+      if(q>1)msg+='. Total for '+q+' units '+SINR(pr*q);
       if(belowFloor(gp,floor.gp))msg+='. Warning: GP is below your floor';
       if(belowFloor(mg,floor.mg))msg+='. Warning: Margin is below your floor';
     }
@@ -2966,7 +3194,7 @@ function updateMiniResult(pr,gp,mg){
   if(!ready)return;
   var floor=getFloor();
   var prEl=el('mini-pr'),gpEl=el('mini-gp'),mgEl=el('mini-mg');
-  if(prEl){prEl.textContent=INR(pr);prEl.className='mini-val'+(pr<0?' neg':'')}
+  if(prEl){prEl.textContent=SINR(pr);prEl.className='mini-val'+(pr<0?' neg':'')}
   if(gpEl){gpEl.textContent=PCT(gp);gpEl.className='mini-val'+(belowFloor(gp,floor.gp)?' warn':(gp<0?' neg':''))}
   if(mgEl){mgEl.textContent=PCT(mg);mgEl.className='mini-val'+(belowFloor(mg,floor.mg)?' warn':(mg<0?' neg':''))}
 }
@@ -3013,9 +3241,9 @@ function updateWiResults(){
     if(sp){
       var pr=sp.e-eff,gp=(sp.e>0)?(pr/sp.e)*100:null,mg=(eff>0)?(pr/eff)*100:null;
       var vals=[
-        {v:INR(sp.e),c:''},
-        {v:INR(sp.i),c:''},
-        {v:INR(pr),c:pr>=0?'pos':'neg'},
+        {v:SINR(sp.e),c:''},
+        {v:SINR(sp.i),c:''},
+        {v:SINR(pr),c:pr>=0?'pos':'neg'},
         {v:PCT(gp),c:gpCls(gp,floor)},
         {v:PCT(mg),c:mgCls(mg,floor)}
       ];
@@ -3037,8 +3265,8 @@ function renderWhatIf(cp){
   var info=el('wi-cp-info'),grid=el('wi-grid');
   if(!cp){info.innerHTML='Enter CP and incentives on the main screen first.';grid.innerHTML='';return}
   var inc=getIncentiveInr(cp),eff=effectiveCP(cp),floor=getFloor();
-  var incTxt=inc>0?' · Incentives: '+INR(inc)+' · Eff CP: '+INR(eff):'';
-  info.innerHTML='<span>MRP: <strong>'+INR(MI)+'</strong></span><span>CP excl GST: <strong>'+INR(cp.e)+'</strong></span>'+incTxt;
+  var incTxt=inc>0?' · Incentives: '+CINR(inc)+' · Eff CP: '+CINR(eff):'';
+  info.innerHTML='<span>MRP: <strong>'+INR(MI)+'</strong></span><span>CP excl GST: <strong>'+CINR(cp.e)+'</strong></span>'+incTxt;
 
   var bestGP=-Infinity,bestIdx=-1;
   WI_SCENES.forEach(function(sc,i){
@@ -3311,13 +3539,13 @@ function renderHistory(){
         +'</div>'
         +'<div class="hist-vals">'
           +'<span class="hist-kv"><span class="hist-k">MRP</span><span class="hist-v">'+INR(h.mrp)+'</span></span>'
-          +'<span class="hist-kv"><span class="hist-k">CP excl</span><span class="hist-v">'+INR(h.cpE)+'</span></span>'
-          +'<span class="hist-kv"><span class="hist-k">SP excl</span><span class="hist-v">'+INR(h.spE)+'</span></span>'
-          +'<span class="hist-kv"><span class="hist-k">Profit</span><span class="hist-v '+prCls+'">'+INR(h.pr)+'</span></span>'
+          +'<span class="hist-kv"><span class="hist-k">CP excl</span><span class="hist-v">'+CINR(h.cpE)+'</span></span>'
+          +'<span class="hist-kv"><span class="hist-k">SP excl</span><span class="hist-v">'+SINR(h.spE)+'</span></span>'
+          +'<span class="hist-kv"><span class="hist-k">Profit</span><span class="hist-v '+prCls+'">'+SINR(h.pr)+'</span></span>'
           +'<span class="hist-kv"><span class="hist-k">GP %</span><span class="hist-v '+gpCls+'">'+PCT(h.gp)+'</span></span>'
           +'<span class="hist-kv"><span class="hist-k">Margin %</span><span class="hist-v '+mgCls+'">'+PCT(h.mg)+'</span></span>'
         +'</div>'
-        +(h.incInr>0?'<div class="hist-inc"><span class="hist-inc-k">Inc ₹</span><span>'+INR(h.incInr)+'</span></div>':'')
+        +(h.incInr>0?'<div class="hist-inc"><span class="hist-inc-k">Inc</span><span>'+CINR(h.incInr)+'</span></div>':'')
       +'</div>'
     +'</div>';
   });
@@ -3422,14 +3650,15 @@ function renderCompare(){
     var txt=isPercent?(sign+d.toFixed(2)+'pp'):(sign+d.toFixed(2));
     return '<span class="dv '+cls+'">'+txt+'</span>';
   }
-  function deltaINR(curV,histV,higher){
+  function deltaINR(curV,histV,higher,side){
     if(curV===null||histV===null)return'';
     var d=curV-histV;if(Math.abs(d)<0.005)return'<span class="dv nt">—</span>';
     // Math.abs() strips the sign, so a fall has to be signed explicitly —
     // otherwise -₹50 and +₹50 render identically and only the colour differs.
     var sign=d>0?'+':'−';
     var cls=(higher?(d>0):(d<0))?'up':'dn';
-    return '<span class="dv '+cls+'">'+sign+'₹'+Math.abs(d).toFixed(2)+'</span>';
+    // The delta wears the same symbol as the two cells it sits between.
+    return '<span class="dv '+cls+'">'+sign+symFor(side||'base')+Math.abs(d).toFixed(2)+'</span>';
   }
 
   // cell builders
@@ -3440,10 +3669,10 @@ function renderCompare(){
     var disp=v===null||v===undefined?'—':(fmt==='inr'?INR(v):PCT(v));
     return '<div class="cmp-cell'+(cls?' '+cls:'')+'">'+(disp||'—')+'</div>';
   }
-  function inrCell(v,posNeg){
+  function inrCell(v,posNeg,side){
     if(v===null||v===undefined)return'<div class="cmp-cell dim">—</div>';
     var cls=posNeg?(v>=0?'cmp-pos':'cmp-neg'):'';
-    return'<div class="cmp-cell '+(cls||'')+'">'+INR(v)+'</div>';
+    return'<div class="cmp-cell '+(cls||'')+'">'+money(v,side||'base')+'</div>';
   }
   function pctCell(v,floor,isGP){
     if(v===null||v===undefined)return'<div class="cmp-cell dim">—</div>';
@@ -3454,16 +3683,16 @@ function renderCompare(){
   function deltaCell(html){return'<div class="cmp-cell cmp-delta">'+(html||'<span class="dv nt">—</span>')+'</div>'}
 
   var rows=[
-    {label:'MRP (incl GST)',   cur:cur?cur.mrp:null,   hist:hist.mrp,   fmt:'inr', higher:null},
-    {label:'CP excl GST',      cur:cur?cur.cpE:null,   hist:hist.cpE,   fmt:'inr', higher:false},
-    {label:'CP incl GST',      cur:cur?cur.cpI:null,   hist:hist.cpI,   fmt:'inr', higher:false},
-    {label:'SP excl GST',      cur:cur?cur.spE:null,    hist:hist.spE,   fmt:'inr', higher:true},
-    {label:'SP incl GST',      cur:cur?cur.spI:null,    hist:hist.spI,   fmt:'inr', higher:true},
-    {label:'Eff. SP excl GST', cur:cur?cur.effSPE:null, hist:hist.effSPE||hist.spE, fmt:'inr', higher:true},
-    {label:'SP Incentives ₹',  cur:cur?cur.spIncInr:null,hist:hist.spIncInr||0,fmt:'inr', higher:true},
-    {label:'Eff. CP excl GST', cur:cur?cur.effCPE:null,hist:hist.effCPE,fmt:'inr', higher:false},
-    {label:'Incentives ₹',     cur:cur?cur.incInr:null,hist:hist.incInr,fmt:'inr', higher:true},
-    {label:'Profit ₹',         cur:cur?cur.pr:null,    hist:hist.pr,    fmt:'inr', higher:true, posNeg:true},
+    {label:'MRP (incl GST)',   cur:cur?cur.mrp:null,   hist:hist.mrp,   fmt:'inr', higher:null, side:'base'},
+    {label:'CP excl GST',      cur:cur?cur.cpE:null,   hist:hist.cpE,   fmt:'inr', higher:false, side:'cost'},
+    {label:'CP incl GST',      cur:cur?cur.cpI:null,   hist:hist.cpI,   fmt:'inr', higher:false, side:'cost'},
+    {label:'SP excl GST',      cur:cur?cur.spE:null,    hist:hist.spE,   fmt:'inr', higher:true, side:'sale'},
+    {label:'SP incl GST',      cur:cur?cur.spI:null,    hist:hist.spI,   fmt:'inr', higher:true, side:'sale'},
+    {label:'Eff. SP excl GST', cur:cur?cur.effSPE:null, hist:hist.effSPE||hist.spE, fmt:'inr', higher:true, side:'sale'},
+    {label:'SP Incentives',    cur:cur?cur.spIncInr:null,hist:hist.spIncInr||0,fmt:'inr', higher:true, side:'sale'},
+    {label:'Eff. CP excl GST', cur:cur?cur.effCPE:null,hist:hist.effCPE,fmt:'inr', higher:false, side:'cost'},
+    {label:'Incentives',       cur:cur?cur.incInr:null,hist:hist.incInr,fmt:'inr', higher:true, side:'cost'},
+    {label:'Profit',           cur:cur?cur.pr:null,    hist:hist.pr,    fmt:'inr', higher:true, posNeg:true, side:'sale'},
     {label:'GP %',             cur:cur?cur.gp:null,    hist:hist.gp,    fmt:'pct', higher:true, isGP:true},
     {label:'Margin %',         cur:cur?cur.mg:null,    hist:hist.mg,    fmt:'pct', higher:true, isMG:true},
     {label:'GST Rate',         cur:cur?cur.gst:null,   hist:hist.gst,   fmt:'gst', higher:null}
@@ -3482,10 +3711,10 @@ function renderCompare(){
       html+='<div class="cmp-cell">'+r.hist+'%</div>';
       html+=deltaCell(delta(r.cur,r.hist,false,null));
     } else {
-      var c=r.posNeg?inrCell(r.cur,true):(r.cur===null?'<div class="cmp-cell dim">—</div>':inrCell(r.cur,false));
-      var s=r.posNeg?inrCell(r.hist,true):inrCell(r.hist,false);
+      var c=r.posNeg?inrCell(r.cur,true,r.side):(r.cur===null?'<div class="cmp-cell dim">—</div>':inrCell(r.cur,false,r.side));
+      var s=r.posNeg?inrCell(r.hist,true,r.side):inrCell(r.hist,false,r.side);
       html+=c+s;
-      html+=deltaCell(deltaINR(r.cur,r.hist,r.higher));
+      html+=deltaCell(deltaINR(r.cur,r.hist,r.higher,r.side));
     }
   });
 
@@ -3502,10 +3731,10 @@ function getSummaryText(){
   var pr=effSP-eff;
   var gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
   var lines=['PRICING SUMMARY — '+now(),'─────────────────────────','MRP (incl GST):   '+INR(MI),'GST Rate:         '+(G*100)+'%','','CP excl GST:      '+INR(LAST_CP.e),'CP incl GST:      '+INR(LAST_CP.i)];
-  if(inc>0){lines.push('CP Incentives ₹:  '+INR(inc));lines.push('Eff. CP excl GST: '+INR(eff))}
-  lines.push('','SP excl GST:      '+INR(LAST_SP.e),'SP incl GST:      '+INR(LAST_SP.i));
-  if(spInc>0){lines.push('SP Incentives ₹:  '+INR(spInc));lines.push('Eff. SP excl GST: '+INR(effSP))}
-  lines.push('','Profit ₹:         '+INR(pr),'GP %:             '+PCT(gp),'Margin %:         '+PCT(mg),'─────────────────────────');
+  if(inc>0){lines.push('CP Incentives:    '+CINR(inc));lines.push('Eff. CP excl GST: '+CINR(eff))}
+  lines.push('','SP excl GST:      '+SINR(LAST_SP.e),'SP incl GST:      '+SINR(LAST_SP.i));
+  if(spInc>0){lines.push('SP Incentives:    '+SINR(spInc));lines.push('Eff. SP excl GST: '+SINR(effSP))}
+  lines.push('','Profit:           '+SINR(pr),'GP %:             '+PCT(gp),'Margin %:         '+PCT(mg),'─────────────────────────');
   return lines.join('\n');
 }
 /**
@@ -4238,15 +4467,15 @@ function getQuoteText(){
     if(!r)return;
     lines.push((i+1)+'. '+(L.desc||'(no description)'));
     lines.push('   MRP '+INR(parseFloat(L.mrp))+' × '+r.qty
-      +'  |  SP '+INR(r.spI)+' incl GST');
-    lines.push('   Line value '+INR(r.lineVal)+'  |  Profit '+INR(r.linePr)+'  |  GP '+PCT(r.gp));
+      +'  |  SP '+SINR(r.spI)+' incl GST');
+    lines.push('   Line value '+SINR(r.lineVal)+'  |  Profit '+SINR(r.linePr)+'  |  GP '+PCT(r.gp));
   });
   lines.push('');
   lines.push('─────────────────────────');
   lines.push('Lines:        '+t.lines);
   lines.push('Units:        '+t.units);
-  lines.push('Order value:  '+INR(t.val));
-  lines.push('Total profit: '+INR(t.pr));
+  lines.push('Order value:  '+SINR(t.val));
+  lines.push('Total profit: '+SINR(t.pr));
   lines.push('Blended GP:   '+PCT(t.gp));
   return lines.join('\n');
 }
@@ -4369,6 +4598,7 @@ function validateShareState(raw){
   if(!isNaN(g) && g >= 0 && g <= 100) s.g = g;
 
   if(typeof raw.ccy === 'string' && CCY_CODES.indexOf(raw.ccy) !== -1) s.ccy = raw.ccy;
+  if(typeof raw.fxs === 'string' && FX_SCOPES.indexOf(raw.fxs) !== -1) s.fxs = raw.fxs;
 
   if(raw.m !== undefined) s.m = numStr(raw.m, 1e12);
   ['cpd','cpv','spd','spv','pri','fgp','fmg'].forEach(function(k){
@@ -4460,7 +4690,7 @@ function getShareState(){
     sm:SM,spms:SPMS,spd:el('spd').value,spv:el('spv').value,
     pm:PM,pri:el('pri').value,
     cdm:CDM,scm:SCM,scdm:SCDM,sscm:SSCM,incm:INC_MODE,spincm:SP_INC_MODE,
-    ccy:DISPLAY_CCY,
+    ccy:DISPLAY_CCY,fxs:FX_SCOPE,
     qty:el('qty')?el('qty').value:'1',rnd:ROUND_MODE,lc:el('landed')?el('landed').value:'',slc:el('sp-landed')?el('sp-landed').value:'',
     fgp:el('floor-gp').value,fmg:el('floor-mg').value,
     inc:inc,spinc:spinc
@@ -4479,7 +4709,7 @@ function applyShareState(raw){
     return;
   }
   try{
-    if(s.ccy)setDisplayCcy(s.ccy);
+    if(s.ccy)setDisplayCcy(s.ccy,s.fxs);
     if(s.rnd)setRounding(s.rnd);
     if(s.qty!==undefined&&el('qty'))el('qty').value=s.qty;
     if(s.lc!==undefined&&el('landed'))el('landed').value=s.lc;
@@ -4753,7 +4983,7 @@ renderCPIncRows();
 renderSPIncRows();
 loadHistoryFromStorage();
 loadPresets();
-loadFx();renderCcyList();renderFxNote();
+loadFx();renderCcyList();refreshCurrencySymbols();renderFxNote();
 loadQuote();
 document.querySelectorAll('.kbd-mod').forEach(function(el){el.textContent=MOD_KEY;});
 updateLayout();
