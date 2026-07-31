@@ -1113,10 +1113,16 @@ function onCustomGST(inp){
   if(isNaN(p)||p<0||p>100){
     logWarn('ignoring out-of-range custom GST rate: '+JSON.stringify(inp.value)+' (expected 0–100)');
     toast('GST must be between 0 and 100');
-    inp.value=(G*100===18||G*100===5)?'':String(G*100);
+    inp.value=isCustomGST()?String(G*100):'';
     return;
   }
+  // Typing a rate that already has a pill hands over to it rather than keeping
+  // a second control filled in. setGST leaves the box alone while it has focus,
+  // so that typing is not interrupted — but this is the change event, so entry
+  // is finished and the box can be cleared for real.
+  var preset=(p===18||p===5);
   setGST(p);
+  if(preset)inp.value='';
 }
 
 /* ── Floating action button (mobile) ── */
@@ -1185,7 +1191,10 @@ function onCustomRounding(inp){
     inp.value=isCustomRounding()?ROUND_MODE:'';
     return;
   }
+  // Same hand-off as the GST box: a step that already has a chip selects it.
+  var preset=(v===1||v===5);
   setRounding(String(v));
+  if(preset)inp.value='';
 }
 
 /* ── Quantity ── */

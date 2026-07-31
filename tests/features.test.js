@@ -2481,12 +2481,71 @@ runFetchCases().then(() => {
      gstSel().join() === '18', gstSel().join());
   ok('and empties the box', gstBox.value === '', 'got ' + gstBox.value);
 
-  // Typing a preset rate into the custom box should light that preset, not both.
-  gstBox.value = '18'; w.onCustomGST(gstBox);
+  // Typing a rate that already has a pill hands over to it and empties the box,
+  // rather than leaving a second control looking filled in.
+  gstBox.value = '18'; gstBox.focus(); w.onCustomGST(gstBox);
   ok('typing 18 in the box selects the 18% pill, not two things at once',
      gstSel().join() === '18', gstSel().join());
-  gstBox.value = '5'; w.onCustomGST(gstBox);
+  ok('and the box empties itself', gstBox.value === '', 'got "' + gstBox.value + '"');
+  ok('the rate really is 18%', Math.abs(w.G - 0.18) < 1e-9, 'G=' + w.G);
+  gstBox.value = '5'; gstBox.focus(); w.onCustomGST(gstBox);
   ok('same for 5', gstSel().join() === '5', gstSel().join());
+  ok('and it empties too', gstBox.value === '', 'got "' + gstBox.value + '"');
+  // A decimal spelling of a preset is still that preset.
+  gstBox.value = '18.0'; gstBox.focus(); w.onCustomGST(gstBox);
+  ok('18.0 counts as the 18% preset', gstSel().join() === '18' && gstBox.value === '',
+     gstSel().join() + ' box="' + gstBox.value + '"');
+  // A genuinely custom rate keeps its value in the box.
+  gstBox.value = '12'; gstBox.focus(); w.onCustomGST(gstBox);
+  ok('a custom rate stays in the box', gstBox.value === '12', 'got "' + gstBox.value + '"');
+  // Clearing goes back to the preset that is live, not to a stale figure.
+  // Blur first: a real click on the pill moves focus off the box, and the box
+  // deliberately keeps its value while it still has focus so typing survives.
+  gstBox.blur();
+  w.setGST(18);
+  ok('switching to a preset clears the box', gstBox.value === '', 'got "' + gstBox.value + '"');
+
+  // ── Rounding does the same hand-off ─────────────────────────────────────
+  const rndSel = () => [['off', 'rnd-off'], ['1', 'rnd-1'], ['5', 'rnd-5'],
+                        ['other', 'rnd-custom-wrap']]
+    .filter(([, id]) => d.getElementById(id).className.indexOf('on') !== -1)
+    .map(([n]) => n);
+  const rndBox = d.getElementById('rnd-custom');
+  // Back to rupees: the block above leaves the sale side in dollars, and the
+  // step is denominated in the sale currency. The dollar case is covered below.
+  w.setDisplayCcy('INR', 'both');
+
+  rndBox.value = '1'; rndBox.focus(); w.onCustomRounding(rndBox);
+  ok('typing 1 selects the ₹1 chip', rndSel().join() === '1', rndSel().join());
+  ok('and empties the custom box', rndBox.value === '', 'got "' + rndBox.value + '"');
+  ok('the step really is 1', w.roundStep() === 1, 'got ' + w.roundStep());
+  rndBox.value = '5'; rndBox.focus(); w.onCustomRounding(rndBox);
+  ok('typing 5 selects the ₹5 chip', rndSel().join() === '5', rndSel().join());
+  ok('and empties it too', rndBox.value === '', 'got "' + rndBox.value + '"');
+  rndBox.value = '1.0'; rndBox.focus(); w.onCustomRounding(rndBox);
+  ok('1.0 counts as the ₹1 chip', rndSel().join() === '1' && rndBox.value === '',
+     rndSel().join() + ' box="' + rndBox.value + '"');
+  rndBox.value = '20'; rndBox.focus(); w.onCustomRounding(rndBox);
+  ok('a genuinely custom step keeps the box filled and highlighted',
+     rndSel().join() === 'other' && rndBox.value === '20',
+     rndSel().join() + ' box="' + rndBox.value + '"');
+  ['1', '5', '20', '0.5', 'off'].forEach(v => {
+    if (v === 'off') w.setRounding('off');
+    else { rndBox.value = v; rndBox.focus(); w.onCustomRounding(rndBox); }
+    ok('exactly one rounding option is selected at ' + v, rndSel().length === 1,
+       rndSel().join(' + ') || 'none');
+  });
+
+  // The chips carry the sale currency, so 1 there means one unit of it.
+  w.FX.rates = { INR: 1, USD: 0.01 }; w.FX.fetched = w.nowMs();
+  w.setDisplayCcy('USD', 'sale');
+  rndBox.value = '1'; rndBox.focus(); w.onCustomRounding(rndBox);
+  ok('a $1 chip is what typing 1 selects when the sale side is in dollars',
+     rndSel().join() === '1', rndSel().join());
+  ok('and it means 100 rupees at this rate', Math.abs(w.roundStep() - 100) < 1e-6,
+     'got ' + w.roundStep());
+  w.setDisplayCcy('INR', 'both');
+  w.setRounding('off'); rndBox.value = '';
 
   // Exactly one option is selected in every case.
   ['18', '5', '12', '0', '99.5', '28'].forEach(v => {
