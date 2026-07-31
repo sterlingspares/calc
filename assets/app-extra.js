@@ -1338,7 +1338,7 @@ function _toggleFeatureImpl(k){
   if(!f){ logWarn('unknown feature '+JSON.stringify(k)); return }
   if(!featOn(k)){                        // switching back on
     FEATURES[k]=true;
-    saveFeatures();applyFeatureVisibility();renderFeatureGrid();calc();
+    saveFeatures();applyFeatureVisibility();renderFeatureGrid();refreshSettingsTabs();calc();
     toast(f.name+' is back',true);
     return;
   }
@@ -1348,7 +1348,7 @@ function _toggleFeatureImpl(k){
     pushUndo('turn off '+f.name);
     if(held.length){ try{ f.clear() }catch(e){ logError('could not clear '+k,e) } }
     FEATURES[k]=false;
-    saveFeatures();applyFeatureVisibility();renderFeatureGrid();calc();
+    saveFeatures();applyFeatureVisibility();renderFeatureGrid();refreshSettingsTabs();calc();
     debouncedSaveCalcState();
     toast(f.name+' turned off',true);
   };

@@ -696,6 +696,52 @@ async function launchChromium(chromium) {
   ok('sticky result bar is shown',
      await page.evaluate(() =>
        getComputedStyle(document.getElementById('mini-result')).display !== 'none'));
+
+  // Measured, not read off the stylesheet. Mobile overrides for .pm-btn and
+  // .fx-note were written into the first @media block in the file rather than
+  // the one at the end, so later base rules of equal specificity won and the
+  // buttons stayed 29px. Reading the CSS text would not have caught it — the
+  // rules existed, they just never applied.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const mobileSizes = await (async () => {
+    await page.evaluate(() => {
+      window.PRESETS = { A: window.capturePreset() };
+      window.openPresetManager();
+    });
+    await page.waitForTimeout(400);
+    const pm = await page.evaluate(() => {
+      const b = document.querySelector('.pm-btn');
+      const r = document.querySelector('.pm-row');
+      return { btn: b ? b.getBoundingClientRect().height : null,
+               row: r ? getComputedStyle(r).flexDirection : null };
+    });
+    await page.evaluate(() => window.closeModal('presets'));
+    await page.evaluate(() => window.openModal('settings'));
+    await page.waitForTimeout(400);
+    const set = await page.evaluate(() => {
+      const t = document.querySelector('.settings-tab');
+      const nav = document.querySelector('.settings-nav');
+      const shell = document.querySelector('.settings-shell');
+      const fx = document.getElementById('fx-note');
+      return { tab: t ? t.getBoundingClientRect().height : null,
+               navDir: nav ? getComputedStyle(nav).flexDirection : null,
+               shellDir: shell ? getComputedStyle(shell).flexDirection : null,
+               fxWrap: fx ? getComputedStyle(fx).whiteSpace : null };
+    });
+    await page.evaluate(() => { window.closeModal('settings'); window.PRESETS = {}; });
+    return Object.assign(pm, set);
+  })();
+
+  ok('preset manager buttons really are 44px on a phone',
+     mobileSizes.btn !== null && mobileSizes.btn >= 44,
+     'measured ' + mobileSizes.btn + 'px');
+  ok('and each row really stacks', mobileSizes.row === 'column', mobileSizes.row);
+  ok('settings tabs really are 44px', mobileSizes.tab !== null && mobileSizes.tab >= 44,
+     'measured ' + mobileSizes.tab + 'px');
+  ok('the settings rail really is horizontal', mobileSizes.navDir === 'row', mobileSizes.navDir);
+  ok('with panes really stacked under it', mobileSizes.shellDir === 'column', mobileSizes.shellDir);
+  ok('the rate note really wraps rather than overflowing',
+     mobileSizes.fxWrap === 'normal', mobileSizes.fxWrap);
   ok('result bar mirrors the profit',
      (await page.textContent('#mini-pr')).includes('150'), await page.textContent('#mini-pr'));
   ok('FAB is shown',

@@ -757,13 +757,27 @@
 
 <!-- ═══ SETTINGS MODAL ═══ -->
 <div class="modal-overlay" id="overlay-settings" data-click="a103" role="presentation">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-settings">
+  <div class="modal modal-settings" role="dialog" aria-modal="true" aria-labelledby="modal-title-settings">
     <div class="modal-header">
       <h2 class="modal-title" id="modal-title-settings">Settings</h2>
       <button class="modal-close" data-click="a104" aria-label="Close settings">×</button>
     </div>
-    <div class="modal-body">
-
+    <div class="modal-body settings-body">
+    <div class="settings-shell">
+      <div class="settings-nav" role="tablist" aria-label="Settings sections"
+           data-keydown="setTabKey">
+        <button class="settings-tab on" id="stab-general" role="tab" aria-selected="true"
+                aria-controls="spane-general" tabindex="0" data-click="setTab" data-p="general">General</button>
+        <button class="settings-tab" id="stab-pricing" role="tab" aria-selected="false"
+                aria-controls="spane-pricing" tabindex="-1" data-click="setTab" data-p="pricing">Pricing</button>
+        <button class="settings-tab" id="stab-features" role="tab" aria-selected="false"
+                aria-controls="spane-features" tabindex="-1" data-click="setTab" data-p="features">Features</button>
+        <button class="settings-tab" id="stab-help" role="tab" aria-selected="false"
+                aria-controls="spane-help" tabindex="-1" data-click="setTab" data-p="help">Help</button>
+      </div>
+      <div class="settings-panes">
+      <div class="settings-pane" id="spane-general" role="tabpanel"
+           aria-labelledby="stab-general">
       <div class="modal-section">
         <div class="modal-section-title">Appearance</div>
         <div class="settings-row">
@@ -780,7 +794,25 @@
           </div>
         </div>
       </div>
-
+      <div class="modal-section">
+        <div class="modal-section-title">History</div>
+        <div class="settings-row">
+          <div class="settings-lbl">
+            <span>Auto-save calculations</span>
+            <small>Automatically log to history when CP and SP are both filled (debounced 900ms)</small>
+          </div>
+          <div class="settings-control">
+            <label class="toggle" style="width:36px;height:20px">
+              <input type="checkbox" id="autosave-toggle-settings" checked data-change="a111" aria-label="Auto-save calculations to history">
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb" style="width:14px;height:14px;top:3px;left:3px"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="settings-pane hidden" id="spane-pricing" role="tabpanel"
+           aria-labelledby="stab-pricing" hidden>
       <div class="modal-section">
         <div class="modal-section-title">Floor Limits</div>
         <div style="display:flex;gap:12px;align-items:center">
@@ -800,7 +832,6 @@
           </div>
         </div>
       </div>
-
       <div class="modal-section">
         <div class="modal-section-title">Rounding</div>
         <div class="settings-row">
@@ -818,24 +849,6 @@
           </div>
         </div>
       </div>
-
-      <div class="modal-section">
-        <div class="modal-section-title">History</div>
-        <div class="settings-row">
-          <div class="settings-lbl">
-            <span>Auto-save calculations</span>
-            <small>Automatically log to history when CP and SP are both filled (debounced 900ms)</small>
-          </div>
-          <div class="settings-control">
-            <label class="toggle" style="width:36px;height:20px">
-              <input type="checkbox" id="autosave-toggle-settings" checked data-change="a111" aria-label="Auto-save calculations to history">
-              <span class="toggle-track"></span>
-              <span class="toggle-thumb" style="width:14px;height:14px;top:3px;left:3px"></span>
-            </label>
-          </div>
-        </div>
-      </div>
-
       <div class="modal-section" id="sec-set-forex">
         <div class="modal-section-title">Currency</div>
         <div class="settings-row">
@@ -862,6 +875,9 @@
           </div>
         </div>
       </div>
+      </div>
+      <div class="settings-pane hidden" id="spane-features" role="tabpanel"
+           aria-labelledby="stab-features" hidden>
       <div class="modal-section">
         <div class="modal-section-title">Features</div>
         <p class="feat-intro">Turn off anything you do not use and it disappears from the screen.
@@ -880,6 +896,9 @@
           </div>
         </div>
       </div>
+      </div>
+      <div class="settings-pane hidden" id="spane-help" role="tabpanel"
+           aria-labelledby="stab-help" hidden>
       <div class="modal-section">
         <div class="modal-section-title">Help</div>
         <div class="settings-row">
@@ -901,7 +920,9 @@
           </div>
         </div>
       </div>
-
+      </div>
+      </div>
+    </div>
     </div>
   </div>
 </div>
