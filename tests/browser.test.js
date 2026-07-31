@@ -411,6 +411,62 @@ async function launchChromium(chromium) {
     await p2.close();
   }
 
+  /* ── 7f. axe-core in a real browser, with data on screen ──────────── */
+  R.section('\n=== 7f. axe-core with real layout ===');
+  {
+    // The a11y suite runs axe under jsdom, where colour-contrast and any other
+    // layout-dependent rule comes back "incomplete" rather than pass or fail.
+    // This is the only place those rules are actually evaluated — and it must
+    // run with values on screen, since most coloured text only exists then.
+    const axeSrc = fs.readFileSync(require.resolve('axe-core'), 'utf8');
+    const p4 = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    await p4.addInitScript(() => { try { localStorage.setItem('ob-done', '1'); } catch (e) {} });
+    await p4.goto(origin + '/', { waitUntil: 'load' });
+    await p4.waitForFunction(() => typeof window.calc === 'function');
+    await p4.fill('#mrp', '1000');
+    await p4.fill('#cpd', '40');
+    await p4.fill('#spd', '25');
+    await p4.fill('#landed', '50');
+    await p4.fill('#sp-landed', '30');
+    await p4.fill('#qty', '5');
+    await p4.evaluate(() => { window.saveToHistory(); window.togglePanel('hist'); });
+    await p4.waitForTimeout(400);
+    await p4.evaluate(axeSrc);
+
+    const run = sel => p4.evaluate(s => window.axe.run(s ? document.querySelector(s) : document, {
+      resultTypes: ['violations'],
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+    }), sel);
+
+    const full = await run(null);
+    const describe = v => v.map(x =>
+      `${x.id}(${x.nodes.length}): ${(x.nodes[0].any[0] || {}).message || ''}`.slice(0, 120)).join(' | ');
+    ok('populated page has no WCAG violations', full.violations.length === 0,
+       describe(full.violations));
+
+    // Contrast specifically — the rule jsdom can never evaluate
+    const contrast = await p4.evaluate(() => window.axe.run(document, {
+      resultTypes: ['violations'], runOnly: ['color-contrast'],
+    }));
+    ok('no colour-contrast violations with data on screen',
+       contrast.violations.length === 0,
+       contrast.violations.map(v => v.nodes.length + ' nodes, worst ' +
+         ((v.nodes[0].any[0] || {}).data || {}).contrastRatio).join(' | '));
+
+    // And in dark theme, where the whole palette changes
+    await p4.evaluate(() => window.toggleDarkMode(true));
+    await p4.waitForTimeout(300);
+    const darkContrast = await p4.evaluate(() => window.axe.run(document, {
+      resultTypes: ['violations'], runOnly: ['color-contrast'],
+    }));
+    ok('no colour-contrast violations in dark theme',
+       darkContrast.violations.length === 0,
+       darkContrast.violations.map(v => v.nodes.length + ' nodes, worst ' +
+         ((v.nodes[0].any[0] || {}).data || {}).contrastRatio).join(' | '));
+    await p4.evaluate(() => window.toggleDarkMode(false));
+    await p4.close();
+  }
+
   /* ── 8. Mobile viewport ───────────────────────────────────────────── */
   R.section('\n=== 8. Mobile viewport ===');
   await page.setViewportSize({ width: 390, height: 780 });

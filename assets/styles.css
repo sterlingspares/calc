@@ -43,7 +43,9 @@ html[data-theme="dark"]{
 }
 html[data-theme="dark"] .header{background:#111110}
 html[data-theme="dark"] .summary{background:#252421;border:1px solid var(--border)}
-html[data-theme="dark"] .summary .sum-lbl{color:rgba(240,237,232,0.35)}
+/* 0.35 alpha over the dark card was 2.88:1. 0.62 gives 6.01:1 and keeps
+   the label visually subordinate to the value beneath it. */
+html[data-theme="dark"] .summary .sum-lbl{color:rgba(240,237,232,0.62)}
 html[data-theme="dark"] .summary .sum-val{color:rgba(240,237,232,0.9)}
 html[data-theme="dark"] .modal-overlay{background:rgba(0,0,0,0.75)}
 html[data-theme="dark"] .mtab.on{box-shadow:0 1px 3px rgba(0,0,0,0.4)}
@@ -241,7 +243,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .solver-input:focus-within{border-color:#fff;background:rgba(255,255,255,0.14)}
 .solver-input input{border:none;background:transparent;width:54px;text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:600;color:#fff;outline:none;padding:3px 0;-moz-appearance:textfield}
 .solver-input input::-webkit-outer-spin-button,.solver-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.solver-input input::placeholder{color:rgba(255,255,255,0.4)}
+.solver-input input::placeholder{color:rgba(255,255,255,0.55)}
 .solver-input::after{content:'%';font-size:11px;color:rgba(255,255,255,0.55);margin-left:3px}
 .solver-out{flex:1;min-width:220px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,0.75)}
 .solver-out.ok{color:#8fe3b0}
@@ -256,11 +258,12 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .summary-wrap{margin-bottom:1.25rem}
 .summary{background:var(--accent);color:#fff;border-radius:var(--radius);padding:18px 20px;box-shadow:0 4px 20px rgba(26,25,22,0.2)}
 .summary-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
-.summary-title{font-family:var(--font-heading);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,0.45)}
+.summary-title{font-family:var(--font-heading);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,0.62)}
 .btn-whatif{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);font-size:11px;font-weight:500;color:rgba(255,255,255,0.85);cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap}
 .btn-whatif:hover{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.4);color:#fff}
 .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:16px 24px}
-.sum-lbl{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,0.4);font-weight:500;margin-bottom:3px}
+/* 0.62 alpha over the accent card = 7.38:1. At 0.4 this was 3.81:1, below AA. */
+.sum-lbl{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,0.62);font-weight:500;margin-bottom:3px}
 .sum-val{font-family:var(--font-mono);font-size:17px;font-weight:500;color:rgba(255,255,255,0.95)}
 .sum-val.pos{color:#6ee9a8}
 .sum-val.neg{color:#f87a7a}
@@ -670,6 +673,12 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 /* ── QUANTITY ── */
 .landed-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:1px 4px 1px 7px;background:var(--surface);transition:border-color .15s}
 .landed-wrap:focus-within{border-color:var(--accent)}
+/* Direction is in the prefix (+₹ / −₹), not only the colour, so it reads the
+   same to anyone who cannot distinguish the two tints. */
+.landed-wrap>span{font-variant-numeric:tabular-nums}
+.landed-wrap.out{border-color:var(--green-border)}
+.landed-wrap.out>span{color:var(--green)}
+.landed-wrap.out:focus-within{border-color:var(--green)}
 .landed-wrap>span{font-size:11px;color:var(--text3)}
 .landed-wrap input{border:none;background:transparent;width:62px;font-size:13px;font-family:var(--font-mono);font-weight:500;text-align:right;outline:none;color:var(--text);padding:3px 2px;-moz-appearance:textfield}
 .landed-wrap input::-webkit-outer-spin-button,.landed-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}

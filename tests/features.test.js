@@ -15,6 +15,7 @@ const ok = R.ok.bind(R);
 
 const { w, d } = loadApp();
 const num = id => numOf(d, id);
+const near = (a, b, tol) => Math.abs(a - b) < (tol === undefined ? 0.01 : tol);
 
 // Surface anything that escapes a handler during the run
 const errs = [];
@@ -1333,6 +1334,101 @@ ok('an empty preset falls back to defaults', (() => {
 })());
 w.localStorage.clear();
 w.INC_LABELS['eb'] = w.INC_LABELS_DEFAULT['eb'];
+
+R.section('\n=== 73. Outbound (SP) landed cost ===');
+freshCalc(1000, 40, 25);
+d.getElementById('landed').value = '';
+d.getElementById('sp-landed').value = '';
+w.calc();
+ok('none by default', w.getSPLandedCost() === 0);
+ok('effectiveSP is SP less incentives', w.effectiveSP(w.LAST_SP) === 750,
+   'got ' + w.effectiveSP(w.LAST_SP));
+
+d.getElementById('sp-landed').value = '30';
+w.calc();
+ok('outbound cost is read', w.getSPLandedCost() === 30);
+ok('it is SUBTRACTED from effective SP', w.effectiveSP(w.LAST_SP) === 720,
+   'got ' + w.effectiveSP(w.LAST_SP));
+ok('profit falls by exactly that amount', near(num('pvv'), 120), 'got ' + num('pvv'));
+ok('effective CP is untouched', w.effectiveCP(w.LAST_CP) === 600);
+ok('summary effective SP reflects it', near(num('s-esp'), 720, 0.5), 'got ' + num('s-esp'));
+ok('GP uses the net selling price',
+   near(num('s-gp'), (120 / 720) * 100, 0.05), 'got ' + num('s-gp'));
+
+ok('negative outbound cost is ignored',
+   (() => { d.getElementById('sp-landed').value = '-5'; return w.getSPLandedCost() === 0; })());
+d.getElementById('sp-landed').value = '30';
+
+R.section('\n=== 74. Both landed costs together ===');
+d.getElementById('landed').value = '50';
+w.calc();
+ok('inbound raises cost', w.effectiveCP(w.LAST_CP) === 650);
+ok('outbound lowers revenue', w.effectiveSP(w.LAST_SP) === 720);
+ok('they pull opposite ways', near(num('pvv'), 70), 'got ' + num('pvv'));
+ok('the two are independent', (() => {
+  d.getElementById('landed').value = '';
+  w.calc();
+  const onlyOut = w.effectiveCP(w.LAST_CP) === 600 && w.effectiveSP(w.LAST_SP) === 720;
+  d.getElementById('landed').value = '50';
+  w.calc();
+  return onlyOut;
+})());
+
+R.section('\n=== 75. Outbound cost flows through every derived figure ===');
+// Break-even must cover the outbound cost before the incentive proportion
+d.getElementById('landed').value = '';
+d.getElementById('sp-landed').value = '30';
+d.getElementById('floor-gp').value = '5';
+w.calc();
+const beOut = w.breakEven(w.LAST_CP, w.LAST_SP);
+ok('break-even grosses up for the outbound cost',
+   near(beOut.zeroE, 630), 'got ' + beOut.zeroE);
+ok('quoted incl GST', near(beOut.zeroI, 630 * 1.18, 0.01), 'got ' + beOut.zeroI);
+ok('the GP-floor threshold does too',
+   near(beOut.floorE, (600 / 0.95) + 30), 'got ' + beOut.floorE);
+
+// With an SP incentive as well, the flat cost comes off before the ratio
+d.getElementById('sit-eb').checked = true;
+d.getElementById('siv-eb').value = '10';
+w.syncSpToggle('eb'); w.calc();
+const beBoth = w.breakEven(w.LAST_CP, w.LAST_SP);
+ok('flat cost is grossed up by the incentive ratio',
+   near(beBoth.zeroE, (600 + 30) / 0.9), 'got ' + beBoth.zeroE);
+d.getElementById('sit-eb').checked = false; w.syncSpToggle('eb'); w.calc();
+
+// The target-margin solver works off net revenue
+const svOut = w.solveForGp(20);
+ok('solver uses the net selling price',
+   near(svOut.needEffCP, 720 * 0.8), 'got ' + svOut.needEffCP);
+
+// Solving FOR selling price must raise the price to cover it
+w.setT('sp'); w.setPM('val');
+d.getElementById('pri').value = '150';
+w.calc();
+ok('solve-for-SP covers the outbound cost',
+   near(w.effectiveSP(w.LAST_SP), 750, 0.5), 'got ' + w.effectiveSP(w.LAST_SP));
+ok('so the target profit is actually met', near(num('pvv'), 150, 0.5), 'got ' + num('pvv'));
+w.setT('profit');
+
+R.section('\n=== 76. Outbound cost persists ===');
+freshCalc(1000, 40, 25);
+d.getElementById('sp-landed').value = '30';
+d.getElementById('landed').value = '50';
+w.calc();
+const stLanded = w.getShareState();
+ok('carried in share state', stLanded.slc === '30', 'got ' + stLanded.slc);
+ok('inbound still carried too', stLanded.lc === '50', 'got ' + stLanded.lc);
+d.getElementById('sp-landed').value = '';
+d.getElementById('landed').value = '';
+w.applyShareState(stLanded);
+ok('outbound restored', w.getSPLandedCost() === 30, 'got ' + w.getSPLandedCost());
+ok('inbound restored', w.getLandedCost() === 50, 'got ' + w.getLandedCost());
+ok('a malformed value is dropped',
+   !('slc' in (w.validateShareState({ m: '1', slc: 'abc' }) || {})));
+ok('a negative value is dropped',
+   !('slc' in (w.validateShareState({ m: '1', slc: '-9' }) || {})));
+w.resetAll();
+ok('reset clears both', w.getSPLandedCost() === 0 && w.getLandedCost() === 0);
 
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

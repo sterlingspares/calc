@@ -1483,15 +1483,40 @@ function getLandedCost(){
 }
 
 /**
- * Effective cost price excl GST: list CP, less incentives, plus landed cost.
- * Every profit calculation goes through here so the three inputs cannot drift
- * apart between call sites.
+ * Outbound landed cost per unit, excl GST — delivery, packing, freight to the
+ * customer. Symmetric with the inbound figure but pulls the other way: it is
+ * money spent on the sale, so it reduces what the sale nets.
+ * @returns {number} rupees, 0 when blank or invalid
+ */
+function getSPLandedCost(){
+  var e=el('sp-landed');
+  if(!e)return 0;
+  var v=parseFloat(String(e.value).replace(/,/g,''));
+  return (isNaN(v)||v<0)?0:v;
+}
+
+/**
+ * Effective cost price excl GST: list CP, less incentives, plus inbound landed
+ * cost. Every profit calculation goes through here so the three inputs cannot
+ * drift apart between call sites.
  * @param {{e:number,i:number}|null} cp
  * @returns {number|null}
  */
 function effectiveCP(cp){
   if(!cp)return null;
   return cp.e - getIncentiveInr(cp) + getLandedCost();
+}
+
+/**
+ * Effective selling price excl GST: list SP, less incentives, less outbound
+ * landed cost. The counterpart to effectiveCP — profit is always the
+ * difference between the two.
+ * @param {{e:number,i:number}|null} sp
+ * @returns {number|null}
+ */
+function effectiveSP(sp){
+  if(!sp)return null;
+  return sp.e - getSPIncentiveInr(sp) - getSPLandedCost();
 }
 
 /* ── Incentive helpers ── */
@@ -1645,7 +1670,7 @@ function setSpSchemeMode(m){
  */
 function fillSpIncPanel(sp){
   updateSpIncSummaryTag();
-  var inc=getSPIncentiveInr(sp),eff=sp?sp.e-inc:null;
+  var inc=getSPIncentiveInr(sp),eff=effectiveSP(sp);
   R('sp-inc-total-pct',(inc>0&&sp)?PCT((inc/sp.e)*100):'0.00%');
   R('sp-inc-total-inr',inc>0?INR(inc):'—');
   R('sp-inc-eff-sp',INR(eff));
@@ -1947,7 +1972,7 @@ function solveForGp(targetGp){
   var cp=LAST_CP, sp=LAST_SP;
   if(!cp||!sp||cp.e<=0||sp.e<=0)return null;
 
-  var effSP=sp.e-getSPIncentiveInr(sp);
+  var effSP=effectiveSP(sp);
   var effCPNow=effectiveCP(cp);
   var gpNow=(effSP>0)?((effSP-effCPNow)/effSP)*100:null;
 
@@ -2191,12 +2216,17 @@ function breakEven(cp,sp){
   }
   if(keep<=0)return null;
 
-  var zeroE=eff/keep;
+  // Outbound landed cost is a flat amount off the top, so the list price has to
+  // cover it before the incentive proportion is applied:
+  //   effSP = listSP * keep - outbound   =>   listSP = (target + outbound) / keep
+  var out=getSPLandedCost();
+
+  var zeroE=(eff+out)/keep;
   var floor=getFloor();
   var floorE=null;
   if(floor.gp!==null&&floor.gp<100){
     // GP = (effSP - effCP)/effSP  =>  effSP = effCP / (1 - gp/100)
-    floorE=(eff/(1-floor.gp/100))/keep;
+    floorE=((eff/(1-floor.gp/100))+out)/keep;
   }
   return {
     zeroE:zeroE, zeroI:zeroE*(1+G),
@@ -2302,7 +2332,7 @@ function fillSummary(cp,sp){
   }
   var floor=getFloor();
   var cpInc=getIncentiveInr(cp),eff=effectiveCP(cp);
-  var spInc=getSPIncentiveInr(sp),effSP=sp.e-spInc;
+  var spInc=getSPIncentiveInr(sp),effSP=effectiveSP(sp);
   var pr=effSP-eff,gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
   var dcp=discFromPrice(cp.e),dsp=discFromPrice(sp.e);
   sumSet('s-cp',INR(cp.e),'');sumSet('s-ecp',INR(eff),cpInc>0?'amber':'');
@@ -2614,7 +2644,7 @@ function autoSave(){
   _autoSaveTimer=setTimeout(function(){
     if(!LAST_CP||!LAST_SP)return;
     var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
-    var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
+    var spInc=getSPIncentiveInr(LAST_SP),effSP=effectiveSP(LAST_SP);
     var pr=effSP-eff;
     if(HISTORY.length>0){
       var last=HISTORY[0];
@@ -2635,7 +2665,7 @@ function saveToHistory(){
     return;
   }
   var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
-  var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
+  var spInc=getSPIncentiveInr(LAST_SP),effSP=effectiveSP(LAST_SP);
   var pr=effSP-eff;
   var q=getQty();
   HISTORY.unshift({time:now(),ts:Date.now(),mrp:MI,cpE:LAST_CP.e,cpI:LAST_CP.i,spE:LAST_SP.e,spI:LAST_SP.i,effCPE:eff,effSPE:effSP,incInr:inc,spIncInr:spInc,pr:pr,gp:(effSP>0)?(pr/effSP)*100:null,mg:(eff>0)?(pr/eff)*100:null,gst:G*100,qty:q,totalPr:pr*q});
@@ -2821,7 +2851,7 @@ function renderCompare(){
   var cur=null;
   if(LAST_CP&&LAST_SP){
     var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
-    var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
+    var spInc=getSPIncentiveInr(LAST_SP),effSP=effectiveSP(LAST_SP);
     var pr=effSP-eff;
     cur={
       mrp:MI,cpE:LAST_CP.e,cpI:LAST_CP.i,spE:LAST_SP.e,spI:LAST_SP.i,
@@ -2925,7 +2955,7 @@ function renderCompare(){
 function getSummaryText(){
   if(!LAST_CP||!LAST_SP)return null;
   var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
-  var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
+  var spInc=getSPIncentiveInr(LAST_SP),effSP=effectiveSP(LAST_SP);
   var pr=effSP-eff;
   var gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
   var lines=['PRICING SUMMARY — '+now(),'─────────────────────────','MRP (incl GST):   '+INR(MI),'GST Rate:         '+(G*100)+'%','','CP excl GST:      '+INR(LAST_CP.e),'CP incl GST:      '+INR(LAST_CP.i)];
@@ -2988,28 +3018,28 @@ function calc(){
   if(T==='profit'){
     cp=resolveCP();sp=resolveSP();
     fillCP(cp);fillSP(sp);
-    var spInc=getSPIncentiveInr(sp);
     var effCPE=effectiveCP(cp);
-    var effSPE=sp?sp.e-spInc:null;
+    var effSPE=effectiveSP(sp);
     fillProfit(effCPE,effSPE);fillIncPanel(cp);fillSpIncPanel(sp);fillSummary(cp,sp);
   }else if(T==='sp'){
     cp=resolveCP();prV=parseAmt('pri');fillCP(cp);fillIncPanel(cp);
     if(cp&&!isNaN(prV)){
       var effCP2=effectiveCP(cp);
-      // SP incentives unknown yet (no SP) — solve ignoring SP inc, then apply
+      // SP incentives are unknown until an SP exists, so they stay approximate
+      // here. The outbound landed cost is a flat amount, so it can be added to
+      // the required effective SP exactly.
       var spe2=spFromProfit(effCP2,PM,prV);
+      if(spe2!==null)spe2+=getSPLandedCost();
       if(spe2&&spe2>0){
         sp={e:spe2,i:spe2*(1+G)};
-        var spInc2=getSPIncentiveInr(sp);
-        var effSPE2=spe2-spInc2;
+        var effSPE2=effectiveSP(sp);
         fillSP(sp);fillProfit(effCP2,effSPE2);fillSpIncPanel(sp);fillSummary(cp,sp);
       }else{fillSP(null);fillProfit(null,null);fillSpIncPanel(null);fillSummary(cp,null)}
     }else{fillSP(null);fillProfit(null,null);fillSpIncPanel(null);fillSummary(cp,null)}
   }else if(T==='cp'){
     spD=parseFloat(el('spd').value);prV=parseAmt('pri');sp=resolveSP();fillSP(sp);
     if(sp&&!isNaN(prV)){
-      var spInc3=getSPIncentiveInr(sp);
-      var effSPE3=sp.e-spInc3;
+      var effSPE3=effectiveSP(sp);
       cp=cpFromProfit(effSPE3,PM,prV);
       if(cp&&cp.e>0){fillCP(cp);fillProfit(effectiveCP(cp),effSPE3);fillIncPanel(cp);fillSpIncPanel(sp);fillSummary(cp,sp)}
       else{fillCP(null);fillProfit(null,null);fillIncPanel(null);fillSpIncPanel(sp);fillSummary(null,sp)}
@@ -3037,6 +3067,7 @@ function resetAll(){
   // Quantity
   if(el('qty'))el('qty').value='1';
   if(el('landed'))el('landed').value='';
+  if(el('sp-landed'))el('sp-landed').value='';
   // GST back to 18%
   setGST(18);
   // CP mode
@@ -3803,6 +3834,10 @@ function validateShareState(raw){
     var lc = numStr(raw.lc, 1e9);
     if(lc !== undefined && parseFloat(lc) >= 0) s.lc = lc;
   }
+  if(raw.slc !== undefined){
+    var slc = numStr(raw.slc, 1e9);
+    if(slc !== undefined && parseFloat(slc) >= 0) s.slc = slc;
+  }
 
   var qty = parseInt(raw.qty, 10);
   if(!isNaN(qty) && qty >= 1 && qty <= 1e6) s.qty = String(qty);
@@ -3879,7 +3914,7 @@ function getShareState(){
     sm:SM,spms:SPMS,spd:el('spd').value,spv:el('spv').value,
     pm:PM,pri:el('pri').value,
     cdm:CDM,scm:SCM,scdm:SCDM,sscm:SSCM,incm:INC_MODE,spincm:SP_INC_MODE,
-    qty:el('qty')?el('qty').value:'1',rnd:ROUND_MODE,lc:el('landed')?el('landed').value:'',
+    qty:el('qty')?el('qty').value:'1',rnd:ROUND_MODE,lc:el('landed')?el('landed').value:'',slc:el('sp-landed')?el('sp-landed').value:'',
     fgp:el('floor-gp').value,fmg:el('floor-mg').value,
     inc:inc,spinc:spinc
   };
@@ -3900,6 +3935,7 @@ function applyShareState(raw){
     if(s.rnd)setRounding(s.rnd);
     if(s.qty!==undefined&&el('qty'))el('qty').value=s.qty;
     if(s.lc!==undefined&&el('landed'))el('landed').value=s.lc;
+    if(s.slc!==undefined&&el('sp-landed'))el('sp-landed').value=s.slc;
     if(s.g)setGST(parseFloat(s.g));
     if(s.m)el('mrp').value=s.m;
     if(s.cm)setCM(s.cm);

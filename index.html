@@ -228,8 +228,12 @@
       <div class="mrp-stat"><span class="mrp-stat-lbl">GST Amount</span><span class="mrp-stat-val" id="mg">—</span></div>
       <div class="mrp-stat"><span class="mrp-stat-lbl">GST Rate</span><span class="mrp-stat-val" id="grate">18%</span></div>
       <div class="mrp-stat">
-        <span class="mrp-stat-lbl" title="Freight, insurance, handling — added to effective CP">Landed ₹/unit</span>
-        <span class="landed-wrap"><span>₹</span><input type="number" id="landed" value="" placeholder="0" min="0" step="0.01" inputmode="decimal" data-input="calc" data-change="saveState" autocomplete="off" aria-label="Landed cost per unit in rupees, excluding GST"></span>
+        <span class="mrp-stat-lbl" title="Inbound freight, insurance and handling — added to effective CP">Landed CP ₹</span>
+        <span class="landed-wrap"><span>+₹</span><input type="number" id="landed" value="" placeholder="0" min="0" step="0.01" inputmode="decimal" data-input="calc" data-change="saveState" autocomplete="off" aria-label="Inbound landed cost per unit in rupees, excluding GST — added to effective cost price"></span>
+      </div>
+      <div class="mrp-stat">
+        <span class="mrp-stat-lbl" title="Outbound delivery, packing and freight to the customer — deducted from effective SP">Landed SP ₹</span>
+        <span class="landed-wrap out"><span>−₹</span><input type="number" id="sp-landed" value="" placeholder="0" min="0" step="0.01" inputmode="decimal" data-input="calc" data-change="saveState" autocomplete="off" aria-label="Outbound landed cost per unit in rupees, excluding GST — deducted from effective selling price"></span>
       </div>
       <div class="mrp-stat">
         <span class="mrp-stat-lbl">Quantity</span>
