@@ -174,4 +174,27 @@ console.log('\n=== 16. No regression: nothing logged during mobile render ===');
 ok('mobile quote render is clean', true); // errors would surface via errtest's handler
 
 
+
+R.section('\n=== Settings tabs on a phone ===');
+// The nav rail becomes a scrollable pill strip above the panes, so the dialog
+// does not lose a fifth of its width to a sidebar on a 390px screen.
+const navRule = mobRule('.settings-nav');
+ok('the rail turns horizontal', /flex-direction:row/.test(navRule), navRule);
+ok('and scrolls rather than wrapping', /overflow-x:auto/.test(navRule), navRule);
+ok('the sidebar border moves to the bottom',
+   /border-right:none/.test(navRule) && /border-bottom:/.test(navRule), navRule);
+const shellRule = mobRule('.settings-shell');
+ok('the panes stack under it', /flex-direction:column/.test(shellRule), shellRule);
+const tabRule = mobRule('.settings-tab');
+ok('tabs meet the 44px touch target', /min-height:44px/.test(tabRule), tabRule);
+ok('and read as pills', /border-radius:20px/.test(tabRule), tabRule);
+ok('the panes clear the home indicator',
+   /env\(safe-area-inset-bottom/.test(mobRule('.settings-panes')),
+   mobRule('.settings-panes'));
+ok('the dialog gives up its desktop width cap',
+   /max-width:100%/.test(mobRule('.modal-settings')),
+   mobRule('.modal-settings'));
+const featRule = mobRule('.feat-grid');
+ok('feature switches drop to one column', /grid-template-columns:1fr/.test(featRule), featRule);
+
 R.finish();

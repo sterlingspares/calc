@@ -1066,7 +1066,7 @@ function openModal(id){
   if(id==='quote'&&!featOn('quote'))return;
   if(id==='whatif'&&!featOn('whatif'))return;
   if(id==='presets'&&!featOn('presets'))return;
-  if(id==='settings')renderFeatureGrid();
+  if(id==='settings'){renderFeatureGrid();refreshSettingsTabs()}
   var o=el('overlay-'+id);
   closeFab();
   if(o){
@@ -1249,6 +1249,70 @@ function applyFeatureVisibility(){
   var nInc=el('bnav-inc');
   if(nInc)nInc.style.display=(featOn('inccp')||featOn('incsp'))?'':'none';
 }
+
+/* ── Settings tabs ──────────────────────────────────────────────────────────
+   Eight stacked sections became a long scroll that was hard to find anything
+   in. They are grouped into four panes behind a nav rail, which becomes a
+   scrollable strip of pills on a phone.
+   ─────────────────────────────────────────────────────────────────────────── */
+var SETTINGS_TABS=['general','pricing','features','help'];
+var SETTINGS_TAB='general';
+
+/**
+ * Show one settings pane.
+ * @param {string} k tab key
+ * @param {boolean} [focus] move focus to the tab, for arrow-key navigation
+ */
+function setSettingsTab(k,focus){
+  if(SETTINGS_TABS.indexOf(k)===-1){ logWarn('unknown settings tab '+JSON.stringify(k)); return }
+  SETTINGS_TAB=k;
+  SETTINGS_TABS.forEach(function(t){
+    var btn=el('stab-'+t),pane=el('spane-'+t);
+    var on=(t===k);
+    if(btn){
+      btn.className='settings-tab'+(on?' on':'');
+      btn.setAttribute('aria-selected',on?'true':'false');
+      // Roving tabindex: the strip is one stop, arrows move within it.
+      btn.tabIndex=on?0:-1;
+    }
+    if(pane){ if(on)pane.removeAttribute('hidden'); else pane.setAttribute('hidden',''); }
+  });
+  if(focus){ var b=el('stab-'+k); if(b&&b.focus)b.focus(); }
+  var panes=el('spane-'+k);
+  if(panes&&panes.parentNode)panes.parentNode.scrollTop=0;
+}
+/** Hide a tab whose sections are all switched off, so it cannot lead nowhere. */
+function refreshSettingsTabs(){
+  var firstVisible=null;
+  SETTINGS_TABS.forEach(function(t){
+    var pane=el('spane-'+t),btn=el('stab-'+t);
+    if(!pane||!btn)return;
+    var secs=pane.querySelectorAll('.modal-section');
+    var any=false;
+    for(var i=0;i<secs.length;i++)if(secs[i].style.display!=='none'){any=true;break}
+    btn.style.display=any?'':'none';
+    if(any&&!firstVisible)firstVisible=t;
+  });
+  var cur=el('stab-'+SETTINGS_TAB);
+  if(firstVisible&&cur&&cur.style.display==='none')setSettingsTab(firstVisible);
+}
+ACT.setTab = function(self){ setSettingsTab(self.getAttribute('data-p')) };
+ACT.setTabKey = function(self,event){
+  var i=SETTINGS_TABS.indexOf(SETTINGS_TAB);
+  var next=null;
+  if(event.key==='ArrowRight'||event.key==='ArrowDown')next=(i+1)%SETTINGS_TABS.length;
+  else if(event.key==='ArrowLeft'||event.key==='ArrowUp')next=(i-1+SETTINGS_TABS.length)%SETTINGS_TABS.length;
+  else if(event.key==='Home')next=0;
+  else if(event.key==='End')next=SETTINGS_TABS.length-1;
+  if(next===null)return;
+  event.preventDefault();
+  // Step over any tab hidden because its sections are switched off.
+  for(var n=0;n<SETTINGS_TABS.length;n++){
+    var cand=SETTINGS_TABS[next],btn=el('stab-'+cand);
+    if(btn&&btn.style.display!=='none'){ setSettingsTab(cand,true); return }
+    next=(next+(event.key==='ArrowLeft'||event.key==='ArrowUp'?-1:1)+SETTINGS_TABS.length)%SETTINGS_TABS.length;
+  }
+};
 
 /** Draw the feature switches. Implementation is in the deferred bundle. */
 function renderFeatureGrid(){

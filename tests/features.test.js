@@ -2577,7 +2577,90 @@ runFetchCases().then(() => {
   ok('an unknown scope leaves the current one alone',
      (w.setDisplayCcy('USD', 'nonsense'), w.FX_SCOPE === 'both'), w.FX_SCOPE);
 
-  R.section('\n=== 31. Turning features off ===');
+  R.section('\n=== 31. Settings is grouped into tabs ===');
+
+  // Eight stacked sections had become a long scroll. They are four panes now,
+  // and exactly one is ever on screen.
+  w.openModal('settings');
+  const tabBtns = () => [...d.querySelectorAll('.settings-tab')];
+  const openPanes = () => [...d.querySelectorAll('.settings-pane')].filter(p => !p.hasAttribute('hidden'));
+
+  ok('four tabs', tabBtns().length === 4, tabBtns().map(t => t.textContent).join(','));
+  ok('every section landed in a pane',
+     d.querySelectorAll('.settings-pane .modal-section').length ===
+     d.querySelectorAll('#overlay-settings .modal-section').length,
+     d.querySelectorAll('.settings-pane .modal-section').length + ' of ' +
+     d.querySelectorAll('#overlay-settings .modal-section').length);
+  ok('all eight sections are still there',
+     d.querySelectorAll('.settings-pane .modal-section').length === 8,
+     'got ' + d.querySelectorAll('.settings-pane .modal-section').length);
+  ok('exactly one pane is open', openPanes().length === 1, openPanes().map(p => p.id).join());
+
+  ok('the tab strip is a tablist',
+     d.querySelector('.settings-nav').getAttribute('role') === 'tablist');
+  ok('each tab is a tab', tabBtns().every(t => t.getAttribute('role') === 'tab'));
+  ok('each points at its pane',
+     tabBtns().every(t => d.getElementById(t.getAttribute('aria-controls')) !== null));
+  ok('each pane names its tab',
+     [...d.querySelectorAll('.settings-pane')]
+       .every(p => d.getElementById(p.getAttribute('aria-labelledby')) !== null));
+
+  ['pricing', 'features', 'help', 'general'].forEach(k => {
+    w.setSettingsTab(k);
+    ok(k + ' opens only its own pane',
+       openPanes().length === 1 && openPanes()[0].id === 'spane-' + k,
+       openPanes().map(p => p.id).join());
+    ok(k + ' is the one marked selected',
+       tabBtns().filter(t => t.getAttribute('aria-selected') === 'true')
+         .map(t => t.id).join() === 'stab-' + k,
+       tabBtns().filter(t => t.getAttribute('aria-selected') === 'true').map(t => t.id).join());
+  });
+
+  // Roving tabindex: the strip is one stop and arrows move inside it, per the
+  // ARIA tabs pattern — otherwise four tabs would be four separate stops.
+  ok('the strip is a single tab stop',
+     tabBtns().filter(t => t.tabIndex === 0).length === 1,
+     tabBtns().map(t => t.id + '=' + t.tabIndex).join(' '));
+
+  const arrow = k => d.getElementById('stab-' + w.SETTINGS_TAB)
+    .dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true }));
+  w.setSettingsTab('general');
+  arrow('ArrowRight');
+  ok('right arrow moves on', w.SETTINGS_TAB === 'pricing', w.SETTINGS_TAB);
+  arrow('ArrowLeft');
+  ok('left arrow moves back', w.SETTINGS_TAB === 'general', w.SETTINGS_TAB);
+  arrow('ArrowLeft');
+  ok('and wraps round', w.SETTINGS_TAB === 'help', w.SETTINGS_TAB);
+  arrow('Home');
+  ok('Home goes first', w.SETTINGS_TAB === 'general', w.SETTINGS_TAB);
+  arrow('End');
+  ok('End goes last', w.SETTINGS_TAB === 'help', w.SETTINGS_TAB);
+  w.setSettingsTab('general');
+
+  // A pane that is not showing must be out of the focus trap, or Tab would
+  // wander into controls nobody can see.
+  const trapped = () => w.focusablesIn(d.getElementById('overlay-settings'));
+  ok('hidden panes are outside the focus trap',
+     !trapped().some(e => {
+       for (let n = e; n; n = n.parentNode) if (n.hasAttribute && n.hasAttribute('hidden')) return true;
+       return false;
+     }));
+  const generalCount = trapped().length;
+  w.setSettingsTab('pricing');
+  ok('the trap follows the open pane', trapped().length !== generalCount,
+     generalCount + ' vs ' + trapped().length);
+  ok('the close button and the tabs are always reachable',
+     trapped().some(e => e.className.indexOf('modal-close') !== -1) &&
+     tabBtns().every(t => t.style.display === 'none' || trapped().indexOf(t) !== -1));
+  w.setSettingsTab('general');
+
+  // An unknown key is refused rather than blanking every pane.
+  w.setSettingsTab('nonsense');
+  ok('an unknown tab is ignored', w.SETTINGS_TAB === 'general' && openPanes().length === 1,
+     w.SETTINGS_TAB);
+  w.closeModal('settings');
+
+  R.section('\n=== 32. Turning features off ===');
 
   // Walk the registry rather than naming elements here: a feature added later
   // is covered by default, and the assertions cannot drift from the definitions.
