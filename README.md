@@ -14,6 +14,7 @@ A single-file, offline-first web app for MRP-based pricing and profit calculatio
 All prices derive from the Maximum Retail Price (MRP).
 
 - **GST rates:** 18% (default) or 5% — toggle with keyboard `1` / `2`
+- **Custom GST rate:** type any rate (0–100 %, decimals allowed) into the **Other %** box in the control bar. It feeds straight into every calculation, and all `excl/incl X% GST` labels update to match.
 - Every price is shown in two forms: **excl GST** (for accounting) and **incl GST** (sticker price)
 
 ### Three Solve Modes
@@ -50,7 +51,7 @@ Switch how profit is expressed:
 ## 💰 Incentive System
 
 ### CP Incentives (reduce effective Cost Price)
-Five incentive types, each independently togglable:
+Five incentive types ship by default, each independently togglable:
 
 | Code | Name (customisable) | Input |
 |---|---|---|
@@ -63,14 +64,31 @@ Five incentive types, each independently togglable:
 The footer of the panel shows: **Total incentive ₹**, **Effective incentive % on CP**, **Effective CP excl GST**.
 
 ### SP Incentives (reduce effective Selling Price)
-Identical set of five types applied against SP instead of CP. Useful for modelling customer-facing discounts (e.g. scheme passed on to dealer).
+Identical set applied against SP instead of CP. Useful for modelling customer-facing discounts (e.g. scheme passed on to dealer).
 
 - CD can be calculated on SP excl or incl GST
 - Scheme can be % or fixed ₹
 - Footer shows: **Total SP incentive ₹**, **Eff. incentive % on SP**, **Effective SP excl GST**
 
-### Custom Incentive Labels
-Settings → Incentive Labels: rename any of the five types (CD, EB, QT, AN, SC) to your own terminology. Changes persist across sessions.
+### ✏️ Editable Incentives
+Each incentive panel has its own **Edit** button, next to the collapse chevron in the panel header. CP and SP are edited independently — the two lists need not match.
+
+Tapping **Edit** puts that panel into edit mode:
+
+| Action | How |
+|---|---|
+| **Rename** | The label becomes a text field — type a new name (max 30 chars) |
+| **Delete** | Tap the red **⊖** badge on the row (iOS-style) |
+| **Add** | Tap **+ Add incentive** below the grid |
+
+Tap **Done** to leave edit mode.
+
+- **New incentives** are plain percentage deductions on the base price excl GST, and count toward the totals and profit as soon as you switch them on.
+- **Deleting** an incentive removes it from the calculation immediately. The built-in five can be deleted too — including CD and Scheme, along with their extra option rows.
+- Toggle states and entered values are preserved when entering or leaving edit mode.
+- Your incentive list and custom names **persist across sessions** (`pc-labels` in `localStorage`).
+
+> Renaming used to live in Settings → Incentive Labels. That section has been removed; renaming now happens inline in each panel.
 
 ---
 
@@ -129,7 +147,6 @@ Each history card shows: Time (relative + absolute on hover), MRP, CP excl, SP e
 | **Minimum GP %** | Highlights values in red when GP % falls below this threshold |
 | **Minimum Margin %** | Highlights values in red when Margin % falls below this threshold |
 | **Auto-save** | Toggle automatic history logging |
-| **Incentive Labels** | Rename CD/EB/QT/AN/SC to custom names; persists across sessions |
 | **App tour** | Restart the interactive onboarding walkthrough |
 | **Keyboard shortcuts** | View all shortcuts |
 
@@ -175,7 +192,7 @@ In Default mode, **pull down from the top of the page** to reveal the reset bar.
 | `⌘/Ctrl + C` | Copy summary |
 | `Q` | Toggle Default / Quick mode |
 | `1` | Set GST to 18% |
-| `2` | Set GST to 5% |
+| `2` | Set GST to 5% (any other rate: use the **Other %** box) |
 | `P` | Calculate Profit mode |
 | `L` | Calculate Selling Price mode |
 | `K` | Calculate Cost Price mode |
@@ -189,7 +206,7 @@ In Default mode, **pull down from the top of the page** to reveal the reset bar.
 | `pc-state` | Full calculator state (MRP, CP/SP inputs, modes, incentives, floor limits, auto-save pref) |
 | `pc-history` | History array — up to 50 entries |
 | `pc-qstate` | Quick mode inputs and settings |
-| `pc-labels` | Custom incentive label names |
+| `pc-labels` | Custom incentive names + the CP/SP incentive lists |
 | `pc-theme` | Dark / light mode preference |
 | `ob-done` | Onboarding completion flag |
 
