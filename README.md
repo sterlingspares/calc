@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-388%20passing-brightgreen?style=flat-square)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-491%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -29,7 +29,9 @@ Set a **Quantity** in the MRP bar. Per-unit figures are unaffected; once quantit
 Quantity is saved with history entries and included in the CSV export. Absolute (₹) incentives are per-unit, consistent with every other figure.
 
 ### Rounding
-Settings → **Rounding**: **Off**, **₹1** or **₹5**. Rounding is applied to the incl-GST (sticker) price, with excl-GST and profit derived from the rounded figure — so what you quote and what you bank stay consistent. It applies to the main calculator and every quote line.
+Settings → **Rounding**: **Off**, **₹1**, **₹5**, or any step you type into the **Other ₹** box (₹20, ₹0.50, ₹100 — anything above zero, decimals allowed).
+
+Rounding is applied to the incl-GST (sticker) price, with excl-GST and profit derived from the rounded figure — so what you quote and what you bank stay consistent. It applies to the main calculator and every quote line, and persists in share links.
 
 ### Three Solve Modes
 Select what you want the calculator to *compute* vs what you *input*:
@@ -168,7 +170,7 @@ The panel header shows `N of M` while a search or filter is active.
 | **Minimum GP %** | Highlights values in red when GP % falls below this threshold |
 | **Minimum Margin %** | Highlights values in red when Margin % falls below this threshold |
 | **Auto-save** | Toggle automatic history logging |
-| **Rounding** | Round prices to the nearest ₹1 or ₹5 (or off) |
+| **Rounding** | Round prices to the nearest ₹1, ₹5, or a custom step (or off) |
 | **App tour** | Restart the interactive onboarding walkthrough |
 | **Keyboard shortcuts** | View all shortcuts |
 
@@ -299,9 +301,26 @@ All monetary values use **Indian number formatting** (₹1,00,000.00). Percentag
 
 ---
 
+## ♿ Accessibility
+
+Targets **WCAG 2.1 Level AA**, verified on every push.
+
+- **Contrast** — all text/background pairs meet 4.5:1 in both light and dark themes
+- **Structure** — one `h1`, section headings throughout, `main`/`nav`/`header`/`footer` landmarks, and a skip link as the first tab stop
+- **Names** — every input and button exposes an accessible name
+- **Keyboard** — everything is reachable and operable; panel headers are real buttons with `aria-expanded`; no click handler is mouse-only
+- **Focus** — a visible `:focus-visible` ring (rendered on the wrapper for inputs styled that way), a proper focus trap in every dialog, and focus returned to the opener on close. Confirmation dialogs focus **Cancel**, never the destructive button
+- **Live regions** — results are announced politely and debounced, including floor-limit warnings
+- **Motion** — `prefers-reduced-motion` disables animation and transitions
+- **Zoom** — pinch-zoom to 5× is available; only double-tap zoom is suppressed, per-control
+
+Checked with axe-core (WCAG 2.0/2.1 A + AA + best practice) across the default view, all six dialogs and the FAB menu — plus direct assertions for contrast, headings, focus behaviour and reduced motion, which axe cannot evaluate without layout.
+
+---
+
 ## 🧪 Tests
 
-388 assertions across four suites. They load the real `index.html` into jsdom and drive the actual application functions — no application code is mocked.
+491 assertions across five suites. They load the real `index.html` into jsdom and drive the actual application functions — no application code is mocked.
 
 ```bash
 npm install   # jsdom, dev-only
@@ -310,12 +329,13 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 237 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
+| `features` | 259 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 68 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
+| `a11y` | 81 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
 
-Individual suites: `npm run test:features`, `test:errors`, `test:mobile`, `test:fab`. Full assertion output: `npm run test:verbose`.
+Individual suites: `npm run test:features`, `test:errors`, `test:mobile`, `test:fab`, `test:a11y`. Full assertion output: `npm run test:verbose`.
 
 Every push and pull request runs them via GitHub Actions. See [`tests/README.md`](tests/README.md) for how the harness works and how to add a suite.
 

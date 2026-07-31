@@ -1,6 +1,6 @@
 # Tests
 
-388 assertions across four suites. They load the real `index.html` into
+491 assertions across five suites. They load the real `index.html` into
 [jsdom](https://github.com/jsdom/jsdom) and drive the actual application
 functions — no application code is mocked.
 
@@ -11,12 +11,13 @@ npm test        # run everything
 
 | Command | What it runs |
 |---|---|
-| `npm test` | all four suites, aggregated |
+| `npm test` | all five suites, aggregated |
 | `npm run test:verbose` | same, with every assertion printed |
 | `npm run test:features` | core calculation, incentives, quantity, rounding, undo, quote, history |
 | `npm run test:errors` | error reporting and recovery |
 | `npm run test:mobile` | mobile layout, touch targets, sticky result bar, quote layouts |
 | `npm run test:fab` | floating action button |
+| `npm run test:a11y` | accessibility, including axe-core |
 
 Failing suites print their full output; passing ones print a single line.
 The runner exits non-zero if anything fails, so CI catches it.
@@ -25,12 +26,19 @@ The runner exits non-zero if anything fails, so CI catches it.
 
 | File | Assertions | Covers |
 |---|---|---|
-| `features.test.js` | 237 | GST (presets, custom, decimal), incentive edit mode, add/delete/rename, %/₹ modes, quantity and order totals, rounding, undo/redo, quote maths, history search/filter/tags, share-state round trips |
+| `features.test.js` | 259 | GST (presets, custom, decimal), incentive edit mode, add/delete/rename, %/₹ modes, quantity and order totals, rounding, undo/redo, quote maths, history search/filter/tags, share-state round trips |
 | `errors.test.js` | 33 | every failure path logs; a clean run logs nothing; storage-quota and corrupt-payload recovery; global handlers |
 | `mobile.test.js` | 68 | modal layering vs the bottom nav, touch-target sizes, viewport zoom policy, type scale, sticky result bar states, quote table vs card layouts |
 | `fab.test.js` | 50 | FAB visibility rules, open/close and dismissal, ARIA state, deferred dispatch, error containment, z-index ordering |
+| `a11y.test.js` | 81 | contrast ratios computed from the palette, document structure, accessible names, keyboard operability, dialog focus trap and restore, live regions, reduced motion, plus axe-core over every visible state |
 
 ## How they work
+
+The accessibility suite runs axe-core over each dialog **while it is open** —
+axe only evaluates visible elements, so auditing the closed page reports
+nothing. It also asserts the things axe marks "incomplete" under jsdom
+(contrast, headings, landmarks) directly, since that is where the real
+failures were.
 
 `harness.js` provides the shared pieces:
 
