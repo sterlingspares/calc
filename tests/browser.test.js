@@ -234,6 +234,42 @@ async function launchChromium(chromium) {
     document.querySelector('.skip-link').getBoundingClientRect().top);
   ok('skip link slides into view when focused', skipTop >= 0, 'top ' + skipTop);
 
+  /* ── 7b. Focus ring renders grey, not black ───────────────────────── */
+  R.section('\n=== 7b. Focus ring colour (computed) ===');
+  const ringColour = await page.evaluate(() => {
+    const b = document.getElementById('cp-inc-edit-btn');
+    b.focus();
+    return getComputedStyle(b).outlineColor;
+  });
+  ok('a ring is painted on keyboard focus', /rgb/.test(ringColour), ringColour);
+  const rgb = (ringColour.match(/\d+/g) || []).map(Number);
+  ok('ring is grey, not near-black',
+     rgb.length >= 3 && rgb[0] > 100 && rgb[1] > 100 && rgb[2] > 100, ringColour);
+  ok('ring is neutral rather than tinted',
+     rgb.length >= 3 && Math.max(...rgb.slice(0, 3)) - Math.min(...rgb.slice(0, 3)) < 30,
+     ringColour);
+
+  /* ── 7c. Edit expands the panel; collapsing means Done ────────────── */
+  R.section('\n=== 7c. Edit and the accordion, in a real browser ===');
+  await page.evaluate(() => {
+    if (document.getElementById('body-inc').style.display === 'block') window.togglePanel('inc');
+  });
+  await page.click('#cp-inc-edit-btn');
+  await page.waitForTimeout(120);
+  ok('Edit expands the collapsed panel',
+     await page.evaluate(() => document.getElementById('body-inc').style.display === 'block'));
+  ok('edit mode is on', await page.evaluate(() => window.CP_EDIT_MODE === true));
+  ok('delete badges are visible to the user',
+     await page.locator('#cp-inc-grid .inc-del-btn').first().isVisible());
+
+  await page.click('#phdr-inc');
+  await page.waitForTimeout(120);
+  ok('collapsing the panel exits edit mode',
+     await page.evaluate(() => window.CP_EDIT_MODE === false));
+  ok('button reads Edit again',
+     (await page.textContent('#cp-inc-edit-btn')).trim() === 'Edit',
+     await page.textContent('#cp-inc-edit-btn'));
+
   /* ── 8. Mobile viewport ───────────────────────────────────────────── */
   R.section('\n=== 8. Mobile viewport ===');
   await page.setViewportSize({ width: 390, height: 780 });

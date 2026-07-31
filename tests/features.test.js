@@ -779,5 +779,70 @@ fresh.w.calc();
 ok('calculates after the split', Math.abs(numOf(fresh.d, 'pvv') - 150) < 0.05,
    'got ' + numOf(fresh.d, 'pvv'));
 
+R.section('\n=== 51. Edit opens the accordion; collapsing means Done ===');
+freshCalc(1000, 40, 25);
+const cpBody = d.getElementById('body-inc');
+const spBody = d.getElementById('body-sp-inc');
+
+// Start from a known-collapsed state
+if (cpBody.style.display === 'block') w.togglePanel('inc');
+ok('CP panel starts collapsed', !w.isIncPanelOpen('cp'));
+ok('CP not in edit mode', w.CP_EDIT_MODE === false);
+
+w.toggleIncEditMode('cp');
+ok('Edit turns edit mode on', w.CP_EDIT_MODE === true);
+ok('Edit expands the collapsed panel', w.isIncPanelOpen('cp'), cpBody.style.display);
+ok('aria-expanded reflects it',
+   d.getElementById('phdr-inc').getAttribute('aria-expanded') === 'true');
+ok('delete badges are visible', d.querySelectorAll('#cp-inc-grid .inc-del-btn').length === 5);
+
+w.toggleIncEditMode('cp');
+ok('Done turns edit mode off', w.CP_EDIT_MODE === false);
+ok('Done leaves the panel open', w.isIncPanelOpen('cp'),
+   'panel should stay open so the result is visible');
+
+// Collapsing while editing counts as Done
+w.toggleIncEditMode('cp');
+ok('back in edit mode', w.CP_EDIT_MODE === true);
+w.togglePanel('inc');
+ok('collapsing exits edit mode', w.CP_EDIT_MODE === false);
+ok('panel is collapsed', !w.isIncPanelOpen('cp'));
+ok('button label reset to Edit',
+   d.getElementById('cp-inc-edit-btn').textContent === 'Edit',
+   d.getElementById('cp-inc-edit-btn').textContent);
+ok('add button hidden again',
+   d.getElementById('cp-inc-add-btn').style.display === 'none');
+
+R.section('\n=== 52. Same linkage on SP, and the panels are independent ===');
+if (spBody.style.display === 'block') w.togglePanel('sp-inc');
+w.toggleIncEditMode('sp');
+ok('SP Edit expands its panel', w.isIncPanelOpen('sp'));
+ok('SP in edit mode', w.SP_EDIT_MODE === true);
+ok('CP unaffected', w.CP_EDIT_MODE === false && !w.isIncPanelOpen('cp'));
+w.togglePanel('sp-inc');
+ok('collapsing SP exits SP edit mode', w.SP_EDIT_MODE === false);
+
+// Reopening a panel must not silently re-enter edit mode
+w.togglePanel('sp-inc');
+ok('reopening does not resume edit mode', w.SP_EDIT_MODE === false);
+ok('labels render as spans, not inputs',
+   d.getElementById('lbl-sp-eb').tagName === 'SPAN',
+   d.getElementById('lbl-sp-eb').tagName);
+w.togglePanel('sp-inc');
+
+R.section('\n=== 53. Edit-mode state survives values and toggles ===');
+freshCalc(1000, 40, 25);
+d.getElementById('it-eb').checked = true;
+w.syncToggle('eb'); w.calc();
+const beforeEdit = num('pvv');
+w.toggleIncEditMode('cp');
+ok('values survive entering edit mode via Edit', Math.abs(num('pvv') - beforeEdit) < 0.01,
+   'got ' + num('pvv'));
+ok('checkbox state survives', d.getElementById('it-eb').checked === true);
+w.togglePanel('inc');
+ok('values survive the collapse-as-Done path', Math.abs(num('pvv') - beforeEdit) < 0.01,
+   'got ' + num('pvv'));
+ok('checkbox still set', d.getElementById('it-eb').checked === true);
+
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

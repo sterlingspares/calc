@@ -740,6 +740,13 @@ function togglePanel(id){
   body.style.display=open?'none':'block';
   chev.className='panel-chevron'+(open?'':' open');
   if(hdr)hdr.setAttribute('aria-expanded',String(!open));
+  // `open` describes the state *before* this call, so a true value means we
+  // just collapsed it. Collapsing an incentive panel hides the rows being
+  // edited, so treat it as pressing Done.
+  if(open){
+    if(id==='inc'&&CP_EDIT_MODE)setIncEditMode('cp',false);
+    else if(id==='sp-inc'&&SP_EDIT_MODE)setIncEditMode('sp',false);
+  }
   if(id==='hist'){
     if(!open){
       clearInterval(_histRefreshTimer);
@@ -1007,22 +1014,54 @@ function renderSPIncRows(){
  * the re-render.
  * @param {'cp'|'sp'} panel
  */
-function toggleIncEditMode(panel){
+/** Panel id that holds each incentive list. */
+function incPanelId(panel){return panel==='cp'?'inc':'sp-inc'}
+
+/**
+ * Whether an incentive panel's body is currently expanded.
+ * @param {'cp'|'sp'} panel
+ * @returns {boolean}
+ */
+function isIncPanelOpen(panel){
+  var body=document.getElementById('body-'+incPanelId(panel));
+  return !!body&&body.style.display==='block';
+}
+
+/**
+ * Set edit mode for one panel. State and re-render only — it never opens or
+ * closes the panel, so togglePanel can call it without recursing.
+ * @param {'cp'|'sp'} panel
+ * @param {boolean} on
+ */
+function setIncEditMode(panel,on){
+  var isCP=panel==='cp';
+  if((isCP?CP_EDIT_MODE:SP_EDIT_MODE)===on)return;
   var snap=_snapshotInc(panel);
-  if(panel==='cp'){
-    CP_EDIT_MODE=!CP_EDIT_MODE;
-    document.getElementById('cp-inc-edit-btn').textContent=CP_EDIT_MODE?'Done':'Edit';
-    document.getElementById('cp-inc-add-btn').style.display=CP_EDIT_MODE?'block':'none';
-    renderCPIncRows();
-  }else{
-    SP_EDIT_MODE=!SP_EDIT_MODE;
-    document.getElementById('sp-inc-edit-btn').textContent=SP_EDIT_MODE?'Done':'Edit';
-    document.getElementById('sp-inc-add-btn').style.display=SP_EDIT_MODE?'block':'none';
-    renderSPIncRows();
-  }
+  var btn=document.getElementById((isCP?'cp':'sp')+'-inc-edit-btn');
+  var add=document.getElementById((isCP?'cp':'sp')+'-inc-add-btn');
+  if(isCP)CP_EDIT_MODE=on;else SP_EDIT_MODE=on;
+  if(btn)btn.textContent=on?'Done':'Edit';
+  if(add)add.style.display=on?'block':'none';
+  if(isCP)renderCPIncRows();else renderSPIncRows();
   _restoreInc(panel,snap);
   elClearCache();
   calc();
+}
+
+/**
+ * Toggle edit mode from the Edit/Done button.
+ *
+ * Entering edit mode expands the panel — the rows being edited are inside it,
+ * so editing a collapsed panel would show the user nothing. Leaving edit mode
+ * deliberately does not collapse it, since you usually want to see the result.
+ * The reverse link lives in togglePanel: collapsing the panel counts as Done.
+ *
+ * @param {'cp'|'sp'} panel
+ */
+function toggleIncEditMode(panel){
+  var turningOn=!(panel==='cp'?CP_EDIT_MODE:SP_EDIT_MODE);
+  setIncEditMode(panel,turningOn);
+  if(turningOn&&!isIncPanelOpen(panel))togglePanel(incPanelId(panel));
 }
 
 /**
