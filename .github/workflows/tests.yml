@@ -1,0 +1,41 @@
+name: Tests
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'index.html'
+      - 'tests/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/tests.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'tests/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/tests.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The app has no build step; the suite loads index.html directly.
+      - name: Run tests
+        run: npm test
