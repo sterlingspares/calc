@@ -2207,6 +2207,7 @@ function openPresetManager(){
 }
 
 ACT.presetManage  = function(){ openPresetManager() };
+ACT.settingsPresets = function(){ closeModal('settings'); openPresetManager(); };
 ACT.presetsClose  = function(){ closeModal('presets') };
 ACT.presetsOverlay= function(self,event){ overlayClick(event,'presets') };
 ACT.pmLoad   = function(self){ loadPreset(self.getAttribute('data-p')); closeModal('presets'); };
@@ -4421,6 +4422,7 @@ document.addEventListener('keydown',function(e){
       break;
     case 'q': case 'Q': setMode(APP_MODE==='default'?'quick':'default'); break;
     case 'm': case 'M': openModal('quote'); break;
+    case 'e': case 'E': openPresetManager(); break;
     case '1': setGST(18); break;
     case '2': setGST(5); break;
     case 'p': case 'P': setT('profit'); break;

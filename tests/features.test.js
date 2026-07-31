@@ -1956,6 +1956,111 @@ ok('the single-line field comes back afterwards', (() => {
   return back;
 })());
 
+R.section('\n=== 28. Reaching the preset manager, and never overwriting silently ===');
+
+const pressKey = k => d.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true }));
+
+freshCalc(1000, 40, 25);
+w.PRESETS = { 'Bosch Q3': w.capturePreset() };
+w.renderPresetList();
+
+// ── Keyboard ──────────────────────────────────────────────────────────────
+// P is Solve-for-Profit and S is Settings, so neither initial was free; E is.
+pressKey('e');
+ok('E opens the preset manager', overlayOpen('presets'));
+w.closeModal('presets');
+pressKey('E');
+ok('shift does not matter', overlayOpen('presets'));
+w.closeModal('presets');
+ok('and the manager is populated when opened by keyboard',
+   d.querySelectorAll('#pm-list .pm-row').length === 1,
+   d.querySelectorAll('#pm-list .pm-row').length + ' rows');
+
+// A shortcut that fires mid-typing would be worse than no shortcut.
+d.getElementById('mrp').focus();
+pressKey('e');
+ok('E is ignored while a field has focus', overlayOpen('presets') === false);
+d.getElementById('mrp').blur();
+
+// The other single-letter shortcuts must still do what they did.
+pressKey('s');
+ok('S still opens settings', overlayOpen('settings'));
+w.closeModal('settings');
+pressKey('p');
+ok('P still selects Solve for Profit', w.SOLVE_FOR === 'profit' || w.T === 'profit',
+   'solve target is ' + (w.SOLVE_FOR || w.T));
+pressKey('m');
+ok('M still opens the quote builder', overlayOpen('quote'));
+w.closeModal('quote');
+
+ok('the shortcut is listed in the shortcuts dialog', (() => {
+  const rows = [...d.querySelectorAll('#overlay-shortcuts .kb-row')];
+  const row = rows.find(r => /preset/i.test(r.textContent));
+  return !!row && /\bE\b/.test(row.querySelector('.kb-keys').textContent);
+})(), [...d.querySelectorAll('#overlay-shortcuts .kb-row')].map(r => r.textContent).join(' | ').slice(0, 120));
+
+// ── Settings ──────────────────────────────────────────────────────────────
+w.openModal('settings');
+const manageBtn = [...d.querySelectorAll('#overlay-settings button')]
+  .find(b => b.textContent.trim() === 'Manage');
+ok('Settings offers a Manage button', !!manageBtn);
+ok('under a Presets heading',
+   [...d.querySelectorAll('#overlay-settings .modal-section-title')]
+     .some(t => t.textContent.trim() === 'Presets'),
+   [...d.querySelectorAll('#overlay-settings .modal-section-title')].map(t => t.textContent).join(', '));
+w.ACT.settingsPresets();
+ok('it closes Settings first', overlayOpen('settings') === false);
+ok('and opens the manager', overlayOpen('presets'));
+// Two open dialogs would leave the focus trap cycling inside the wrong one.
+ok('only one dialog is open at a time',
+   ['settings', 'presets', 'quote', 'whatif', 'shortcuts', 'prompt', 'confirm']
+     .filter(overlayOpen).length === 1);
+w.closeModal('presets');
+
+// ── Nothing is replaced without asking ────────────────────────────────────
+const snapshot = () => JSON.stringify(w.PRESETS['Bosch Q3']);
+const preUpdate = snapshot();
+d.getElementById('it-eb').checked = true;
+d.getElementById('iv-eb').value = '7';
+w.syncToggle('eb'); w.calc();
+
+w.savePresetAs();
+d.getElementById('prompt-input').value = 'Bosch Q3';
+w.validatePrompt();
+ok('saving onto an existing name warns first',
+   d.getElementById('prompt-hint').textContent.indexOf('already exists') !== -1,
+   d.getElementById('prompt-hint').textContent);
+ok('and has not written anything yet', snapshot() === preUpdate);
+w.closePrompt();
+ok('cancelling the dialog leaves the preset as it was', snapshot() === preUpdate);
+
+w.updatePreset('Bosch Q3');
+ok('Update asks before replacing', overlayOpen('confirm'));
+ok('and has not written anything yet', snapshot() === preUpdate);
+w.closeConfirm();
+ok('cancelling that leaves it as it was too', snapshot() === preUpdate);
+
+w.updatePreset('Bosch Q3');
+w.runConfirm();
+ok('confirming does replace it', snapshot() !== preUpdate,
+   'preset unchanged after confirming');
+
+w.deletePreset('Bosch Q3');
+ok('deleting asks as well', overlayOpen('confirm'));
+ok('and has not deleted yet', 'Bosch Q3' in w.PRESETS);
+w.closeConfirm();
+ok('cancelling keeps the preset', 'Bosch Q3' in w.PRESETS);
+
+// No code path may write a preset without a dialog having been through.
+ok('there is no silent-overwrite entry point',
+   !/PRESETS\[[^\]]+\]\s*=\s*capturePreset\(\)/.test(
+     readAsset('assets/app.js')
+       .replace(/onOk:function\([^)]*\)\{[\s\S]*?\n    \}/g, '')      // save dialog callback
+       .replace(/askConfirm\([\s\S]*?\n    \}\);/g, '')),             // update confirmation
+   'a write outside the dialog callbacks');
+
+w.PRESETS = {};
+w.renderPresetList(); w.renderPresetManager();
 w.resetAll();
 
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
