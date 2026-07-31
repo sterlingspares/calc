@@ -2,7 +2,7 @@
   "name": "sterling-pricing-calculator",
   "version": "1.0.0",
   "private": true,
-  "description": "Tests for the Sterling Spares pricing calculator. The app itself (index.html) has no runtime dependencies — jsdom is needed only to run the suite.",
+  "description": "Tests for the Sterling Spares pricing calculator. The app itself (index.html) has no runtime dependencies \u2014 jsdom is needed only to run the suite.",
   "homepage": "https://calc.sterlingspares.com",
   "repository": {
     "type": "git",
@@ -17,7 +17,8 @@
     "test:mobile": "node tests/mobile.test.js",
     "test:fab": "node tests/fab.test.js",
     "test:a11y": "node tests/a11y.test.js",
-    "test:browser": "node tests/browser.test.js"
+    "test:browser": "node tests/browser.test.js",
+    "test:modes": "node tests/modes.test.js"
   },
   "devDependencies": {
     "acorn": "^8.18.0",

@@ -1,6 +1,6 @@
 # Tests
 
-766 assertions across six suites. They load the real `index.html`,
+851 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and `assets/app.js` into
 [jsdom](https://github.com/jsdom/jsdom) and drive the actual application
 functions — no application code is mocked.
@@ -14,12 +14,13 @@ npm test        # run everything
 
 | Command | What it runs |
 |---|---|
-| `npm test` | all five suites, aggregated |
+| `npm test` | all seven suites, aggregated |
 | `npm run test:verbose` | same, with every assertion printed |
 | `npm run test:features` | core calculation, incentives, quantity, rounding, undo, quote, history |
 | `npm run test:errors` | error reporting and recovery |
 | `npm run test:mobile` | mobile layout, touch targets, sticky result bar, quote layouts |
 | `npm run test:fab` | floating action button |
+| `npm run test:modes` | solve modes, what-if, compare, Quick, wizard, sharing, theme |
 | `npm run test:a11y` | accessibility, including axe-core |
 | `npm run test:browser` | real Chromium (skips if none is installed) |
 
@@ -35,6 +36,7 @@ The runner exits non-zero if anything fails, so CI catches it.
 | `mobile.test.js` | 68 | modal layering vs the bottom nav, touch-target sizes, viewport zoom policy, type scale, sticky result bar states, quote table vs card layouts |
 | `fab.test.js` | 50 | FAB visibility rules, open/close and dismissal, ARIA state, deferred dispatch, error containment, z-index ordering |
 | `browser.test.js` | 56 | serves the repo over HTTP and drives real Chromium: asset loading, CSS cascade and media queries, `defer` timing, clicks, dialog focus, mobile viewport and z-index layering |
+| `modes.test.js` | 85 | price maths, the three solve modes, input and profit modes, what-if scenarios, comparison, Quick mode, wizard, share-link URL round trip, summary text, theming, auto-save, floor limits |
 | `a11y.test.js` | 90 | contrast ratios computed from the palette, document structure, accessible names, keyboard operability, dialog focus trap and restore, live regions, reduced motion, plus axe-core over every visible state |
 
 ## How they work

@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-766%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-851%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -342,7 +342,7 @@ Checked with axe-core (WCAG 2.0/2.1 A + AA + best practice) across the default v
 
 ## 🧪 Tests
 
-766 assertions across six suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
+851 assertions across seven suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
 
 ```bash
 npm install   # jsdom, dev-only
@@ -355,10 +355,11 @@ npm test
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 68 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
+| `modes` | 85 | solve modes, price input modes, what-if, comparison, Quick mode, wizard, share-link URL round trip, theming, auto-save |
 | `a11y` | 90 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
 | `browser` | 56 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport |
 
-Individual suites: `npm run test:features`, `test:errors`, `test:mobile`, `test:fab`, `test:a11y`, `test:browser`. Full assertion output: `npm run test:verbose`.
+Individual suites: `npm run test:features`, `test:errors`, `test:mobile`, `test:fab`, `test:modes`, `test:a11y`, `test:browser`. Full assertion output: `npm run test:verbose`.
 
 The first five run in jsdom and need nothing beyond `npm install`. The sixth drives a real browser and **skips itself** if Chromium is unavailable, so `npm test` still works without one:
 

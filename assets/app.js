@@ -2566,6 +2566,12 @@ function renderWhatIf(cp){
     card.appendChild(rows);grid.appendChild(card);
   });
 
+  // The grid was emptied and rebuilt with the same element ids, so every
+  // wi-*-* node el() has cached is now detached. Without this, updateWiResults
+  // writes into the old nodes and the visible cards stay showing '—' on every
+  // re-render after the first.
+  elClearCache();
+
   // Populate results after DOM is built
   updateWiResults();
 }
@@ -2846,7 +2852,9 @@ function renderCompare(){
   function deltaINR(curV,histV,higher){
     if(curV===null||histV===null)return'';
     var d=curV-histV;if(Math.abs(d)<0.005)return'<span class="dv nt">—</span>';
-    var sign=d>0?'+':'';
+    // Math.abs() strips the sign, so a fall has to be signed explicitly —
+    // otherwise -₹50 and +₹50 render identically and only the colour differs.
+    var sign=d>0?'+':'−';
     var cls=(higher?(d>0):(d<0))?'up':'dn';
     return '<span class="dv '+cls+'">'+sign+'₹'+Math.abs(d).toFixed(2)+'</span>';
   }

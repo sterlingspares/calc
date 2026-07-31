@@ -220,25 +220,37 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .rnd-custom-wrap.on input{color:var(--accent-fg);font-weight:600}
 .rnd-custom-wrap.on span{color:rgba(255,255,255,0.72)}
 
-/* ── PRESETS + SOLVER ── */
-.preset-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-.preset-select{flex:1;min-width:120px;max-width:230px;padding:6px 10px;border:1.5px solid var(--border2);border-radius:20px;background:var(--surface);font-size:11.5px;font-family:var(--font-body);color:var(--text);cursor:pointer}
-.preset-select:focus-within,.preset-select:focus{border-color:var(--accent);outline:none}
-.preset-btn{padding:6px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);white-space:nowrap}
+/* ── PRESETS + SOLVER ──
+   Both used to live inside the incentives panel, which is collapsed by default,
+   so neither was reachable without expanding it first. Presets scope the whole
+   session (like the GST rate) so they sit in the control bar; the solver targets
+   GP%, so it sits with the figures it targets. */
+.preset-bar{display:flex;gap:4px;align-items:center}
+.preset-select{min-width:104px;max-width:170px;padding:5px 8px;border:1px solid var(--border);border-radius:20px;background:transparent;font-size:11.5px;font-family:var(--font-body);color:var(--text2);cursor:pointer}
+.preset-select:hover{border-color:var(--border2);color:var(--text)}
+.preset-select:focus{border-color:var(--accent);outline:none}
+.preset-btn{padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:transparent;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);white-space:nowrap}
 .preset-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
-.preset-btn:disabled{opacity:.45;cursor:default}
+.preset-btn:disabled{opacity:.4;cursor:default}
 .preset-btn.danger:hover:not(:disabled){border-color:var(--red);color:var(--red)}
-.solver{margin-top:12px;padding-top:10px;border-top:1px dashed var(--border2)}
-.solver-row{display:flex;align-items:center;gap:8px}
-.solver-lbl{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);font-weight:600;white-space:nowrap}
-.solver-input{display:inline-flex;align-items:center;border:1.5px solid var(--border2);border-radius:20px;padding:1px 8px;background:var(--surface)}
-.solver-input:focus-within{border-color:var(--accent)}
-.solver-input input{border:none;background:transparent;width:56px;text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--text);outline:none;padding:3px 0;-moz-appearance:textfield}
+
+/* Inside the summary card, so it inherits the dark treatment */
+.solver{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.solver-lbl{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-weight:600;white-space:nowrap}
+.solver-input{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,0.28);border-radius:20px;padding:1px 9px;background:rgba(255,255,255,0.08)}
+.solver-input:focus-within{border-color:#fff;background:rgba(255,255,255,0.14)}
+.solver-input input{border:none;background:transparent;width:54px;text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:600;color:#fff;outline:none;padding:3px 0;-moz-appearance:textfield}
 .solver-input input::-webkit-outer-spin-button,.solver-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.solver-input::after{content:'%';font-size:11px;color:var(--text3);margin-left:3px}
-.solver-out{margin-top:7px;font-size:11.5px;line-height:1.5;color:var(--text2)}
-.solver-out.ok{color:var(--green)}
-.solver-out.bad{color:var(--red)}
+.solver-input input::placeholder{color:rgba(255,255,255,0.4)}
+.solver-input::after{content:'%';font-size:11px;color:rgba(255,255,255,0.55);margin-left:3px}
+.solver-out{flex:1;min-width:220px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,0.75)}
+.solver-out.ok{color:#8fe3b0}
+.solver-out.bad{color:#ffb4ab}
+@media(max-width:800px){
+  .solver{gap:8px}
+  .solver-out{min-width:100%;order:3}
+  .preset-select{min-width:88px;font-size:12px}
+}
 
 /* ── SUMMARY ── */
 .summary-wrap{margin-bottom:1.25rem}
@@ -314,6 +326,9 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
 .cmp-cell.lbl{font-family:var(--font-body);font-size:11.5px;color:var(--text2);font-weight:400;background:var(--surface2)}
 .cmp-row:last-child .cmp-cell{border-bottom:none}
 .cmp-pos{color:var(--green)}
+/* Direction glyphs so a rise or fall is not signalled by colour alone. */
+.dv.up::after{content:' \2191';font-size:.85em}
+.dv.dn::after{content:' \2193';font-size:.85em}
 .cmp-neg{color:var(--red)}
 .cmp-warn{color:var(--red)}
 .cmp-warn::after{content:' ▼';font-size:8px}

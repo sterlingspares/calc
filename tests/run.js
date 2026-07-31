@@ -20,6 +20,7 @@ const SUITES = [
   'errors.test.js',
   'mobile.test.js',
   'fab.test.js',
+  'modes.test.js',
   'a11y.test.js',
   // Optional: skips itself when no browser is available, unless
   // REQUIRE_BROWSER=1 (which CI sets).
