@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-910%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-79%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-926%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-79%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -318,15 +318,27 @@ so the quotable price is grossed back up accordingly.
 ### Target-margin solver
 
 Below the break-even rows, enter a **Target GP %** and it answers the question
-directly rather than making you converge on it by trial and error:
+directly rather than making you converge on it by trial and error. What it says
+depends on which side of the target you are on:
+
+**Short of it** — the incentive you would need, the effective CP that implies,
+and the gap from where you are now:
 
 > Needs 14.20% total CP incentive (₹514.80 eff. CP). You have 9.00% — ₹31.20 more
 > per unit. Currently 11.40%.
 
-It reports the total CP incentive required, the effective CP that implies, how
-far that is from where you are now, and your current GP %. If the target would
-need more incentive than the cost price itself, it says so instead of printing a
-nonsense figure. Landed costs are accounted for.
+**Already past it** — how much room you have before you lose it. Asking what
+incentive gets you *down* to a target has no useful answer, so it reports the
+cushion on effective CP instead:
+
+> Already there — GP is 25.00%, above the 12.00% target. Effective CP has ₹10.40
+> of room per unit (up to ₹70.40) before GP drops to 12.00%.
+
+**Sitting on it** — `Right on target — GP is 25.00%. No change needed.`
+
+If the target would need more incentive than the cost price itself, it says so
+rather than printing a nonsense figure. Landed costs are accounted for
+throughout.
 
 ### What-if analysis
 
@@ -561,7 +573,7 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 910 passing, 7 suites | `npm test` |
+| Tests | 926 passing, 7 suites | `npm test` |
 | Statement coverage | **79.2%** (app.js 83.0%, app-extra.js 66.1%) | `npm run coverage` |
 | Lighthouse Performance | **98** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
@@ -589,7 +601,7 @@ commands after significant changes.
 
 ## Tests
 
-910 assertions across seven suites. They load the real `index.html`,
+926 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -600,7 +612,7 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 511 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 527 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 69 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |

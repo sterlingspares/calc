@@ -1997,6 +1997,14 @@ function solveForGp(targetGp){
     extraInr:needInc-haveInc,
     needIncPct:(cp.e>0)?(needInc/cp.e)*100:null,
     havePct:(cp.e>0)?(haveInc/cp.e)*100:null,
+    /* How far effective CP could rise before GP falls to the target. Positive
+       means the target is already beaten and this is the cushion; negative
+       means that much more incentive is still needed. Without this the caller
+       can only describe the "need more" direction, and a target below the
+       current GP comes out as a negative incentive — an instruction to make
+       the stock cost more, which is not something anyone can act on. */
+    cushionInr:needEffCP-effCPNow,
+    alreadyMet:needInc<=haveInc,
     reachable:needInc<=cp.e && needEffCP>0
   };
 }
@@ -2015,11 +2023,28 @@ function renderSolver(){
     out.className='solver-out bad';
     return;
   }
-  var delta=r.extraInr;
-  var dir=delta>=0?'more':'less';
-  out.className='solver-out'+(Math.abs(delta)<0.005?' ok':'');
+  // Sitting on the target: nothing to do, and quoting a ₹0.00 adjustment reads
+  // like an instruction rather than a confirmation.
+  if(Math.abs(r.cushionInr)<0.005){
+    out.className='solver-out ok';
+    out.textContent='Right on target — GP is '+PCT(r.targetGp)+'. No change needed.';
+    return;
+  }
+  // Target already beaten. Asking "what incentive gets me to 12%" when you are
+  // at 25% has no useful answer in incentive terms — it would be a negative
+  // one, i.e. paying more for the stock. The question worth answering is how
+  // much room there is before the target is lost.
+  if(r.cushionInr>0){
+    out.className='solver-out ok';
+    out.textContent='Already there — GP is '+PCT(r.gpNow)+', above the '+PCT(r.targetGp)+' target. '
+      +'Effective CP has '+INR(r.cushionInr)+' of room per unit (up to '+INR(r.needEffCP)+') '
+      +'before GP drops to '+PCT(r.targetGp)+'.';
+    return;
+  }
+  // Short of the target: the original reading, which only ever applied here.
+  out.className='solver-out';
   out.textContent='Needs '+PCT(r.needIncPct)+' total CP incentive ('+INR(r.needEffCP)+' eff. CP). '
-    +'You have '+PCT(r.havePct)+' — '+INR(Math.abs(delta))+' '+dir+' per unit'
+    +'You have '+PCT(r.havePct)+' — '+INR(Math.abs(r.extraInr))+' more per unit'
     +(r.gpNow!==null?'. Currently '+PCT(r.gpNow)+'.':'.');
 }
 

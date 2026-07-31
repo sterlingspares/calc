@@ -1287,6 +1287,63 @@ ok('needs a calculation first', (() => {
   return d.getElementById('solver-out').textContent.indexOf('Enter MRP') !== -1;
 })());
 
+// A target BELOW the current GP has no answer in incentive terms — reaching it
+// would take a negative incentive, i.e. paying more for the stock. The solver
+// used to report exactly that: at 25% GP with a 12% target it said "Needs
+// -17.33% total CP incentive … ₹10.40 less per unit", which is not an action
+// anyone can take. Report the cushion instead.
+freshCalc(100, 40, 20);                 // MRP 100, CP excl 60, SP excl 80, GP 25%
+const svAbove = w.solveForGp(12);
+ok('a beaten target is flagged as met', svAbove.alreadyMet === true);
+// eff CP could rise from 60 to 80 x (1 - 0.12) = 70.40 before GP falls to 12%
+ok('cushion is the room on effective CP',
+   Math.abs(svAbove.cushionInr - 10.4) < 0.01, 'got ' + svAbove.cushionInr);
+ok('the beaten target is still reachable', svAbove.reachable === true);
+
+const solverText = () => {
+  w.renderSolver();
+  return d.getElementById('solver-out').textContent;
+};
+const solverClass = () => d.getElementById('solver-out').className;
+
+d.getElementById('solver-gp').value = '12';
+const tAbove = solverText();
+ok('reads as already met, not as a requirement',
+   tAbove.indexOf('Already there') === 0, tAbove);
+ok('never quotes a negative incentive', tAbove.indexOf('-') === -1 &&
+   tAbove.indexOf('−') === -1, tAbove);
+ok('never tells you to take away incentive you do not have',
+   tAbove.indexOf('less per unit') === -1, tAbove);
+ok('states the room and the ceiling',
+   tAbove.indexOf('₹10.40') !== -1 && tAbove.indexOf('₹70.40') !== -1, tAbove);
+ok('a met target reads as ok', solverClass().indexOf('ok') !== -1, solverClass());
+
+d.getElementById('solver-gp').value = '25';       // exactly the current GP
+const tOn = solverText();
+ok('sitting on the target says so', tOn.indexOf('Right on target') === 0, tOn);
+ok('and asks for no adjustment', tOn.indexOf('per unit') === -1, tOn);
+ok('on-target reads as ok', solverClass().indexOf('ok') !== -1, solverClass());
+
+d.getElementById('solver-gp').value = '30';       // above the current GP
+const tBelow = solverText();
+ok('a target above current GP still asks for incentive',
+   tBelow.indexOf('Needs') === 0, tBelow);
+ok('and it is a positive requirement', tBelow.indexOf('more per unit') !== -1, tBelow);
+// 80 x 0.70 = 56 eff CP, so 4 of a 60 CP = 6.67%
+ok('with the right figures',
+   tBelow.indexOf('6.67%') !== -1 && tBelow.indexOf('₹4.00') !== -1, tBelow);
+ok('a shortfall is not marked ok', solverClass().indexOf('ok') === -1, solverClass());
+
+// The cushion must follow incentives: 5% CP incentive lifts GP, so the room grows.
+d.getElementById('it-eb').checked = true;
+d.getElementById('iv-eb').value = '5';
+w.syncToggle('eb'); w.calc();
+const svInc = w.solveForGp(12);
+ok('cushion widens as incentives raise GP', svInc.cushionInr > svAbove.cushionInr,
+   'was ' + svAbove.cushionInr + ' now ' + svInc.cushionInr);
+d.getElementById('it-eb').checked = false;
+w.syncToggle('eb'); w.calc();
+
 R.section('\n=== 72. Incentive presets ===');
 freshCalc(1000, 40, 25);
 w.PRESETS = {};
