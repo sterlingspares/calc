@@ -1430,5 +1430,92 @@ ok('a negative value is dropped',
 w.resetAll();
 ok('reset clears both', w.getSPLandedCost() === 0 && w.getLandedCost() === 0);
 
+console.log('\n=== 25. Subtree rebuilds do not strand element references ===');
+// Every render* function empties a container and rebuilds it with the SAME
+// element ids. That used to strand the el() memo cache: the rebuilt nodes were
+// fresh objects, the cache still held the detached originals, and writes landed
+// on nodes no longer in the document. renderWhatIf shipped that bug — its cards
+// showed '—' on every re-open after the first — and the fix at the time was to
+// remember an elClearCache() call after each rebuild.
+//
+// el() no longer caches, so the class is structurally gone rather than guarded.
+// These assertions pin the invariant that makes it impossible, for every
+// rebuild site rather than only the one that failed, so a render function added
+// later is covered by default.
+
+/**
+ * Assert that after `rebuild()`, ids inside `container` still resolve through
+ * el() to the live, attached nodes.
+ * @param {string} label suite-visible name
+ * @param {string} containerId element the render function empties
+ * @param {Function} rebuild triggers the rebuild
+ */
+function pinsRebuild(label, containerId, rebuild) {
+  rebuild();
+  const c = d.getElementById(containerId);
+  if (!c) return ok(label + ': container present', false, 'no #' + containerId);
+  const idsBefore = [...c.querySelectorAll('[id]')].map(n => n.id);
+  rebuild();                        // second pass — this is where staleness bit
+  const c2 = d.getElementById(containerId);
+  const stale = [];
+  const detached = [];
+  for (const id of idsBefore) {
+    const live = d.getElementById(id);
+    if (!live) continue;            // legitimately gone after a re-render
+    if (w.el(id) !== live) stale.push(id);
+    if (!c2.contains(live)) detached.push(id);
+  }
+  ok(label + ' — el() resolves to live nodes after a rebuild (' +
+     idsBefore.length + ' ids)', stale.length === 0, 'stale: ' + stale.slice(0, 5));
+  ok(label + ' — rebuilt nodes are inside the container',
+     detached.length === 0, 'outside: ' + detached.slice(0, 5));
+}
+
+d.getElementById('mrp').value = '1000';
+w.setCM('excl'); d.getElementById('cpd').value = '40';
+w.setSM('excl'); d.getElementById('spd').value = '25';
+w.calc();
+
+pinsRebuild('CP incentive grid', 'cp-inc-grid', () => w.renderCPIncRows());
+pinsRebuild('SP incentive grid', 'sp-inc-grid', () => w.renderSPIncRows());
+pinsRebuild('history list', 'hist-content', () => { w.saveToHistory(); w.renderHistory(); });
+// renderWhatIf takes the CP it is rendering for; called bare it blanks the grid.
+pinsRebuild('what-if grid', 'wi-grid', () => w.renderWhatIf(w.LAST_CP));
+pinsRebuild('quote table', 'qt-table', () => { w.qtAddLine(); w.qtRender(); });
+
+// The original failure was silent: the DOM looked right, the values did not
+// arrive. Assert the values, not just the node identity.
+w.calc();
+w.WI_SCENES[0].spDisc = '25';       // a blank scenario legitimately renders '—'
+w.renderWhatIf(w.LAST_CP);
+w.updateWiResults();
+const wiFirst = d.getElementById('wi-grid').textContent;
+ok('what-if shows figures on first render', /₹[\d,]/.test(wiFirst),
+   'got ' + wiFirst.slice(0, 90));
+w.renderWhatIf(w.LAST_CP);          // re-render, as re-opening the dialog does
+w.updateWiResults();
+const wiSecond = d.getElementById('wi-grid').textContent;
+// This is the assertion the original bug would have failed: identical markup,
+// values gone, because updateWiResults wrote into the pre-rebuild nodes.
+ok('what-if still shows figures after a re-render', /₹[\d,]/.test(wiSecond),
+   'got ' + wiSecond.slice(0, 90));
+ok('what-if renders identically across rebuilds', wiSecond === wiFirst,
+   'first=' + wiFirst.slice(0, 60) + '\n  second=' + wiSecond.slice(0, 60));
+w.WI_SCENES[0].spDisc = '';
+
+// el() must never hand back a node the document has replaced.
+const beforeSwap = w.el('cp-inc-grid');
+w.renderCPIncRows();
+ok('el() tracks a container through its own rebuild',
+   w.el('cp-inc-grid') === d.getElementById('cp-inc-grid'));
+ok('a rebuilt grid is still the attached one', w.el('cp-inc-grid').isConnected);
+ok('el() and getElementById never disagree',
+   ['mrp', 'cpd', 'spd', 'cp-inc-grid', 'hist-list', 'wi-grid']
+     .every(id => w.el(id) === d.getElementById(id)));
+void beforeSwap;
+
+w.clearHistory();
+w.resetAll();
+
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();

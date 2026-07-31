@@ -258,7 +258,6 @@ function fcBuildCards(){
   fcUpdateDots();
   // Sync all GST-rate labels for the newly built cards
   updateGSTLabels();
-  elClearCache();
 }
 
 /**
