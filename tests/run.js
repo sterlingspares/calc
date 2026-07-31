@@ -21,6 +21,9 @@ const SUITES = [
   'mobile.test.js',
   'fab.test.js',
   'a11y.test.js',
+  // Optional: skips itself when no browser is available, unless
+  // REQUIRE_BROWSER=1 (which CI sets).
+  'browser.test.js',
 ];
 
 const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');
@@ -53,18 +56,23 @@ for (const suite of SUITES) {
 
   if (verbose || res.fail) {
     console.log(out.split('\n').filter(l => !l.startsWith('##RESULT ')).join('\n'));
+  } else if (res.skipped) {
+    console.log(`– ${res.name}  —  skipped (${res.skipped})`);
   } else {
     console.log(`✓ ${res.name}  —  ${res.pass} passed`);
   }
 }
 
 console.log('\n' + '─'.repeat(56));
+let skippedCount = 0;
 for (const r of results) {
-  const status = r.fail ? `${r.fail} FAILED` : 'ok';
+  if (r.skipped) skippedCount++;
+  const status = r.fail ? `${r.fail} FAILED` : (r.skipped ? 'skipped' : 'ok');
   console.log(`  ${r.name.padEnd(28)} ${String(r.pass).padStart(4)} passed   ${status}`);
 }
 console.log('─'.repeat(56));
-console.log(`  ${'TOTAL'.padEnd(28)} ${String(totalPass).padStart(4)} passed   ${totalFail} failed`);
+console.log(`  ${'TOTAL'.padEnd(28)} ${String(totalPass).padStart(4)} passed   ${totalFail} failed`
+  + (skippedCount ? `   ${skippedCount} suite(s) skipped` : ''));
 console.log('─'.repeat(56));
 
 if (totalFail) {

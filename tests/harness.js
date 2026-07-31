@@ -174,6 +174,32 @@ class Reporter {
   }
 
   /**
+   * Report the suite as skipped rather than failed — used when an optional
+   * prerequisite (a browser binary) is missing.
+   *
+   * @param {string} reason shown in the output
+   * @param {boolean} [required] when true the skip is treated as a failure, so
+   *   a misconfigured CI runner cannot silently drop the coverage
+   */
+  skip(reason, required) {
+    if (required) {
+      this.fails++;
+      this.failures.push('suite could not run: ' + reason);
+      console.log('  FAIL  suite could not run: ' + reason);
+      return this.finish();
+    }
+    const msg =
+      '\n' + '='.repeat(56) + '\n' +
+      `${this.name}  —  SKIPPED (${reason})\n` +
+      '='.repeat(56) + '\n' +
+      '##RESULT ' + JSON.stringify({
+        name: this.name, pass: 0, fail: 0, failures: [], skipped: reason,
+      }) + '\n';
+    fs.writeSync(1, msg);
+    process.exit(0);
+  }
+
+  /**
    * Print the summary, emit the machine-readable line run.js parses, and exit.
    *
    * The explicit exit is required: a loaded jsdom window holds timers and other

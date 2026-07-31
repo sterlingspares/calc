@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-508%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![Built with](https://img.shields.io/badge/built%20with-HTML%2FVanilla%20JS-orange?style=flat-square) ![Tests](https://img.shields.io/badge/tests-578%20passing-brightgreen?style=flat-square) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -106,7 +106,7 @@ Tapping **Edit** puts that panel into edit mode:
 | **Delete** | Tap the red **⊖** badge on the row (iOS-style), then confirm |
 | **Add** | Tap **+ Add incentive** below the grid |
 
-Tap **Done** to leave edit mode.
+Tap **Done** to leave edit mode. Tapping **Edit** on a collapsed panel expands it first — the rows you are editing live inside it. Collapsing a panel while editing counts as Done.
 
 - **New incentives** get the same **% / ₹ Absolute** choice the Scheme row has — pick *percentage* to deduct a share of the base price excl GST, or *fixed amount* to deduct a flat rupee value. They default to percentage, and the unit beside the input flips between `%` and `₹` to match. Each added incentive keeps its own setting, and CP and SP are independent.
 - **Deleting** asks for confirmation first, and is undoable. Removal takes effect in the calculation immediately. The built-in five can be deleted too — including CD and Scheme, along with their extra option rows.
@@ -316,7 +316,7 @@ Targets **WCAG 2.1 Level AA**, verified on every push.
 - **Structure** — one `h1`, section headings throughout, `main`/`nav`/`header`/`footer` landmarks, and a skip link as the first tab stop
 - **Names** — every input and button exposes an accessible name
 - **Keyboard** — everything is reachable and operable; panel headers are real buttons with `aria-expanded`; no click handler is mouse-only
-- **Focus** — a visible `:focus-visible` ring (rendered on the wrapper for inputs styled that way), a proper focus trap in every dialog, and focus returned to the opener on close. Confirmation dialogs focus **Cancel**, never the destructive button
+- **Focus** — a visible `:focus-visible` ring in a soft mid grey rather than near-black (rendered on the wrapper for inputs styled that way), a proper focus trap in every dialog, and focus returned to the opener on close. Confirmation dialogs focus **Cancel**, never the destructive button
 - **Live regions** — results are announced politely and debounced, including floor-limit warnings
 - **Motion** — `prefers-reduced-motion` disables animation and transitions
 - **Zoom** — pinch-zoom to 5× is available; only double-tap zoom is suppressed, per-control
@@ -327,7 +327,7 @@ Checked with axe-core (WCAG 2.0/2.1 A + AA + best practice) across the default v
 
 ## 🧪 Tests
 
-508 assertions across five suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
+578 assertions across six suites. They load the real `index.html`, `assets/styles.css` and `assets/app.js` into jsdom and drive the actual application functions — no application code is mocked.
 
 ```bash
 npm install   # jsdom, dev-only
@@ -336,15 +336,22 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 276 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
+| `features` | 299 | GST, incentives, quantity, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 68 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
-| `a11y` | 81 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
+| `a11y` | 90 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
+| `browser` | 38 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport |
 
-Individual suites: `npm run test:features`, `test:errors`, `test:mobile`, `test:fab`, `test:a11y`. Full assertion output: `npm run test:verbose`.
+Individual suites: `npm run test:features`, `test:errors`, `test:mobile`, `test:fab`, `test:a11y`, `test:browser`. Full assertion output: `npm run test:verbose`.
 
-Every push and pull request runs them via GitHub Actions. See [`tests/README.md`](tests/README.md) for how the harness works and how to add a suite.
+The first five run in jsdom and need nothing beyond `npm install`. The sixth drives a real browser and **skips itself** if Chromium is unavailable, so `npm test` still works without one:
+
+```bash
+npx playwright install chromium   # only needed for the browser suite
+```
+
+Every push and pull request runs them via GitHub Actions — the jsdom suites on Node 22 and 24, and the browser suite in a dedicated job with `REQUIRE_BROWSER=1` so a missing browser fails rather than silently skips. See [`tests/README.md`](tests/README.md) for how the harness works and how to add a suite.
 
 ---
 

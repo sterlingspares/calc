@@ -9,7 +9,12 @@
   --bg:#f4f2ee;--surface:#fff;--surface2:#f9f8f6;
   --border:#e2ddd6;--border2:#ccc7be;
   --text:#1a1916;--text2:#6b6760;--text3:#736e68;
-  --accent:#1a1916;--accent-fg:#fff;
+  --accent:#1a1916;
+  /* Focus ring: deliberately a mid grey rather than near-black. Verified >=3:1
+     (WCAG 1.4.11) against every surface it can land on in BOTH themes —
+     including the dark summary bar, where a darker grey would disappear —
+     so one value serves light and dark and no theme override is needed. */
+  --focus-ring:#8a857c;--accent-fg:#fff;
   --green:#1a6b45;--green-bg:#e8f5ef;--green-border:#a8d9bc;
   --red:#8b2020;--red-bg:#faeaea;
   --blue:#1a4a8b;--blue-bg:#e8eef8;--blue-border:#b8cbec;
@@ -815,16 +820,15 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
 /* Every input suppresses its own outline (they are styled via a wrapper), so a
    single visible focus ring is defined here for keyboard users. :focus-visible
    means pointer users never see it. */
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
-html[data-theme="dark"] :focus-visible{outline-color:var(--text)}
+:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px;border-radius:3px}
 /* Inputs sit inside bordered wrappers; ring the wrapper so it isn't clipped. */
 .big-input:has(:focus-visible),.field:has(:focus-visible),.floor-input-wrap:has(:focus-visible),
 .gst-custom-wrap:has(:focus-visible),.rnd-custom-wrap:has(:focus-visible),.inc-pct-wrap:has(:focus-visible),
 .fc-input-wrap:has(:focus-visible),.wz-field:has(:focus-visible),.hist-search-wrap:has(:focus-visible),
-.qty-box:has(:focus-visible),.lbl-field:has(:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.qty-box:has(:focus-visible),.lbl-field:has(:focus-visible){outline:2px solid var(--focus-ring);outline-offset:2px}
 /* Fallback for browsers without :has() — ring the input itself. */
 @supports not selector(:has(*)){
-  input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  input:focus-visible,textarea:focus-visible{outline:2px solid var(--focus-ring);outline-offset:1px}
 }
 
 /* Panel headers: a stretched button provides the keyboard/AT target while the
@@ -832,7 +836,7 @@ html[data-theme="dark"] :focus-visible{outline-color:var(--text)}
    into pointer events so they are not swallowed by the overlay. */
 .panel-header{position:relative}
 .panel-hdr-btn{position:absolute;inset:0;width:100%;height:100%;padding:0;margin:0;border:none;background:none;cursor:pointer;z-index:0}
-.panel-hdr-btn:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;border-radius:var(--radius-sm)}
+.panel-hdr-btn:focus-visible{outline:2px solid var(--focus-ring);outline-offset:-3px;border-radius:var(--radius-sm)}
 .panel-header>.panel-header-left,.panel-header>.panel-hdr-actions{position:relative;z-index:1;pointer-events:none}
 .panel-header>.panel-hdr-actions button,.panel-header>.panel-header-left label,
 .panel-header>.panel-header-left input{pointer-events:auto}

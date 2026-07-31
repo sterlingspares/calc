@@ -150,11 +150,36 @@ function cssVar(block, name) {
 
   R.section('\n=== 6. Focus visibility ===');
   ok('a :focus-visible ring is defined', src.indexOf(':focus-visible{outline:') !== -1);
-  ok('dark theme overrides the ring colour',
-     src.indexOf('html[data-theme="dark"] :focus-visible') !== -1);
   ok('wrapped inputs ring the wrapper', src.indexOf(':has(:focus-visible)') !== -1);
   ok('fallback for browsers without :has()',
      src.indexOf('@supports not selector(:has(*))') !== -1);
+
+  // The ring uses one dedicated colour rather than --accent, so it can be a
+  // mid grey instead of near-black without disturbing the rest of the palette.
+  const ring = cssVar(lightBlock, 'focus-ring');
+  ok('ring has its own custom property', !!ring, 'not found');
+  ok('ring is not the near-black accent', ring !== cssVar(lightBlock, 'accent'), ring);
+  ok('every focus rule uses it',
+     src.indexOf('focus-visible{outline:2px solid var(--accent)') === -1);
+
+  // WCAG 1.4.11: a focus indicator needs 3:1 against adjacent colours. The ring
+  // can land on any surface in either theme, and on the dark summary bar.
+  if (ring) {
+    const surfaces = [
+      ['light --surface',  cssVar(lightBlock, 'surface')],
+      ['light --surface2', cssVar(lightBlock, 'surface2')],
+      ['light --bg',       cssVar(lightBlock, 'bg')],
+      ['summary bar',      cssVar(lightBlock, 'accent')],
+      ['dark --surface',   cssVar(darkBlock, 'surface')],
+      ['dark --surface2',  cssVar(darkBlock, 'surface2')],
+      ['dark --bg',        cssVar(darkBlock, 'bg')],
+    ];
+    surfaces.forEach(([label, bg]) => {
+      if (!bg) return;
+      const r = contrast(ring, bg);
+      ok(`ring meets 3:1 on ${label}`, r >= 3, `${r.toFixed(2)}:1`);
+    });
+  }
 
   /* ─────────────────────────────────────────────────────────────────
      7. Dialogs: focus trap and restore
