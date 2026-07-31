@@ -1,0 +1,280 @@
+/**
+ * Real-browser suite.
+ *
+ * The other five suites run in jsdom, and the harness inlines
+ * assets/styles.css and assets/app.js before handing the document over. That
+ * is deliberate — jsdom cannot fetch subresources without a file:// URL, which
+ * breaks localStorage — but it means those suites bypass the `href` and `src`
+ * in index.html entirely, and cannot execute CSS layout or `defer` semantics.
+ *
+ * This suite closes that gap: it serves the repository over HTTP and drives a
+ * real Chromium, so a broken asset path, a cascade problem or a script-timing
+ * regression is caught rather than assumed away.
+ *
+ * Skipping: if Playwright or a usable browser binary is unavailable the suite
+ * reports "skipped" rather than failing, so contributors without browsers can
+ * still run `npm test`. CI sets REQUIRE_BROWSER=1, which turns a skip into a
+ * failure — otherwise a misconfigured runner would silently drop this coverage.
+ */
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const http = require('http');
+const { ROOT, Reporter } = require('./harness');
+
+const REQUIRE_BROWSER = process.env.REQUIRE_BROWSER === '1';
+const R = new Reporter('Browser suite');
+const ok = R.ok.bind(R);
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+};
+
+/**
+ * Serve the repository root, so the page loads its assets over real HTTP with
+ * the same relative paths it will use in production.
+ * @returns {Promise<{server: http.Server, origin: string}>}
+ */
+function serveRepo() {
+  const server = http.createServer((req, res) => {
+    let p = decodeURIComponent(req.url.split('?')[0]);
+    if (p === '/') p = '/index.html';
+    const file = path.join(ROOT, p);
+    // Refuse anything resolving outside the repo
+    if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+      res.writeHead(404);
+      return res.end('not found');
+    }
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+    res.end(fs.readFileSync(file));
+  });
+  return new Promise(resolve => {
+    // Port 0 = let the OS pick, so parallel runs cannot collide
+    server.listen(0, '127.0.0.1', () =>
+      resolve({ server, origin: 'http://127.0.0.1:' + server.address().port }));
+  });
+}
+
+/**
+ * Launch Chromium, falling back to a browser already present on the machine
+ * when the bundled build revision does not match.
+ *
+ * CI runs `playwright install chromium`, so the default path works there. This
+ * sandbox ships a different revision under PLAYWRIGHT_BROWSERS_PATH, hence the
+ * fallback.
+ * @param {Object} chromium Playwright's chromium browser type
+ * @returns {Promise<Object|null>} a browser, or null if none could be launched
+ */
+async function launchChromium(chromium) {
+  try {
+    return await chromium.launch();
+  } catch (firstError) {
+    const base = process.env.PLAYWRIGHT_BROWSERS_PATH;
+    if (!base || !fs.existsSync(base)) throw firstError;
+    // Look for an already-installed chrome binary next to the expected one
+    for (const dir of fs.readdirSync(base)) {
+      for (const rel of ['chrome-linux/chrome', 'chrome-linux/headless_shell',
+                         'chrome-mac/Chromium.app/Contents/MacOS/Chromium']) {
+        const exe = path.join(base, dir, rel);
+        if (fs.existsSync(exe)) {
+          console.log('  (using pre-installed browser at ' + exe + ')');
+          return await chromium.launch({ executablePath: exe });
+        }
+      }
+    }
+    throw firstError;
+  }
+}
+
+(async () => {
+  /* ── Availability check ───────────────────────────────────────────── */
+  let chromium;
+  try {
+    ({ chromium } = require('playwright'));
+  } catch (e) {
+    return R.skip('playwright is not installed', REQUIRE_BROWSER);
+  }
+
+  let browser;
+  try {
+    browser = await launchChromium(chromium);
+  } catch (e) {
+    return R.skip('no usable Chromium: ' + e.message.split('\n')[0], REQUIRE_BROWSER);
+  }
+
+  const { server, origin } = await serveRepo();
+  const page = await browser.newPage();
+
+  // First visit shows the onboarding overlay, which would intercept clicks.
+  await page.addInitScript(() => {
+    try { localStorage.setItem('ob-done', '1'); } catch (e) {}
+  });
+
+  const consoleErrors = [];
+  const failedRequests = [];
+  const responses = [];
+  page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text()); });
+  page.on('pageerror', e => consoleErrors.push('pageerror: ' + e.message));
+  page.on('requestfailed', r => failedRequests.push(r.url()));
+  page.on('response', r => responses.push([r.url().replace(origin, ''), r.status()]));
+
+  await page.goto(origin + '/', { waitUntil: 'load' });
+  await page.waitForFunction(() => typeof window.calc === 'function', null, { timeout: 10000 });
+
+  /* ── 1. Assets actually load ──────────────────────────────────────── */
+  R.section('\n=== 1. External assets load over HTTP ===');
+  const css = responses.find(([u]) => u === '/assets/styles.css');
+  const js = responses.find(([u]) => u === '/assets/app.js');
+  ok('stylesheet served 200', css && css[1] === 200, JSON.stringify(css));
+  ok('script served 200', js && js[1] === 200, JSON.stringify(js));
+  // Only same-origin failures matter; fonts and the favicon are external hosts
+  // and may be unreachable depending on where this runs.
+  const localFailures = failedRequests.filter(u => u.startsWith(origin));
+  ok('no same-origin request failed', localFailures.length === 0, localFailures.join(' | '));
+  const appErrors = consoleErrors.filter(e => !/ERR_|net::|favicon|fonts\./.test(e));
+  ok('no application console errors', appErrors.length === 0, appErrors.slice(0, 3).join(' | '));
+
+  /* ── 2. CSS is parsed and applied ─────────────────────────────────── */
+  R.section('\n=== 2. Stylesheet is applied (real cascade) ===');
+  const bodyFont = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+  ok('body font comes from the stylesheet', /DM Sans|ui-sans-serif/.test(bodyFont), bodyFont);
+  const text3 = await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--text3').trim());
+  ok('custom properties resolve', text3 === '#736e68', text3);
+  const navDisplay = await page.evaluate(() =>
+    getComputedStyle(document.querySelector('.bottom-nav')).display);
+  ok('media queries evaluate (desktop hides the bottom nav)', navDisplay === 'none', navDisplay);
+
+  /* ── 3. Script executed with correct timing ───────────────────────── */
+  R.section('\n=== 3. Deferred script ran after the DOM ===');
+  ok('app functions are defined', await page.evaluate(() => typeof window.calc === 'function'));
+  ok('JS-rendered incentive rows exist',
+     await page.evaluate(() => document.querySelectorAll('#cp-inc-grid .inc-row').length) === 5);
+  // Initialisation reads the DOM; if defer timing were wrong this would be empty
+  ok('initialisation populated the summary',
+     (await page.textContent('#s-mrp')).includes('100'), await page.textContent('#s-mrp'));
+
+  /* ── 4. End-to-end calculation through the UI ─────────────────────── */
+  R.section('\n=== 4. Calculation through the real UI ===');
+  await page.fill('#mrp', '1000');
+  await page.fill('#cpd', '40');
+  await page.fill('#spd', '25');
+  await page.waitForTimeout(150);
+  ok('profit is 150', (await page.textContent('#pvv')).includes('150'),
+     await page.textContent('#pvv'));
+  ok('CP excl is 600', (await page.textContent('#s-cp')).includes('600'),
+     await page.textContent('#s-cp'));
+  ok('GP is 20%', (await page.textContent('#s-gp')).includes('20.00'),
+     await page.textContent('#s-gp'));
+
+  await page.fill('#qty', '3');
+  await page.waitForTimeout(150);
+  ok('order total reflects quantity', (await page.textContent('#s-tpr')).includes('450'),
+     await page.textContent('#s-tpr'));
+  await page.fill('#qty', '1');
+
+  /* ── 5. Interaction ───────────────────────────────────────────────── */
+  R.section('\n=== 5. Real clicks and keyboard ===');
+  await page.click('#phdr-inc');
+  ok('panel opens on click',
+     await page.evaluate(() => document.getElementById('body-inc').style.display === 'block'));
+  ok('aria-expanded follows', await page.getAttribute('#phdr-inc', 'aria-expanded') === 'true');
+
+  await page.click('#cp-inc-edit-btn');
+  ok('edit mode entered without toggling the panel',
+     await page.evaluate(() =>
+       document.getElementById('cp-inc-grid').classList.contains('edit-mode') &&
+       document.getElementById('body-inc').style.display === 'block'));
+  await page.click('#cp-inc-edit-btn');
+
+  // The checkbox itself is opacity:0 (the accessible hidden-input toggle
+  // pattern); a user clicks the visible track, so drive that.
+  const ebToggle = page.locator('#ir-eb label.toggle');
+  await ebToggle.click();
+  await page.waitForTimeout(150);
+  ok('toggling an incentive changes profit',
+     (await page.textContent('#pvv')).includes('156'), await page.textContent('#pvv'));
+  ok('the hidden checkbox is what actually changed',
+     await page.evaluate(() => document.getElementById('it-eb').checked) === true);
+  await ebToggle.click();
+
+  /* ── 6. Dialogs and focus ─────────────────────────────────────────── */
+  R.section('\n=== 6. Dialog behaviour in a real browser ===');
+  await page.evaluate(() => window.openModal('settings'));
+  await page.waitForTimeout(120);
+  ok('dialog is visible',
+     await page.evaluate(() =>
+       getComputedStyle(document.getElementById('overlay-settings')).display !== 'none'));
+  ok('focus moved into the dialog',
+     await page.evaluate(() =>
+       document.getElementById('overlay-settings').contains(document.activeElement)));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(120);
+  ok('Escape closes it',
+     await page.evaluate(() =>
+       getComputedStyle(document.getElementById('overlay-settings')).display === 'none'));
+
+  /* ── 7. Keyboard entry point ──────────────────────────────────────── */
+  R.section('\n=== 7. Skip link is the first tab stop ===');
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForFunction(() => typeof window.calc === 'function');
+  await page.keyboard.press('Tab');
+  const firstFocus = await page.evaluate(() => document.activeElement.className);
+  ok('first Tab reaches the skip link', firstFocus.includes('skip-link'), firstFocus);
+  // .skip-link animates in via `transition: top .15s`, so let it settle before
+  // measuring — otherwise this races the animation and reads a negative offset.
+  await page.waitForTimeout(250);
+  const skipTop = await page.evaluate(() =>
+    document.querySelector('.skip-link').getBoundingClientRect().top);
+  ok('skip link slides into view when focused', skipTop >= 0, 'top ' + skipTop);
+
+  /* ── 8. Mobile viewport ───────────────────────────────────────────── */
+  R.section('\n=== 8. Mobile viewport ===');
+  await page.setViewportSize({ width: 390, height: 780 });
+  await page.waitForTimeout(200);
+  ok('bottom nav appears',
+     await page.evaluate(() =>
+       getComputedStyle(document.querySelector('.bottom-nav')).display !== 'none'));
+  await page.fill('#mrp', '1000');
+  await page.fill('#cpd', '40');
+  await page.fill('#spd', '25');
+  await page.waitForTimeout(200);
+  ok('sticky result bar is shown',
+     await page.evaluate(() =>
+       getComputedStyle(document.getElementById('mini-result')).display !== 'none'));
+  ok('result bar mirrors the profit',
+     (await page.textContent('#mini-pr')).includes('150'), await page.textContent('#mini-pr'));
+  ok('FAB is shown',
+     await page.evaluate(() =>
+       getComputedStyle(document.getElementById('fab-wrap')).display !== 'none'));
+
+  // The nav must not cover a dialog — the defect this layering was written for
+  await page.evaluate(() => window.openModal('quote'));
+  await page.waitForTimeout(150);
+  const layering = await page.evaluate(() => {
+    const z = el => parseInt(getComputedStyle(el).zIndex, 10);
+    return {
+      modal: z(document.getElementById('overlay-quote')),
+      nav: z(document.querySelector('.bottom-nav')),
+    };
+  });
+  ok('dialog layers above the bottom nav', layering.modal > layering.nav,
+     JSON.stringify(layering));
+  ok('quote uses the card layout on mobile',
+     await page.evaluate(() =>
+       getComputedStyle(document.getElementById('qt-table')).display === 'none'));
+  await page.keyboard.press('Escape');
+
+  await browser.close();
+  await new Promise(r => server.close(r));
+  R.finish();
+})().catch(e => {
+  console.error(e);
+  process.exit(1);
+});

@@ -41,9 +41,42 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
 
+      # The matrix jobs never launch a browser, so skip the download the
+      # playwright package would otherwise do on install.
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      # No build step; the suites read index.html and assets/ directly.
+      # The browser suite skips itself here — it gets a dedicated job below so
+      # a browser download is not repeated across the version matrix.
+      - name: Run tests
+        run: npm test
+
+  browser:
+    name: Browser (Chromium)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
       - name: Install dependencies
         run: npm ci
 
-      # The app has no build step; the suite loads index.html directly.
-      - name: Run tests
-        run: npm test
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # REQUIRE_BROWSER makes a missing browser a failure rather than a skip,
+      # so a misconfigured runner cannot silently drop this coverage.
+      - name: Run browser suite
+        run: npm run test:browser
+        env:
+          REQUIRE_BROWSER: '1'

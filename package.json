@@ -16,11 +16,13 @@
     "test:errors": "node tests/errors.test.js",
     "test:mobile": "node tests/mobile.test.js",
     "test:fab": "node tests/fab.test.js",
-    "test:a11y": "node tests/a11y.test.js"
+    "test:a11y": "node tests/a11y.test.js",
+    "test:browser": "node tests/browser.test.js"
   },
   "devDependencies": {
     "axe-core": "^4.12.1",
-    "jsdom": "^30.0.1"
+    "jsdom": "^30.0.1",
+    "playwright": "^1.62.1"
   },
   "engines": {
     "node": ">=22"
