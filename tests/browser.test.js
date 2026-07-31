@@ -227,12 +227,21 @@ async function launchChromium(chromium) {
   await page.keyboard.press('Tab');
   const firstFocus = await page.evaluate(() => document.activeElement.className);
   ok('first Tab reaches the skip link', firstFocus.includes('skip-link'), firstFocus);
-  // .skip-link animates in via `transition: top .15s`, so let it settle before
-  // measuring — otherwise this races the animation and reads a negative offset.
-  await page.waitForTimeout(250);
-  const skipTop = await page.evaluate(() =>
-    document.querySelector('.skip-link').getBoundingClientRect().top);
-  ok('skip link slides into view when focused', skipTop >= 0, 'top ' + skipTop);
+  // .skip-link animates in via `transition: top .15s`. A fixed wait sat right on
+  // the boundary once font loading shifted the timing, so poll until it lands.
+  let skipTop = null;
+  try {
+    await page.waitForFunction(
+      () => document.querySelector('.skip-link').getBoundingClientRect().top >= 0,
+      null, { timeout: 3000, polling: 50 });
+    skipTop = await page.evaluate(() =>
+      document.querySelector('.skip-link').getBoundingClientRect().top);
+  } catch (e) {
+    skipTop = await page.evaluate(() =>
+      document.querySelector('.skip-link').getBoundingClientRect().top);
+  }
+  ok('skip link slides into view when focused', skipTop !== null && skipTop >= 0,
+     'top ' + skipTop);
 
   /* ── 7b. Focus ring renders grey, not black ───────────────────────── */
   R.section('\n=== 7b. Focus ring colour (computed) ===');

@@ -100,7 +100,7 @@ captured.length=0;
 threw=false;
 try{ w.applyShareState(null) }catch(e){ threw=true }
 ok('applyShareState(null) does not throw', !threw);
-ok('bad share state logged', find('could not apply shared/saved state').length>=1,
+ok('bad share state logged', find('share/saved state rejected').length>=1,
    'got '+JSON.stringify(captured));
 
 console.log('\n=== G. Out-of-range custom GST is rejected and reported ===');

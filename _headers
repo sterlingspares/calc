@@ -1,0 +1,21 @@
+# Response headers for static hosts that support this file
+# (Netlify, Cloudflare Pages). GitHub Pages does NOT — see README for the
+# nginx / Apache equivalents.
+#
+# frame-ancestors and X-Frame-Options cannot be set from a <meta> tag, so
+# clickjacking protection has to come from here.
+/*
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+
+# Content-addressed assets can be cached hard; HTML must not be.
+/assets/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/index.html
+  Cache-Control: no-cache

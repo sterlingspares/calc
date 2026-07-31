@@ -96,6 +96,219 @@ function isValidIncKey(k){
   return typeof k==='string'&&/^[A-Za-z0-9_-]{1,24}$/.test(k);
 }
 
+
+/* ── Delegated actions ──────────────────────────────────────────────────────
+   The markup used ~158 inline on* attributes. Those force
+   `script-src 'unsafe-inline'`, which defeats most of what a CSP can do: an
+   injected <script> or handler would run. Each one is now a `data-click`
+   (or data-input / data-change) naming an entry in this registry, dispatched
+   by the delegated listeners below.
+
+   Handlers receive (self, event): `self` is the element the attribute was on,
+   matching what `this` referred to before.
+
+   These bodies are mechanically converted from the original attributes, so
+   behaviour is unchanged.
+   ─────────────────────────────────────────────────────────────────────────── */
+var ACT = {};
+
+ACT.a0 = function(self, event){ setMode('default') };
+ACT.a1 = function(self, event){ setMode('quick') };
+ACT.a2 = function(self, event){ shareLink() };
+ACT.a3 = function(self, event){ saveToHistory() };
+ACT.a4 = function(self, event){ copyToClipboard() };
+ACT.a5 = function(self, event){ exportPDF() };
+ACT.a6 = function(self, event){ openModal('quote') };
+ACT.a7 = function(self, event){ undo() };
+ACT.a8 = function(self, event){ redo() };
+ACT.a9 = function(self, event){ openModal('shortcuts') };
+ACT.a10 = function(self, event){ openModal('settings') };
+ACT.a11 = function(self, event){ toggleHMenu() };
+ACT.a12 = function(self, event){ shareLink();closeHMenu() };
+ACT.a13 = function(self, event){ saveToHistory();closeHMenu() };
+ACT.a14 = function(self, event){ copyToClipboard();closeHMenu() };
+ACT.a15 = function(self, event){ exportPDF();closeHMenu() };
+ACT.a16 = function(self, event){ openModal('quote');closeHMenu() };
+ACT.a17 = function(self, event){ undo();closeHMenu() };
+ACT.a18 = function(self, event){ sendWhatsApp();closeHMenu() };
+ACT.a19 = function(self, event){ sendEmail();closeHMenu() };
+ACT.a20 = function(self, event){ openModal('settings');closeHMenu() };
+ACT.a21 = function(self, event){ localStorage.removeItem('ob-done');closeHMenu();setTimeout(obShow,200) };
+ACT.a22 = function(self, event){ setGST(18) };
+ACT.a23 = function(self, event){ setGST(5) };
+ACT.a24 = function(self, event){ onCustomGST(self) };
+ACT.a25 = function(self, event){ setT('profit') };
+ACT.a26 = function(self, event){ setT('sp') };
+ACT.a27 = function(self, event){ setT('cp') };
+ACT.a28 = function(self, event){ resetAll() };
+ACT.a29 = function(self, event){ onMrpInput(self) };
+ACT.a30 = function(self, event){ nextFrom('mrp') };
+ACT.a31 = function(self, event){ stepQty(-1) };
+ACT.a32 = function(self, event){ calc();debouncedSaveCalcState() };
+ACT.a33 = function(self, event){ stepQty(1) };
+ACT.a34 = function(self, event){ setCM('excl') };
+ACT.a35 = function(self, event){ setCM('incl') };
+ACT.a36 = function(self, event){ setCM('manual') };
+ACT.a37 = function(self, event){ calc() };
+ACT.a38 = function(self, event){ nextFrom('cpd') };
+ACT.a39 = function(self, event){ setCPManual('incl') };
+ACT.a40 = function(self, event){ setCPManual('excl') };
+ACT.a41 = function(self, event){ onAmtInput(self) };
+ACT.a42 = function(self, event){ nextFrom('cpv') };
+ACT.a43 = function(self, event){ toggleAcc('cp') };
+ACT.a44 = function(self, event){ setSM('excl') };
+ACT.a45 = function(self, event){ setSM('incl') };
+ACT.a46 = function(self, event){ setSM('manual') };
+ACT.a47 = function(self, event){ nextFrom('spd') };
+ACT.a48 = function(self, event){ setSPManual('incl') };
+ACT.a49 = function(self, event){ setSPManual('excl') };
+ACT.a50 = function(self, event){ nextFrom('spv') };
+ACT.a51 = function(self, event){ toggleAcc('sp') };
+ACT.a52 = function(self, event){ setPM('val') };
+ACT.a53 = function(self, event){ setPM('gp') };
+ACT.a54 = function(self, event){ setPM('margin') };
+ACT.a55 = function(self, event){ togglePanel('inc') };
+ACT.a56 = function(self, event){ toggleIncEditMode('cp') };
+ACT.a57 = function(self, event){ addInc('cp') };
+ACT.a58 = function(self, event){ togglePanel('sp-inc') };
+ACT.a59 = function(self, event){ toggleIncEditMode('sp') };
+ACT.a60 = function(self, event){ addInc('sp') };
+ACT.a61 = function(self, event){ openModal('whatif') };
+ACT.a62 = function(self, event){ togglePanel('hist') };
+ACT.a63 = function(self, event){ setHistQuery(self.value) };
+ACT.a64 = function(self, event){ setHistFilter('all') };
+ACT.a65 = function(self, event){ setHistFilter('pos') };
+ACT.a66 = function(self, event){ setHistFilter('neg') };
+ACT.a67 = function(self, event){ setHistFilter('below') };
+ACT.a68 = function(self, event){ setHistFilter('tagged') };
+ACT.a69 = function(self, event){ syncAutosave(self) };
+ACT.a70 = function(self, event){ exportHistoryCSV() };
+ACT.a71 = function(self, event){ clearHistory() };
+ACT.a72 = function(self, event){ onMrpInput(self);wzCalc() };
+ACT.a73 = function(self, event){ wzSetGST(18) };
+ACT.a74 = function(self, event){ wzSetGST(5) };
+ACT.a75 = function(self, event){ wzSetT('cp') };
+ACT.a76 = function(self, event){ wzSetT('sp') };
+ACT.a77 = function(self, event){ wzSetCM('excl') };
+ACT.a78 = function(self, event){ wzSetCM('incl') };
+ACT.a79 = function(self, event){ wzSetCM('manual') };
+ACT.a80 = function(self, event){ wzCalc() };
+ACT.a81 = function(self, event){ wzSetMS('incl') };
+ACT.a82 = function(self, event){ wzSetMS('excl') };
+ACT.a83 = function(self, event){ wzFmtAmt(self);wzCalc() };
+ACT.a84 = function(self, event){ wzSyncCD() };
+ACT.a85 = function(self, event){ wzSetCDMode('before') };
+ACT.a86 = function(self, event){ wzSetCDMode('after') };
+ACT.a87 = function(self, event){ wzSyncSc() };
+ACT.a88 = function(self, event){ wzSetScMode('pct') };
+ACT.a89 = function(self, event){ wzSetScMode('abs') };
+ACT.a90 = function(self, event){ wzReset() };
+ACT.a91 = function(self, event){ wzToDefault() };
+ACT.a92 = function(self, event){ fcSetT('profit') };
+ACT.a93 = function(self, event){ fcSetT('sp') };
+ACT.a94 = function(self, event){ fcSetT('cp') };
+ACT.a95 = function(self, event){ onMrpInput(self);fcCalc() };
+ACT.a96 = function(self, event){ fcSetGST(18) };
+ACT.a97 = function(self, event){ fcSetGST(5) };
+ACT.a98 = function(self, event){ fcNext() };
+ACT.a99 = function(self, event){ bnavGo('calc') };
+ACT.a100 = function(self, event){ bnavGo('inc') };
+ACT.a101 = function(self, event){ bnavGo('summary') };
+ACT.a102 = function(self, event){ bnavGo('hist') };
+ACT.a103 = function(self, event){ overlayClick(event,'settings') };
+ACT.a104 = function(self, event){ closeModal('settings') };
+ACT.a105 = function(self, event){ toggleDarkMode(self.checked) };
+ACT.a106 = function(self, event){ calc();saveCalcState() };
+ACT.a107 = function(self, event){ setRounding('off') };
+ACT.a108 = function(self, event){ setRounding('1') };
+ACT.a109 = function(self, event){ setRounding('5') };
+ACT.a110 = function(self, event){ onCustomRounding(self) };
+ACT.a111 = function(self, event){ syncAutosave('settings') };
+ACT.a112 = function(self, event){ localStorage.removeItem('ob-done');closeModal('settings');setTimeout(obShow,200) };
+ACT.a113 = function(self, event){ closeModal('settings');setTimeout(function(){openModal('shortcuts')},200) };
+ACT.a114 = function(self, event){ overlayClick(event,'whatif') };
+ACT.a115 = function(self, event){ closeModal('whatif') };
+ACT.a116 = function(self, event){ overlayClick(event,'compare') };
+ACT.a117 = function(self, event){ closeModal('compare') };
+ACT.a118 = function(self, event){ overlayClick(event,'shortcuts') };
+ACT.a119 = function(self, event){ closeModal('shortcuts') };
+ACT.a120 = function(self, event){ overlayClick(event,'quote') };
+ACT.a121 = function(self, event){ closeModal('quote') };
+ACT.a122 = function(self, event){ qtAddLine() };
+ACT.a123 = function(self, event){ qtAddFromCalc() };
+ACT.a124 = function(self, event){ qtExportCSV() };
+ACT.a125 = function(self, event){ qtCopy() };
+ACT.a126 = function(self, event){ qtClear() };
+ACT.a127 = function(self, event){ overlayClick(event,'confirm') };
+ACT.a128 = function(self, event){ closeConfirm() };
+ACT.a129 = function(self, event){ runConfirm() };
+ACT.a130 = function(self, event){ closeFab() };
+ACT.a131 = function(self, event){ fabRun(saveToHistory) };
+ACT.a132 = function(self, event){ fabRun(copyToClipboard) };
+ACT.a133 = function(self, event){ fabRun(sendWhatsApp) };
+ACT.a134 = function(self, event){ fabRun(shareLink) };
+ACT.a135 = function(self, event){ fabRun(sendEmail) };
+ACT.a136 = function(self, event){ fabRun(exportPDF) };
+ACT.a137 = function(self, event){ toggleFab() };
+ACT.a138 = function(self, event){ // Onboarding backdrop: dismiss only when the click landed on the overlay itself.
+  if(event.target===self)obSkip(); };
+ACT.a139 = function(self, event){ OB_STEP===0?obSkip():(OB_STEP--,obRender()) };
+ACT.a140 = function(self, event){ obNext() };
+
+/**
+ * Register a delegated listener for one event type.
+ * `closest` means only the nearest matching ancestor fires, so nested targets
+ * behave like the old direct-attribute binding without needing
+ * stopPropagation.
+ * @param {string} evt DOM event name
+ * @param {boolean} [capture] use capture — required for focus/blur, which do not bubble
+ */
+function delegate(evt, capture){
+  document.addEventListener(evt, function(e){
+    var node = e.target && e.target.closest ? e.target.closest('[data-' + evt + ']') : null;
+    if(!node) return;
+    var fn = ACT[node.getAttribute('data-' + evt)];
+    if(!fn){ logWarn('no handler registered for data-' + evt + '="' + node.getAttribute('data-' + evt) + '"'); return; }
+    guard('handler ' + node.getAttribute('data-' + evt), function(){ fn(node, e); });
+  }, !!capture);
+}
+['click','change','input'].forEach(function(evt){ delegate(evt); });
+// focus/blur do not bubble, so they are delegated in the capture phase.
+delegate('focus', true);
+delegate('blur', true);
+
+
+/* ── Parameterised delegated actions ────────────────────────────────────────
+   Rows, cards and dialogs are built as HTML strings, so their handlers were
+   inline attributes too. They take arguments (a row key, a line index), which
+   travel in data-p / data-q / data-r rather than being baked into code.
+   ─────────────────────────────────────────────────────────────────────────── */
+/** Read the positional params off an element carrying a delegated action. */
+function actParams(el){
+  return [el.getAttribute('data-p'), el.getAttribute('data-q'), el.getAttribute('data-r')];
+}
+ACT.incToggle   = function(self){ var p=actParams(self); (p[0]==='cp'?syncToggle:syncSpToggle)(p[1]); calc(); };
+ACT.incDelete   = function(self){ var p=actParams(self); deleteInc(p[0], p[1]); };
+ACT.incMode     = function(self){ var p=actParams(self); setIncMode(p[0], p[1], p[2]); };
+ACT.incRename   = function(self){ var k=self.getAttribute('data-p');
+                                  INC_LABELS[k]=self.value.trim()||INC_LABELS_DEFAULT[k]; saveLabels(); };
+ACT.calc        = function(){ calc(); };
+ACT.cdMode      = function(self){ var p=actParams(self); (p[0]==='cp'?setCDMode:setSCDMode)(p[1]); };
+ACT.schemeMode  = function(self){ var p=actParams(self); (p[0]==='cp'?setSchemeMode:setSpSchemeMode)(p[1]); };
+ACT.histDelete  = function(self){ deleteHistEntry(+self.getAttribute('data-p')); };
+ACT.histCompare = function(self){ openCompare(+self.getAttribute('data-p')); };
+ACT.histTagEdit = function(self){ startTagEdit(+self.getAttribute('data-p')); };
+ACT.histTagSave = function(self){ commitTag(+self.getAttribute('data-p'), self.value); };
+ACT.qtDelLine   = function(self){ qtDelLine(+self.getAttribute('data-p')); };
+ACT.qtSet       = function(self){ qtSet(+self.getAttribute('data-p'), self.getAttribute('data-q'), self.value); };
+ACT.undoQuote   = function(){ pushUndo('edit quote line'); };
+ACT.undoRename  = function(){ pushUndo('rename incentive'); };
+ACT.obGoto      = function(self){ OB_STEP=+self.getAttribute('data-p'); obRender(); };
+ACT.fcNext      = function(){ fcNext(); };
+ACT.fcBack      = function(){ fcBack(); };
+ACT.fcReset     = function(){ fcReset(); };
+ACT.fcToDefault = function(){ fcToDefault(); };
+
 /* ── Platform ── */
 var IS_MAC=/Mac/.test(navigator.platform);
 var MOD_KEY=IS_MAC?'⌘':'Ctrl';
@@ -921,37 +1134,40 @@ function _incRowHTML(k,panel,editMode){
   var custom=isCustomInc(k),cMode=custom?incModeOf(panel,k):null,cAbs=(cMode==='abs');
   var maxAttr=(k==='sc'||cAbs)?'':' max="100"';
 
-  var delBtn=editMode?'<button class="inc-del-btn" onclick="deleteInc(\''+panel+'\',\''+k+'\')" title="Delete" aria-label="Delete">&#x2212;</button>':'';
+  var delBtn=editMode?'<button class="inc-del-btn" data-click="incDelete" data-p="'+panel+'" data-q="'+k+'" title="Delete" aria-label="Delete">&#x2212;</button>':'';
   var labelHtml=editMode
-    ?'<input class="inc-label-edit" id="'+lblId+'" aria-label="Rename '+lblPlain+'" value="'+lbl+'" onfocus="pushUndo(\'rename incentive\')" oninput="INC_LABELS[\''+k+'\']=this.value.trim()||INC_LABELS_DEFAULT[\''+k+'\'];saveLabels()" maxlength="30" autocomplete="off" spellcheck="false">'
+    ?'<input class="inc-label-edit" id="'+lblId+'" aria-label="Rename '+lblPlain+'" value="'+lbl+'" data-focus="undoRename" data-input="incRename" data-p="'+k+'" maxlength="30" autocomplete="off" spellcheck="false">'
     :'<span class="inc-name" id="'+lblId+'">'+lbl+'</span>';
 
   var unitId=(k==='sc')?' id="'+(isCP?'sc':'ssc')+'-unit"':(custom?' id="unit-'+panel+'-'+k+'"':'');
   var unitTxt=cAbs?'&#x20B9;':'%';
   var pctWrapId=(k==='sc'&&isCP)?' id="sc-pct-wrap"':'';
 
-  var mainRow='<div class="inc-row-main">'+delBtn+'<label class="toggle"><input type="checkbox" id="'+cbId+'" aria-label="Enable '+lblPlain+'" onchange="'+syncFn+'(\''+k+'\');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>'+labelHtml+'<div class="inc-pct-wrap"'+pctWrapId+'><input type="number" inputmode="decimal" id="'+inpId+'" aria-label="'+lblPlain+' value" value="'+defVal+'" placeholder="'+placeholder+'" min="0"'+maxAttr+' step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym"'+unitId+'>'+unitTxt+'</span></div></div>';
+  var mainRow='<div class="inc-row-main">'+delBtn+'<label class="toggle"><input type="checkbox" id="'+cbId+'" aria-label="Enable '+lblPlain+'" data-change="incToggle" data-p="'+panel+'" data-q="'+k+'"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>'+labelHtml+'<div class="inc-pct-wrap"'+pctWrapId+'><input type="number" inputmode="decimal" id="'+inpId+'" aria-label="'+lblPlain+' value" value="'+defVal+'" placeholder="'+placeholder+'" min="0"'+maxAttr+' step="0.01" data-input="calc" autocomplete="off"><span class="inc-pct-sym"'+unitId+'>'+unitTxt+'</span></div></div>';
 
   var subRow='';
   var gPct=Math.round(G*100);
   if(k==='cd'){
     var b1=isCP?'cdm-before':'scdm-before',b2=isCP?'cdm-after':'scdm-after';
-    var fn1=isCP?"setCDMode('before')":'setSCDMode(\'before\')',fn2=isCP?"setCDMode('after')":'setSCDMode(\'after\')';
+    // Delegated: panel in data-p, mode in data-q
+    var fn1='data-click="cdMode" data-p="'+panel+'" data-q="before"';
+    var fn2='data-click="cdMode" data-p="'+panel+'" data-q="after"';
     var lb1='lbl-'+(isCP?'':'s')+'cdm-before',lb2='lbl-'+(isCP?'':'s')+'cdm-after';
     var p=isCP?'CP':'SP';
-    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Calculate CD on:</div><div class="sub-tabs" style="width:100%"><button class="stab on" id="'+b1+'" onclick="'+fn1+'" style="padding:6px 8px;line-height:1.3"><span id="'+lb1+'">'+p+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button><button class="stab" id="'+b2+'" onclick="'+fn2+'" style="padding:6px 8px;line-height:1.3"><span id="'+lb2+'">'+p+' incl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button></div></div>';
+    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Calculate CD on:</div><div class="sub-tabs" style="width:100%"><button class="stab on" id="'+b1+'" '+fn1+' style="padding:6px 8px;line-height:1.3"><span id="'+lb1+'">'+p+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">before GST</span></button><button class="stab" id="'+b2+'" '+fn2+' style="padding:6px 8px;line-height:1.3"><span id="'+lb2+'">'+p+' incl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">after GST</span></button></div></div>';
   } else if(k==='sc'){
     var sp1=isCP?'scm-pct':'sscm-pct',sp2=isCP?'scm-abs':'sscm-abs';
-    var fn3=isCP?"setSchemeMode('pct')":'setSpSchemeMode(\'pct\')',fn4=isCP?"setSchemeMode('abs')":'setSpSchemeMode(\'abs\')';
+    var fn3='data-click="schemeMode" data-p="'+panel+'" data-q="pct"';
+    var fn4='data-click="schemeMode" data-p="'+panel+'" data-q="abs"';
     var lsp='lbl-'+(isCP?'':'s')+'scm-pct';
     var ssub=isCP?' id="sc-sub"':'';
     var pp=isCP?'CP':'SP';
-    subRow='<div class="inc-row-sub"'+ssub+'><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div><div class="sub-tabs" style="width:100%"><button class="stab on" id="'+sp1+'" onclick="'+fn3+'" style="padding:6px 8px;line-height:1.3"><span id="'+lsp+'">% of '+pp+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab" id="'+sp2+'" onclick="'+fn4+'" style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
+    subRow='<div class="inc-row-sub"'+ssub+'><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div><div class="sub-tabs" style="width:100%"><button class="stab on" id="'+sp1+'" '+fn3+' style="padding:6px 8px;line-height:1.3"><span id="'+lsp+'">% of '+pp+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab" id="'+sp2+'" '+fn4+' style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
   } else if(custom){
     var m1='im-'+panel+'-'+k+'-pct',m2='im-'+panel+'-'+k+'-abs';
     var lm='lbl-im-'+panel+'-'+k;
     var cp2=isCP?'CP':'SP';
-    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Incentive type:</div><div class="sub-tabs" style="width:100%"><button class="stab'+(cAbs?'':' on')+'" id="'+m1+'" onclick="setIncMode(\''+panel+'\',\''+k+'\',\'pct\')" style="padding:6px 8px;line-height:1.3"><span id="'+lm+'">% of '+cp2+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab'+(cAbs?' on':'')+'" id="'+m2+'" onclick="setIncMode(\''+panel+'\',\''+k+'\',\'abs\')" style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
+    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Incentive type:</div><div class="sub-tabs" style="width:100%"><button class="stab'+(cAbs?'':' on')+'" id="'+m1+'" data-click="incMode" data-p="'+panel+'" data-q="'+k+'" data-r="pct" style="padding:6px 8px;line-height:1.3"><span id="'+lm+'">% of '+cp2+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab'+(cAbs?' on':'')+'" id="'+m2+'" data-click="incMode" data-p="'+panel+'" data-q="'+k+'" data-r="abs" style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
   }
   return '<div class="inc-row" id="'+rowId+'">'+mainRow+subRow+'</div>';
 }
@@ -2095,8 +2311,8 @@ function renderHistory(){
   rows.forEach(function(row){
     var h=row.h,idx=row.idx;
     var tagHtml=h.tag
-      ?'<button type="button" class="hist-tag" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Edit tag" aria-label="Edit tag: '+escHtml(h.tag)+'">'+escHtml(h.tag)+'</button>'
-      :'<button type="button" class="hist-tag empty" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Add a tag" aria-label="Add a tag to this entry">+ Tag</button>';
+      ?'<button type="button" class="hist-tag" id="tag-'+idx+'" data-click="histTagEdit" data-p="'+idx+'" title="Edit tag" aria-label="Edit tag: '+escHtml(h.tag)+'">'+escHtml(h.tag)+'</button>'
+      :'<button type="button" class="hist-tag empty" id="tag-'+idx+'" data-click="histTagEdit" data-p="'+idx+'" title="Add a tag" aria-label="Add a tag to this entry">+ Tag</button>';
     // h.time / h.gst come from storage and are not guaranteed to be the
     // numbers and formatted strings this app writes.
     var timeDisp=escHtml(h.ts?relTime(h.ts):h.time);
@@ -2111,8 +2327,8 @@ function renderHistory(){
           +tagHtml
           +(h.qty>1?'<span class="hist-gst">×'+escHtml(h.qty)+'</span>':'')
           +'<span class="hist-gst">GST '+escHtml(h.gst)+'%</span>'
-          +'<button class="cmp-hist-btn" onclick="openCompare('+idx+')" aria-label="Compare entry from '+timeDisp+'">Compare</button>'
-          +'<button class="hist-del-btn" onclick="deleteHistEntry('+idx+')" aria-label="Delete entry from '+timeDisp+'" title="Delete">'
+          +'<button class="cmp-hist-btn" data-click="histCompare" data-p="'+idx+'" aria-label="Compare entry from '+timeDisp+'">Compare</button>'
+          +'<button class="hist-del-btn" data-click="histDelete" data-p="'+idx+'" aria-label="Delete entry from '+timeDisp+'" title="Delete">'
             +'<svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
           +'</button>'
         +'</div>'
@@ -3072,8 +3288,8 @@ function fcBuildCPCard(){
   card.appendChild(preview);
 
   var acts=document.createElement('div');acts.className='fc-actions';
-  acts.innerHTML='<button class="fc-btn fc-btn-back" onclick="fcBack()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
-    +'<button class="fc-btn fc-btn-next" onclick="fcNext()">Next <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+  acts.innerHTML='<button class="fc-btn fc-btn-back" data-click="fcBack"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
+    +'<button class="fc-btn fc-btn-next" data-click="fcNext">Next <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
   card.appendChild(acts);
 }
 
@@ -3127,8 +3343,8 @@ function fcBuildSPCard(){
   card.appendChild(preview);
 
   var acts=document.createElement('div');acts.className='fc-actions';
-  acts.innerHTML='<button class="fc-btn fc-btn-back" onclick="fcBack()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
-    +'<button class="fc-btn fc-btn-next" onclick="fcNext()">'+(FC_T==='cp'?'Next':'Calculate')+' <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+  acts.innerHTML='<button class="fc-btn fc-btn-back" data-click="fcBack"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
+    +'<button class="fc-btn fc-btn-next" data-click="fcNext">'+(FC_T==='cp'?'Next':'Calculate')+' <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
   card.appendChild(acts);
 }
 
@@ -3178,8 +3394,8 @@ function fcBuildProfitCard(solveFor){
   card.appendChild(fld);
 
   var acts=document.createElement('div');acts.className='fc-actions';
-  acts.innerHTML='<button class="fc-btn fc-btn-back" onclick="fcBack()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
-    +'<button class="fc-btn fc-btn-next" onclick="fcNext()">Calculate <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+  acts.innerHTML='<button class="fc-btn fc-btn-back" data-click="fcBack"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
+    +'<button class="fc-btn fc-btn-next" data-click="fcNext">Calculate <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
   card.appendChild(acts);
 }
 
@@ -3237,10 +3453,10 @@ function fcRenderResult(){
   if(spOver)html+='<div class="fc-over-alert" style="margin-top:4px">⚠ SP incl GST exceeds MRP</div>';
 
   html+='<div class="fc-actions">'
-    +'<button class="fc-btn fc-btn-back" onclick="fcBack()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
+    +'<button class="fc-btn fc-btn-back" data-click="fcBack"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>'
     +'<div style="display:flex;gap:8px">'
-    +'<button class="fc-btn fc-btn-full" onclick="fcToDefault()">Full view</button>'
-    +'<button class="fc-btn fc-btn-next" onclick="fcReset()">New <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2C4.24 2 2 4.24 2 7s2.24 5 5 5 5-2.24 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 1.5l2 1.2-2 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+    +'<button class="fc-btn fc-btn-full" data-click="fcToDefault">Full view</button>'
+    +'<button class="fc-btn fc-btn-next" data-click="fcReset">New <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2C4.24 2 2 4.24 2 7s2.24 5 5 5 5-2.24 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10 1.5l2 1.2-2 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
     +'</div></div>';
 
   card.innerHTML=html;
@@ -3481,7 +3697,7 @@ function startTagEdit(idx){
   if(!cell)return;
   var cur=HISTORY[idx]&&HISTORY[idx].tag?HISTORY[idx].tag:'';
   cell.outerHTML='<input class="hist-tag-input" id="tagin-'+idx+'" aria-label="Tag for this entry" value="'+escHtml(cur)+'" maxlength="24" placeholder="Tag…" autocomplete="off" '
-    +'onblur="commitTag('+idx+',this.value)" '
+    +'data-blur="histTagSave" data-p="'+idx+'" '
     +'onkeydown="if(event.key===\'Enter\'){this.blur()}else if(event.key===\'Escape\'){this.value=\'\\u0000\';this.blur()}">';
   var inp=document.getElementById('tagin-'+idx);
   if(inp){inp.focus();inp.select()}
@@ -3848,8 +4064,8 @@ function qtField(i,field,val,opts){
     +(opts.step?' step="'+opts.step+'"':'')
     +(opts.style?' style="'+opts.style+'"':'')
     +(opts.label?' aria-label="'+opts.label+'"':'')
-    +' onfocus="pushUndo(\'edit quote line\')"'
-    +' oninput="qtSet('+i+',\''+field+'\',this.value)" autocomplete="off">';
+    +' data-focus="undoQuote"'
+    +' data-input="qtSet" data-p="'+i+'" data-q="'+field+'" autocomplete="off">';
 }
 /**
  * Remove-line button, shared by both layouts.
@@ -3857,7 +4073,7 @@ function qtField(i,field,val,opts){
  * @returns {string} HTML
  */
 function qtDelBtnHTML(i){
-  return '<button class="qt-del" onclick="qtDelLine('+i+')" title="Remove line" aria-label="Remove line '+(i+1)+'">'
+  return '<button class="qt-del" data-click="qtDelLine" data-p="'+i+'" title="Remove line" aria-label="Remove line '+(i+1)+'">'
     +'<svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>';
 }
 /**
@@ -4153,6 +4369,101 @@ window.addEventListener('resize',function(){
   },150);
 });
 
+
+/* ── Share-link payload validation ──────────────────────────────────────────
+   ?s= is unauthenticated base64 JSON from whoever sends you the link, applied
+   directly to app state. Everything below is allow-listed: unknown keys are
+   dropped, values are coerced and range-checked, and a payload that fails is
+   ignored rather than partially applied.
+   ─────────────────────────────────────────────────────────────────────────── */
+var SHARE_VERSION = 1;
+
+/** One of a fixed set, or the fallback. */
+function pickEnum(v, allowed, fallback){
+  return allowed.indexOf(v) !== -1 ? v : fallback;
+}
+/** A numeric string safe to drop into an input's value. */
+function numStr(v, max){
+  if(v === undefined || v === null) return undefined;
+  var n = parseFloat(String(v).replace(/,/g, ''));
+  if(isNaN(n) || !isFinite(n)) return undefined;
+  if(max !== undefined && Math.abs(n) > max) return undefined;
+  return String(n);
+}
+/**
+ * Validate and normalise a decoded share payload.
+ * @param {*} raw parsed JSON from the ?s= parameter or localStorage
+ * @returns {Object|null} a state object containing only known-good fields,
+ *   or null when the payload is not usable at all
+ */
+function validateShareState(raw){
+  if(!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  var s = {};
+
+  var g = parseFloat(raw.g);
+  if(!isNaN(g) && g >= 0 && g <= 100) s.g = g;
+
+  if(raw.m !== undefined) s.m = numStr(raw.m, 1e12);
+  ['cpd','cpv','spd','spv','pri','fgp','fmg'].forEach(function(k){
+    var v = numStr(raw[k], 1e12);
+    if(v !== undefined) s[k] = v;
+  });
+
+  var qty = parseInt(raw.qty, 10);
+  if(!isNaN(qty) && qty >= 1 && qty <= 1e6) s.qty = String(qty);
+
+  if(raw.rnd !== undefined){
+    s.rnd = raw.rnd === 'off' ? 'off' : numStr(raw.rnd, 1e5);
+    if(s.rnd === undefined || (s.rnd !== 'off' && parseFloat(s.rnd) <= 0)) delete s.rnd;
+  }
+
+  if(raw.t)     s.t     = pickEnum(raw.t, ['profit','sp','cp'], undefined);
+  if(raw.cm)    s.cm    = pickEnum(raw.cm, ['excl','incl','manual'], undefined);
+  if(raw.sm)    s.sm    = pickEnum(raw.sm, ['excl','incl','manual'], undefined);
+  if(raw.cpms)  s.cpms  = pickEnum(raw.cpms, ['incl','excl'], undefined);
+  if(raw.spms)  s.spms  = pickEnum(raw.spms, ['incl','excl'], undefined);
+  if(raw.pm)    s.pm    = pickEnum(raw.pm, ['val','gp','margin'], undefined);
+  if(raw.cdm)   s.cdm   = pickEnum(raw.cdm, ['before','after'], undefined);
+  if(raw.scdm)  s.scdm  = pickEnum(raw.scdm, ['before','after'], undefined);
+  if(raw.scm)   s.scm   = pickEnum(raw.scm, ['pct','abs'], undefined);
+  if(raw.sscm)  s.sscm  = pickEnum(raw.sscm, ['pct','abs'], undefined);
+  Object.keys(s).forEach(function(k){ if(s[k] === undefined) delete s[k]; });
+
+  // Incentive maps are keyed by incentive key, which is interpolated into
+  // element ids elsewhere — so the key rules apply here too.
+  function cleanModes(obj){
+    if(!obj || typeof obj !== 'object') return undefined;
+    var out = {}, any = false;
+    Object.keys(obj).forEach(function(k){
+      if(!isValidIncKey(k)) return;
+      out[k] = obj[k] === 'abs' ? 'abs' : 'pct';
+      any = true;
+    });
+    return any ? out : undefined;
+  }
+  function cleanInc(obj){
+    if(!obj || typeof obj !== 'object') return undefined;
+    var out = {}, any = false;
+    Object.keys(obj).forEach(function(k){
+      if(!isValidIncKey(k)) return;
+      var e = obj[k];
+      if(!e || typeof e !== 'object') return;
+      var v = numStr(e.v, 1e9);
+      out[k] = { on: !!e.on, v: v === undefined ? '' : v };
+      any = true;
+    });
+    return any ? out : undefined;
+  }
+  var im = cleanModes(raw.incm);   if(im) s.incm   = im;
+  var sm = cleanModes(raw.spincm); if(sm) s.spincm = sm;
+  var ic = cleanInc(raw.inc);      if(ic) s.inc    = ic;
+  var sc = cleanInc(raw.spinc);    if(sc) s.spinc  = sc;
+
+  if(raw._as !== undefined) s._as = !!raw._as;
+
+  return Object.keys(s).length ? s : null;
+}
+
 /* ── Share as link ── */
 function getShareState(){
   var inc={},spinc={};
@@ -4165,6 +4476,7 @@ function getShareState(){
     spinc[k]={on:cb?cb.checked:false,v:iv?iv.value:''};
   });
   return{
+    v:SHARE_VERSION,
     m:el('mrp').value,
     g:G*100,
     t:T,
@@ -4183,7 +4495,12 @@ function getShareState(){
  * Each field is applied independently so one bad value can't block the rest.
  * @param {Object} s state object from getShareState
  */
-function applyShareState(s){
+function applyShareState(raw){
+  var s=validateShareState(raw);
+  if(!s){
+    logWarn('share/saved state rejected: no usable fields',raw);
+    return;
+  }
   try{
     if(s.rnd)setRounding(s.rnd);
     if(s.qty!==undefined&&el('qty'))el('qty').value=s.qty;
@@ -4427,7 +4744,7 @@ function obRender(){
   var s=OB_STEPS[OB_STEP];
   // dots
   var dots='';
-  for(var i=0;i<OB_STEPS.length;i++)dots+='<button type="button" class="ob-dot'+(i===OB_STEP?' cur':'')+'" onclick="OB_STEP='+i+';obRender()" aria-label="Go to step '+(i+1)+'"'+(i===OB_STEP?' aria-current="step"':'')+'></button>';
+  for(var i=0;i<OB_STEPS.length;i++)dots+='<button type="button" class="ob-dot'+(i===OB_STEP?' cur':'')+'" data-click="obGoto" data-p="'+i+'" aria-label="Go to step '+(i+1)+'"'+(i===OB_STEP?' aria-current="step"':'')+'></button>';
   el('ob-dots').innerHTML=dots;
   // icon
   var icon=el('ob-icon');

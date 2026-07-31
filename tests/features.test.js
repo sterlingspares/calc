@@ -603,9 +603,12 @@ w.setHistQuery('target');
 ok('filter shows only target', d.getElementById('hist-tag').textContent === '1 of 3',
    'got ' + d.getElementById('hist-tag').textContent);
 // The rendered delete button must carry the TRUE index (1), not the filtered index (0)
-const delHtml = d.getElementById('hist-content').innerHTML;
-ok('delete button uses true index', delHtml.indexOf('deleteHistEntry(1)') !== -1,
-   'markup did not contain deleteHistEntry(1)');
+// Handlers are delegated; the true index travels in data-p.
+const delBtn = d.querySelector('#hist-content .hist-del-btn');
+ok('delete button carries the true index',
+   delBtn && delBtn.getAttribute('data-click') === 'histDelete' &&
+   delBtn.getAttribute('data-p') === '1',
+   delBtn ? delBtn.getAttribute('data-click') + '/' + delBtn.getAttribute('data-p') : 'missing');
 w.deleteHistEntry(1);
 ok('correct entry deleted', w.HISTORY.length === 2);
 ok('target is gone', !w.HISTORY.some(h => h.tag === 'target'));
@@ -980,6 +983,102 @@ ok('timestamp text updated in place',
    d.getElementById('htime-0').textContent);
 ok('the same node was reused, not rebuilt', d.getElementById('htime-0') === timeNode);
 ok('tag survived the refresh', w.HISTORY[0].tag === 'keepme');
+
+R.section('\n=== 59. No inline handlers remain (enables strict CSP) ===');
+const mk = readMarkup(), js = readAsset('assets/app.js');
+ok('index.html has zero on* attributes',
+   !/\son(click|change|input|focus|blur|keydown|load|submit)\s*=/.test(mk));
+ok('generated markup has zero on* attributes',
+   !/\son(click|change|input|focus|blur|keydown)\s*=\s*["\\]/.test(js));
+ok('CSP omits unsafe-inline for scripts',
+   /script-src\s+'self'\s*;/.test(mk), 'script-src is not exactly self');
+ok('CSP still present', mk.indexOf('Content-Security-Policy') !== -1);
+ok('action registry exists', typeof w.ACT === 'object' && Object.keys(w.ACT).length > 100,
+   'got ' + Object.keys(w.ACT || {}).length);
+ok('delegate() is defined', typeof w.delegate === 'function');
+
+R.section('\n=== 60. Delegated handlers actually fire ===');
+freshCalc(1000, 40, 25);
+const gstPill = d.getElementById('g5');
+gstPill.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+ok('clicking a pill runs its action', Math.abs(w.G - 0.05) < 1e-9, 'G=' + w.G);
+d.getElementById('g18').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+ok('and back again', Math.abs(w.G - 0.18) < 1e-9);
+
+d.getElementById('phdr-inc').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+ok('panel toggle is delegated', w.isIncPanelOpen('cp'));
+d.getElementById('cp-inc-edit-btn').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+ok('nested Edit fires without toggling the panel',
+   w.CP_EDIT_MODE === true && w.isIncPanelOpen('cp'));
+d.getElementById('cp-inc-edit-btn').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+d.getElementById('phdr-inc').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+
+// Generated rows carry parameterised actions
+const ebRow = d.getElementById('it-eb');
+ok('generated checkbox has a delegated action',
+   ebRow.getAttribute('data-change') === 'incToggle' && ebRow.getAttribute('data-q') === 'eb');
+ebRow.checked = true;
+ebRow.dispatchEvent(new w.Event('change', { bubbles: true }));
+ok('generated handler recalculates', Math.abs(num('pvv') - 156) < 0.05, 'got ' + num('pvv'));
+ebRow.checked = false;
+ebRow.dispatchEvent(new w.Event('change', { bubbles: true }));
+
+ok('unknown action logs rather than throwing', (() => {
+  const btn = d.createElement('button');
+  btn.setAttribute('data-click', 'doesNotExist');
+  d.body.appendChild(btn);
+  let threw = false;
+  try { btn.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); } catch (e) { threw = true; }
+  d.body.removeChild(btn);
+  return !threw;
+})());
+
+R.section('\n=== 61. Share payloads are validated, not trusted ===');
+ok('validateShareState is defined', typeof w.validateShareState === 'function');
+ok('rejects non-objects',
+   w.validateShareState(null) === null && w.validateShareState('x') === null &&
+   w.validateShareState([1, 2]) === null);
+ok('rejects an empty object', w.validateShareState({}) === null);
+ok('drops unknown keys',
+   !('evil' in (w.validateShareState({ m: '100', evil: 'x' }) || {})));
+ok('clamps out-of-range GST',
+   w.validateShareState({ g: 500 }) === null || !('g' in w.validateShareState({ g: 500, m: '1' })));
+ok('accepts a valid GST', w.validateShareState({ g: 12 }).g === 12);
+ok('rejects non-numeric prices', !('cpd' in (w.validateShareState({ m: '1', cpd: 'abc' }) || {})));
+ok('rejects bad enums', !('t' in (w.validateShareState({ m: '1', t: 'evil' }) || {})));
+ok('accepts good enums', w.validateShareState({ t: 'cp' }).t === 'cp');
+ok('drops malformed incentive keys', (() => {
+  const r = w.validateShareState({ inc: { 'cd': { on: true, v: '2' }, '"><img>': { on: true, v: '2' } } });
+  return r && r.inc && r.inc.cd && !r.inc['"><img>'];
+})());
+ok('coerces incentive on-flags to booleans', (() => {
+  const r = w.validateShareState({ inc: { cd: { on: 'yes', v: '2' } } });
+  return r.inc.cd.on === true;
+})());
+ok('rejects a non-positive rounding step',
+   !('rnd' in (w.validateShareState({ m: '1', rnd: '-5' }) || {})));
+ok('accepts a valid rounding step', w.validateShareState({ rnd: '20' }).rnd === '20');
+ok('outgoing state carries a version', w.getShareState().v === w.SHARE_VERSION);
+
+R.section('\n=== 62. Fonts are self-hosted ===');
+ok('no Google Fonts origin in markup',
+   mk.indexOf('fonts.googleapis.com') === -1 && mk.indexOf('fonts.gstatic.com') === -1);
+ok('local fonts.css is linked', mk.indexOf('assets/fonts.css') !== -1);
+ok('CSP font-src is self-only', /font-src\s+'self'\s*;/.test(mk));
+const fontCss = readAsset('assets/fonts.css');
+ok('three families declared', (fontCss.match(/@font-face/g) || []).length === 3,
+   'got ' + (fontCss.match(/@font-face/g) || []).length);
+ok('uses weight ranges (one variable file per family)',
+   /font-weight:\s*\d+\s+\d+/.test(fontCss));
+['DMSans', 'JetBrainsMono', 'Syne'].forEach(f => {
+  ok(f + '.woff2 exists', fs.existsSync(path.join(ROOT, 'assets/fonts/' + f + '.woff2')));
+});
+const sw2 = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+ok('fonts are precached for offline', sw2.indexOf('/assets/fonts/DMSans.woff2') !== -1);
+ok('security headers file exists', fs.existsSync(path.join(ROOT, '_headers')));
+const hdrs = fs.readFileSync(path.join(ROOT, '_headers'), 'utf8');
+ok('_headers denies framing',
+   hdrs.indexOf('X-Frame-Options: DENY') !== -1 && hdrs.indexOf("frame-ancestors 'none'") !== -1);
 
 if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
 R.finish();
