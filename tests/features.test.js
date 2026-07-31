@@ -2577,6 +2577,164 @@ runFetchCases().then(() => {
   ok('an unknown scope leaves the current one alone',
      (w.setDisplayCcy('USD', 'nonsense'), w.FX_SCOPE === 'both'), w.FX_SCOPE);
 
+  R.section('\n=== 31. Turning features off ===');
+
+  // Walk the registry rather than naming elements here: a feature added later
+  // is covered by default, and the assertions cannot drift from the definitions.
+  freshCalc(1000, 40, 25);
+  w.setDisplayCcy('INR', 'both');
+  w.openModal('settings');
+  ok('a switch per feature', d.querySelectorAll('#feat-grid .feat-chip').length === 8,
+     'got ' + d.querySelectorAll('#feat-grid .feat-chip').length);
+  ok('all eight are named',
+     ['presets', 'quote', 'whatif', 'forex', 'landed', 'solver', 'inccp', 'incsp']
+       .every(k => w.FEATURE_DEFS.some(f => f.k === k)),
+     w.FEATURE_DEFS.map(f => f.k).join(','));
+  ok('each switch reports its state to assistive tech',
+     [...d.querySelectorAll('#feat-grid .feat-chip')]
+       .every(b => b.getAttribute('role') === 'switch' && b.getAttribute('aria-checked') === 'true'));
+  w.closeModal('settings');
+
+  // ── Everything on holds values; each reports them ──────────────────────
+  d.getElementById('landed').value = '50';
+  d.getElementById('sp-landed').value = '30';
+  d.getElementById('it-eb').checked = true; d.getElementById('iv-eb').value = '5';
+  w.syncToggle('eb');
+  d.getElementById('sit-cd').checked = true; d.getElementById('siv-cd').value = '2';
+  w.syncSpToggle('cd');
+  d.getElementById('solver-gp').value = '30';
+  w.PRESETS = { Bosch: w.capturePreset() };
+  w.QUOTE.length = 0; w.QUOTE.push({ mrp: '1000', cpd: '40', spd: '25', qty: '1' });
+  w.WI_SCENES[0].spDisc = '20';
+  w.FX.rates = { INR: 1, USD: 0.01 }; w.FX.fetched = w.nowMs();
+  w.setDisplayCcy('USD', 'sale');
+  w.calc();
+
+  ok('every feature reports what it is holding',
+     w.FEATURE_DEFS.every(f => f.values().length > 0),
+     w.FEATURE_DEFS.filter(f => !f.values().length).map(f => f.k).join(','));
+
+  // ── Turning one off names its values and asks first ────────────────────
+  w.toggleFeature('presets');
+  ok('a feature holding values asks before clearing',
+     d.getElementById('overlay-confirm').classList.contains('open'));
+  ok('and says what will go',
+     d.getElementById('confirm-msg').textContent.indexOf('1 saved preset') !== -1,
+     d.getElementById('confirm-msg').textContent);
+  ok('nothing has happened yet', w.featOn('presets') === true && Object.keys(w.PRESETS).length === 1);
+  w.closeConfirm();
+  ok('cancelling leaves it on and intact',
+     w.featOn('presets') === true && Object.keys(w.PRESETS).length === 1);
+
+  w.toggleFeature('presets');
+  w.runConfirm();
+  ok('confirming turns it off', w.featOn('presets') === false);
+  ok('and clears its values', Object.keys(w.PRESETS).length === 0);
+  ok('and hides everything it owns',
+     w.featureDef('presets').els.every(id => {
+       const e = d.getElementById(id); return !e || e.style.display === 'none';
+     }),
+     w.featureDef('presets').els.map(id => id + '=' + (d.getElementById(id) || {}).style?.display).join(' '));
+
+  // ── A feature holding nothing goes quietly ─────────────────────────────
+  d.getElementById('solver-gp').value = '';
+  w.toggleFeature('solver');
+  ok('an empty feature does not interrupt',
+     d.getElementById('overlay-confirm').classList.contains('open') === false);
+  ok('it is simply off', w.featOn('solver') === false);
+  ok('and hidden', d.getElementById('solver').style.display === 'none');
+
+  // ── Off means unreachable, not merely invisible ────────────────────────
+  w.toggleFeature('quote'); w.runConfirm();
+  w.openModal('quote');
+  ok('a disabled dialog will not open', !d.getElementById('overlay-quote').classList.contains('open'));
+  pressKey('m');
+  ok('nor by its keyboard shortcut', !d.getElementById('overlay-quote').classList.contains('open'));
+  pressKey('e');
+  ok('same for a disabled preset manager', !overlayOpen('presets'));
+
+  // A stale value must never move a number once its feature is off.
+  const withLanded = w.effectiveCP(w.LAST_CP);
+  w.toggleFeature('landed'); w.runConfirm();
+  w.calc();
+  ok('landed cost stops counting once it is off',
+     Math.abs(w.getLandedCost()) < 1e-9 && Math.abs(w.getSPLandedCost()) < 1e-9,
+     w.getLandedCost() + '/' + w.getSPLandedCost());
+  ok('and the effective price moves accordingly',
+     Math.abs(w.effectiveCP(w.LAST_CP) - withLanded) > 1,
+     'was ' + withLanded + ' now ' + w.effectiveCP(w.LAST_CP));
+  // Even if a value is put back into the hidden field by other means.
+  d.getElementById('landed').value = '999';
+  ok('a value left in a hidden field is ignored', w.getLandedCost() === 0,
+     'got ' + w.getLandedCost());
+  d.getElementById('landed').value = '';
+
+  w.toggleFeature('inccp'); w.runConfirm();
+  d.getElementById('it-eb').checked = true; d.getElementById('iv-eb').value = '5';
+  ok('CP incentives stop counting once off', w.getIncentiveInr(w.LAST_CP) === 0,
+     'got ' + w.getIncentiveInr(w.LAST_CP));
+  w.toggleFeature('incsp'); w.runConfirm();
+  ok('SP incentives too', w.getSPIncentiveInr(w.LAST_SP) === 0,
+     'got ' + w.getSPIncentiveInr(w.LAST_SP));
+  ok('the incentives tab goes with them',
+     d.getElementById('bnav-inc').style.display === 'none',
+     d.getElementById('bnav-inc').style.display);
+
+  // Turning off the currency feature returns the display to rupees.
+  w.toggleFeature('forex'); w.runConfirm();
+  ok('turning off currency goes back to rupees', w.DISPLAY_CCY === 'INR', w.DISPLAY_CCY);
+  w.setDisplayCcy('USD', 'sale');
+  ok('and it cannot be set again while off', w.DISPLAY_CCY === 'INR', w.DISPLAY_CCY);
+
+  w.toggleFeature('whatif'); w.runConfirm();
+  ok('every feature is now off', w.FEATURE_DEFS.every(f => !w.featOn(f.k)),
+     w.FEATURE_DEFS.filter(f => w.featOn(f.k)).map(f => f.k).join(','));
+  ok('and every element they own is hidden',
+     w.FEATURE_DEFS.every(f => f.els.every(id => {
+       const e = d.getElementById(id); return !e || e.style.display === 'none';
+     })));
+  // The calculator itself still works with everything switched off.
+  w.calc();
+  ok('the core calculation survives with everything off',
+     Math.abs(w.LAST_CP.e - 600) < 0.01 && Math.abs(w.LAST_SP.e - 750) < 0.01,
+     w.LAST_CP.e + '/' + w.LAST_SP.e);
+
+  // ── Back on ────────────────────────────────────────────────────────────
+  w.toggleFeature('landed');
+  ok('turning one back on asks nothing',
+     d.getElementById('overlay-confirm').classList.contains('open') === false);
+  ok('it is on', w.featOn('landed') === true);
+  ok('and visible again',
+     d.getElementById('stat-landed-cp').style.display !== 'none');
+  ok('but its cleared values do not come back',
+     d.getElementById('landed').value === '', 'got ' + d.getElementById('landed').value);
+
+  // ── The switches persist, and undo covers them ─────────────────────────
+  w.saveFeatures();
+  const savedFeat = w.localStorage.getItem('pc-features');
+  ok('the settings are stored', savedFeat && savedFeat.indexOf('"quote":false') !== -1, savedFeat);
+  w.FEATURES = { presets: true, quote: true, whatif: true, forex: true,
+                 landed: true, solver: true, inccp: true, incsp: true };
+  w.loadFeatures();
+  ok('and restored', w.featOn('quote') === false && w.featOn('landed') === true);
+  w.localStorage.setItem('pc-features', '{"quote":false,"bogus":false,"presets":"yes"}');
+  w.FEATURES = { presets: true, quote: true, whatif: true, forex: true,
+                 landed: true, solver: true, inccp: true, incsp: true };
+  w.loadFeatures();
+  ok('an unknown key in storage is ignored', w.FEATURES.bogus === undefined);
+  ok('and a non-false value does not disable anything', w.featOn('presets') === true);
+  ok('while a real one still applies', w.featOn('quote') === false);
+
+  w.undo();
+  ok('undo brings a switched-off feature back', w.featOn('whatif') === true,
+     'whatif=' + w.featOn('whatif'));
+
+  // Leave everything on for whatever runs after this.
+  w.FEATURE_DEFS.forEach(f => { if (!w.featOn(f.k)) w.toggleFeature(f.k); });
+  w.localStorage.removeItem('pc-features');
+  ok('everything is back on', w.FEATURE_DEFS.every(f => w.featOn(f.k)),
+     w.FEATURE_DEFS.filter(f => !w.featOn(f.k)).map(f => f.k).join(','));
+
   w.setDisplayCcy('INR', 'both');
   w.resetAll();
   if (errs.length) console.log('Uncaught page errors:\n  ' + errs.join('\n  '));
