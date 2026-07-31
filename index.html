@@ -633,6 +633,71 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .lbl-input{flex:1;border:none;outline:none;background:transparent;padding:7px 10px;font-size:13px;font-family:var(--font-body);font-weight:400;color:var(--text);min-width:0}
 .lbl-input::placeholder{color:var(--text3)}
 
+/* ── QUANTITY ── */
+.qty-wrap{display:flex;align-items:center;gap:6px}
+.qty-box{display:flex;align-items:center;border:1.5px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface)}
+.qty-box button{width:26px;height:28px;border:none;background:transparent;color:var(--text2);font-size:15px;cursor:pointer;line-height:1;font-family:var(--font-body)}
+.qty-box button:hover{background:var(--surface2);color:var(--accent)}
+.qty-box input{width:46px;border:none;outline:none;background:transparent;text-align:center;font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--text);padding:4px 0;-moz-appearance:textfield}
+.qty-box input::-webkit-outer-spin-button,.qty-box input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.sum-item.sum-order .sum-val{color:#fff}
+.sum-order-sep{grid-column:1/-1;height:1px;background:rgba(255,255,255,0.18);margin:2px 0}
+
+/* ── TOAST ── */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--surface);padding:10px 16px;border-radius:22px;font-size:12.5px;font-family:var(--font-body);box-shadow:0 6px 24px rgba(0,0,0,0.25);z-index:400;opacity:0;transition:transform .25s cubic-bezier(.2,.9,.3,1),opacity .25s;pointer-events:none;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
+.toast-undo{background:none;border:none;color:var(--amber);font-weight:600;font-size:12.5px;cursor:pointer;font-family:var(--font-body);padding:0;white-space:nowrap}
+@media(max-width:800px){.toast{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}
+
+/* ── CONFIRM MODAL ── */
+.confirm-modal{max-width:400px}
+.confirm-msg{font-size:13.5px;color:var(--text);line-height:1.55;margin-bottom:6px}
+.confirm-sub{font-size:11.5px;color:var(--text3);line-height:1.5}
+.confirm-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.confirm-btn{padding:7px 16px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body)}
+.confirm-btn:hover{background:var(--surface2)}
+.confirm-btn.danger{border-color:var(--red);color:#fff;background:var(--red)}
+.confirm-btn.danger:hover{filter:brightness(.92)}
+
+/* ── HISTORY SEARCH / FILTER / TAGS ── */
+.hist-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.hist-search-wrap{display:flex;align-items:center;gap:6px;border:1.5px solid var(--border2);border-radius:20px;padding:3px 10px;background:var(--surface);flex:1;min-width:150px}
+.hist-search-wrap:focus-within{border-color:var(--accent)}
+.hist-search-wrap input{border:none;outline:none;background:transparent;font-size:12px;font-family:var(--font-body);color:var(--text);flex:1;min-width:0;padding:2px 0}
+.hist-search-wrap svg{color:var(--text3);flex-shrink:0}
+.hist-filters{display:flex;gap:4px;flex-wrap:wrap}
+.hist-fpill{padding:3px 10px;border-radius:14px;border:1px solid var(--border2);background:transparent;font-size:10.5px;font-weight:500;color:var(--text3);cursor:pointer;font-family:var(--font-body);white-space:nowrap}
+.hist-fpill:hover{background:var(--surface2)}
+.hist-fpill.on{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.hist-tag{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:1px 7px;border-radius:9px;background:var(--blue-bg);color:var(--blue);border:1px solid transparent;cursor:pointer;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.hist-tag:hover{border-color:var(--blue)}
+.hist-tag.empty{background:transparent;color:var(--text3);border:1px dashed var(--border2)}
+.hist-tag.empty:hover{color:var(--accent);border-color:var(--accent)}
+.hist-tag-input{font-size:10px;font-family:var(--font-body);border:1px solid var(--accent);border-radius:9px;padding:1px 6px;outline:none;background:var(--surface);color:var(--text);width:110px}
+.hist-none{text-align:center;padding:22px;color:var(--text3);font-size:12px;font-style:italic}
+
+/* ── QUOTE (multi-line) ── */
+.quote-modal{max-width:1000px}
+.qt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.qt-table{width:100%;border-collapse:collapse;min-width:720px}
+.qt-table th{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
+.qt-table th.num,.qt-table td.num{text-align:right}
+.qt-table td{padding:3px 6px;border-bottom:1px solid var(--border);font-size:11.5px;font-family:var(--font-mono);white-space:nowrap}
+.qt-table tr:last-child td{border-bottom:none}
+.qt-in{border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);padding:4px 6px;font-size:11.5px;font-family:var(--font-mono);color:var(--text);outline:none;width:72px;text-align:right;-moz-appearance:textfield}
+.qt-in::-webkit-outer-spin-button,.qt-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qt-in:focus{border-color:var(--accent)}
+.qt-in.desc{width:150px;text-align:left;font-family:var(--font-body)}
+.qt-del{width:22px;height:22px;padding:0;border-radius:50%;border:1px solid var(--border2);background:transparent;cursor:pointer;color:var(--text3);display:flex;align-items:center;justify-content:center}
+.qt-del:hover{background:#fef2f2;border-color:var(--red);color:var(--red)}
+html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
+.qt-pos{color:var(--green)}
+.qt-neg{color:var(--red)}
+.qt-foot td{border-top:2px solid var(--border2);font-weight:600;padding-top:8px;font-size:12px}
+.qt-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.qt-empty{text-align:center;padding:26px;color:var(--text3);font-size:12px;font-style:italic}
+.qt-note{font-size:10.5px;color:var(--text3);font-style:italic;margin-top:10px;line-height:1.5}
+
 /* ── MOBILE-ONLY OVERRIDES (must come after base rules) ── */
 @media(max-width:800px){
   /* Footer: enough space below bottom nav */
@@ -685,7 +750,17 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1" width="9" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         PDF
       </button>
+      <button class="hbtn" onclick="openModal('quote')" title="Multi-line quote builder (M)">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1.5" width="9" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Quote
+      </button>
       <div class="hdivider"></div>
+      <button class="hbtn hbtn-icon" id="undo-btn" onclick="undo()" title="Undo (⌘Z)" aria-label="Undo" disabled>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3 6h5.5a3 3 0 010 6H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 3.5L2.5 6 5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="hbtn hbtn-icon" id="redo-btn" onclick="redo()" title="Redo (⌘⇧Z)" aria-label="Redo" disabled>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 6H5.5a3 3 0 000 6H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 3.5L11.5 6 9 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
       <button class="hbtn hbtn-icon" onclick="openModal('shortcuts')" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 6.2C6.5 5.3 7.1 4.7 8 4.7c.9 0 1.5.6 1.5 1.4 0 .7-.4 1.1-1 1.5C7.8 8 7.5 8.4 7.5 9v.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="7.5" cy="11" r=".7" fill="currentColor"/></svg>
       </button>
@@ -715,6 +790,15 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         <button class="hmenu-item" onclick="exportPDF();closeHMenu()">
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1" width="9" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
           Export PDF
+        </button>
+        <button class="hmenu-item" onclick="openModal('quote');closeHMenu()">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1.5" width="9" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Quote builder
+        </button>
+        <div class="hmenu-sep"></div>
+        <button class="hmenu-item" id="hmenu-undo" onclick="undo();closeHMenu()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 6h5.5a3 3 0 010 6H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 3.5L2.5 6 5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Undo
         </button>
         <div class="hmenu-sep"></div>
         <button class="hmenu-item" onclick="sendWhatsApp();closeHMenu()">
@@ -785,6 +869,16 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
       <div class="mrp-stat"><span class="mrp-stat-lbl">Excl. GST</span><span class="mrp-stat-val" id="mx">—</span></div>
       <div class="mrp-stat"><span class="mrp-stat-lbl">GST Amount</span><span class="mrp-stat-val" id="mg">—</span></div>
       <div class="mrp-stat"><span class="mrp-stat-lbl">GST Rate</span><span class="mrp-stat-val" id="grate">18%</span></div>
+      <div class="mrp-stat">
+        <span class="mrp-stat-lbl">Quantity</span>
+        <span class="qty-wrap">
+          <span class="qty-box">
+            <button type="button" onclick="stepQty(-1)" aria-label="Decrease quantity" tabindex="-1">−</button>
+            <input type="number" id="qty" value="1" min="1" step="1" inputmode="numeric" oninput="calc();debouncedSaveCalcState()" autocomplete="off" aria-label="Quantity">
+            <button type="button" onclick="stepQty(1)" aria-label="Increase quantity" tabindex="-1">+</button>
+          </span>
+        </span>
+      </div>
     </div>
   </div>
 
@@ -973,6 +1067,10 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         <div class="sum-item"><div class="sum-lbl">Margin %</div><div class="sum-val dim" id="s-mg">—</div></div>
         <div class="sum-item"><div class="sum-lbl">CP Discount + GST %</div><div class="sum-val dim" id="s-dcp">—</div></div>
         <div class="sum-item"><div class="sum-lbl">SP Discount + GST %</div><div class="sum-val dim" id="s-dsp">—</div></div>
+        <div class="sum-order-sep" id="s-order-sep" style="display:none"></div>
+        <div class="sum-item sum-order" id="s-item-qty" style="display:none"><div class="sum-lbl">Quantity</div><div class="sum-val dim" id="s-qty">—</div></div>
+        <div class="sum-item sum-order" id="s-item-order" style="display:none"><div class="sum-lbl">Order Value (incl GST)</div><div class="sum-val dim" id="s-order">—</div></div>
+        <div class="sum-item sum-order" id="s-item-tpr" style="display:none"><div class="sum-lbl">Total Profit ₹</div><div class="sum-val dim" id="s-tpr">—</div></div>
       </div>
     </div>
   </div>
@@ -995,6 +1093,19 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
       <svg class="panel-chevron" id="chev-hist" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
     <div class="panel-body" id="body-hist">
+      <div class="hist-tools" id="hist-tools" style="display:none">
+        <span class="hist-search-wrap">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><path d="M7.7 7.7L10.5 10.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          <input type="text" id="hist-search" placeholder="Search tags, GST, values…" oninput="setHistQuery(this.value)" autocomplete="off" aria-label="Search history">
+        </span>
+        <span class="hist-filters">
+          <button class="hist-fpill on" id="hf-all"   onclick="setHistFilter('all')">All</button>
+          <button class="hist-fpill"    id="hf-pos"   onclick="setHistFilter('pos')">Profit +</button>
+          <button class="hist-fpill"    id="hf-neg"   onclick="setHistFilter('neg')">Loss</button>
+          <button class="hist-fpill"    id="hf-below" onclick="setHistFilter('below')">Below floor</button>
+          <button class="hist-fpill"    id="hf-tagged" onclick="setHistFilter('tagged')">Tagged</button>
+        </span>
+      </div>
       <div class="hist-table-wrap"><div id="hist-content" role="list" aria-label="Calculation history"><div class="hist-empty" role="status">No entries yet — save a calculation to start.</div></div></div>
       <div class="hist-actions">
         <button class="hist-btn save" onclick="saveToHistory()">Save current</button>
@@ -1285,6 +1396,23 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
       </div>
 
       <div class="modal-section">
+        <div class="modal-section-title">Rounding</div>
+        <div class="settings-row">
+          <div class="settings-lbl">
+            <span>Round prices</span>
+            <small>Rounds the incl-GST price to a whole amount; excl-GST and profit follow from it.</small>
+          </div>
+          <div class="settings-control">
+            <div class="pill-group">
+              <button class="pill on" id="rnd-off" onclick="setRounding('off')">Off</button>
+              <button class="pill"    id="rnd-1"   onclick="setRounding('1')">₹1</button>
+              <button class="pill"    id="rnd-5"   onclick="setRounding('5')">₹5</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-section">
         <div class="modal-section-title">History</div>
         <div class="settings-row">
           <div class="settings-lbl">
@@ -1369,6 +1497,9 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         <div class="kb-row"><span class="kb-desc">Reset all</span><span class="kb-keys"><span class="kbd">R</span></span></div>
         <div class="kb-row"><span class="kb-desc">Save to history</span><span class="kb-keys"><span class="kbd kbd-mod">⌘</span><span class="kbd">S</span></span></div>
         <div class="kb-row"><span class="kb-desc">Copy summary</span><span class="kb-keys"><span class="kbd kbd-mod">⌘</span><span class="kbd">C</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Undo</span><span class="kb-keys"><span class="kbd kbd-mod">⌘</span><span class="kbd">Z</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Redo</span><span class="kb-keys"><span class="kbd kbd-mod">⌘</span><span class="kbd">⇧</span><span class="kbd">Z</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Open quote builder</span><span class="kb-keys"><span class="kbd">M</span></span></div>
         <div class="kb-section-title">Mode &amp; GST</div>
         <div class="kb-row"><span class="kb-desc">Switch Default / Quick</span><span class="kb-keys"><span class="kbd">Q</span></span></div>
         <div class="kb-row"><span class="kb-desc">GST 18%</span><span class="kb-keys"><span class="kbd">1</span></span></div>
@@ -1384,6 +1515,51 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
       </div>
     </div>
   </div>
+</div>
+
+<!-- ═══ QUOTE BUILDER MODAL ═══ -->
+<div class="modal-overlay" id="overlay-quote" onclick="overlayClick(event,'quote')" role="presentation">
+  <div class="modal quote-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-quote">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title-quote">Quote Builder</span>
+      <button class="modal-close" onclick="closeModal('quote')" aria-label="Close quote builder">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="qt-wrap"><table class="qt-table" id="qt-table"></table></div>
+      <div class="qt-actions">
+        <button class="hist-btn save" onclick="qtAddLine()">+ Add line</button>
+        <button class="hist-btn" onclick="qtAddFromCalc()">Add current calculation</button>
+        <button class="hist-btn export" onclick="qtExportCSV()">Export CSV</button>
+        <button class="hist-btn" onclick="qtCopy()">Copy quote</button>
+        <button class="hist-btn" onclick="qtClear()">Clear all</button>
+      </div>
+      <p class="qt-note">Each line uses the calculator's current GST rate and rounding setting. Discounts are on MRP, matching the "Discount excl GST" mode. Incentives are not applied per line — enter net discounts here.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONFIRM MODAL ═══ -->
+<div class="modal-overlay" id="overlay-confirm" onclick="overlayClick(event,'confirm')" role="presentation">
+  <div class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-msg">
+    <div class="modal-header">
+      <span class="modal-title" id="confirm-title">Confirm</span>
+      <button class="modal-close" onclick="closeConfirm()" aria-label="Cancel">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-msg" id="confirm-msg"></div>
+      <div class="confirm-sub" id="confirm-sub"></div>
+      <div class="confirm-actions">
+        <button class="confirm-btn" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn danger" id="confirm-yes" onclick="runConfirm()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span id="toast-msg"></span>
+  <button class="toast-undo" id="toast-undo" onclick="undo()" style="display:none">Undo</button>
 </div>
 
 <!-- ═══ ONBOARDING OVERLAY ═══ -->
@@ -1415,6 +1591,14 @@ var SCM='pct'; // scheme mode: 'pct' | 'abs'
 var SP_INC_KEYS=['cd','eb','qt','an','sc'];
 var SSCM='pct'; // SP scheme mode: 'pct' | 'abs'
 var SCDM='before'; // SP CD mode: 'before' | 'after'
+/* User-added incentives: per-key 'pct' | 'abs', same choice the Scheme row offers */
+var ROUND_MODE='off'; // 'off' | '1' | '5' — rounds the incl-GST price
+var QUOTE=[];         // multi-line quote rows
+var HIST_QUERY='',HIST_FILTER='all';
+var BUILTIN_INC=['cd','eb','qt','an','sc'];
+var INC_MODE={},SP_INC_MODE={};
+function isCustomInc(k){return BUILTIN_INC.indexOf(k)===-1}
+function incModeOf(panel,k){var m=(panel==='cp'?INC_MODE:SP_INC_MODE)[k];return m==='abs'?'abs':'pct'}
 var HISTORY=[];
 var MAX_HIST=50;
 var WI_SCENES=[
@@ -1530,13 +1714,154 @@ function openModal(id){
   var o=el('overlay-'+id);
   if(o){o.classList.add('open');document.body.style.overflow='hidden'}
   if(id==='whatif')renderWhatIf(LAST_CP);
+  if(id==='quote')qtRender();
 }
 function closeModal(id){
   var o=el('overlay-'+id);
   if(o){o.classList.remove('open');document.body.style.overflow=''}
 }
 function overlayClick(e,id){if(e.target===el('overlay-'+id))closeModal(id)}
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('settings');closeModal('whatif')}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('settings');closeModal('whatif');closeModal('quote');closeConfirm()}});
+
+/* ── Quantity ── */
+function getQty(){
+  var e=el('qty');if(!e)return 1;
+  var q=parseInt(e.value,10);
+  return (isNaN(q)||q<1)?1:q;
+}
+function stepQty(d){
+  var e=el('qty');if(!e)return;
+  e.value=Math.max(1,getQty()+d);
+  haptic('light');calc();debouncedSaveCalcState();
+}
+
+/* ── Rounding ──
+   Rounds the incl-GST price to a whole amount and derives excl from it, so the
+   sticker price is the clean number and profit stays consistent with what's shown. */
+function roundStep(){return ROUND_MODE==='1'?1:ROUND_MODE==='5'?5:0}
+function roundPrice(p){
+  var s=roundStep();
+  if(!s||!p)return p;
+  var i=Math.round(p.i/s)*s;
+  return {e:i/(1+G),i:i};
+}
+function setRounding(m){
+  haptic('select');
+  ROUND_MODE=m;
+  ['off','1','5'].forEach(function(k){
+    var b=el('rnd-'+k);if(b)b.className='pill'+(k===m?' on':'');
+  });
+  calc();saveCalcState();
+  if(el('overlay-quote').classList.contains('open'))qtRender();
+}
+
+/* ── Toast ── */
+var _toastTimer=null;
+function toast(msg,withUndo){
+  var t=el('toast'),m=el('toast-msg'),u=el('toast-undo');
+  if(!t)return;
+  m.textContent=msg;
+  u.style.display=withUndo?'':'none';
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(function(){t.classList.remove('show')},withUndo?5000:2400);
+}
+function hideToast(){var t=el('toast');if(t)t.classList.remove('show');clearTimeout(_toastTimer)}
+
+/* ── Confirm dialog ── */
+var _confirmFn=null;
+function askConfirm(title,msg,sub,btnLabel,fn){
+  _confirmFn=fn;
+  R('confirm-title',title);R('confirm-msg',msg);R('confirm-sub',sub||'');
+  var y=el('confirm-yes');if(y)y.textContent=btnLabel||'Delete';
+  var o=el('overlay-confirm');
+  if(o){o.classList.add('open');document.body.style.overflow='hidden'}
+}
+function closeConfirm(){
+  _confirmFn=null;
+  var o=el('overlay-confirm');
+  if(o){o.classList.remove('open');document.body.style.overflow=''}
+}
+function runConfirm(){
+  var fn=_confirmFn;
+  closeConfirm();
+  if(typeof fn==='function')fn();
+}
+
+/* ── Undo / Redo ──
+   Snapshots the whole mutable app state. Cheap enough at this size, and it means
+   any new action gets undo for free by calling pushUndo() before it mutates. */
+var UNDO=[],REDO=[],MAX_UNDO=40,_undoBusy=false;
+function captureState(){
+  return {
+    share:getShareState(),
+    incKeys:INC_KEYS.slice(),
+    spIncKeys:SP_INC_KEYS.slice(),
+    labels:JSON.parse(JSON.stringify(INC_LABELS)),
+    incMode:JSON.parse(JSON.stringify(INC_MODE)),
+    spIncMode:JSON.parse(JSON.stringify(SP_INC_MODE)),
+    history:JSON.parse(JSON.stringify(HISTORY)),
+    quote:JSON.parse(JSON.stringify(QUOTE)),
+    round:ROUND_MODE,
+    qty:el('qty')?el('qty').value:'1'
+  };
+}
+function restoreState(s){
+  if(!s)return;
+  _undoBusy=true;
+  try{
+    INC_KEYS=s.incKeys.slice();
+    SP_INC_KEYS=s.spIncKeys.slice();
+    INC_LABELS=JSON.parse(JSON.stringify(s.labels));
+    INC_MODE=JSON.parse(JSON.stringify(s.incMode));
+    SP_INC_MODE=JSON.parse(JSON.stringify(s.spIncMode));
+    HISTORY=JSON.parse(JSON.stringify(s.history));
+    QUOTE=JSON.parse(JSON.stringify(s.quote));
+    ROUND_MODE=s.round;
+    renderCPIncRows();renderSPIncRows();
+    setRounding(ROUND_MODE);
+    if(el('qty'))el('qty').value=s.qty;
+    applyShareState(s.share);
+    saveLabels();saveHistoryToStorage();saveQuote();
+    renderHistory();
+    if(el('overlay-quote').classList.contains('open'))qtRender();
+    calc();
+  }catch(e){}
+  _undoBusy=false;
+}
+function pushUndo(label){
+  if(_undoBusy)return;
+  UNDO.push({label:label,state:captureState()});
+  if(UNDO.length>MAX_UNDO)UNDO.shift();
+  REDO=[];
+  updateUndoBtns();
+}
+function updateUndoBtns(){
+  var u=el('undo-btn'),r=el('redo-btn');
+  if(u){u.disabled=UNDO.length===0;u.style.opacity=UNDO.length?'':'0.4'}
+  if(r){r.disabled=REDO.length===0;r.style.opacity=REDO.length?'':'0.4'}
+  var hu=el('hmenu-undo');
+  if(hu)hu.style.opacity=UNDO.length?'':'0.4';
+}
+function undo(){
+  if(UNDO.length===0){toast('Nothing to undo');return}
+  var entry=UNDO.pop();
+  REDO.push({label:entry.label,state:captureState()});
+  restoreState(entry.state);
+  updateUndoBtns();
+  hideToast();
+  haptic('light');
+  toast('Undid: '+entry.label);
+}
+function redo(){
+  if(REDO.length===0){toast('Nothing to redo');return}
+  var entry=REDO.pop();
+  UNDO.push({label:entry.label,state:captureState()});
+  restoreState(entry.state);
+  updateUndoBtns();
+  haptic('light');
+  toast('Redid: '+entry.label);
+}
 
 /* ── Floor helpers ── */
 function getFloor(){
@@ -1641,17 +1966,19 @@ function _incRowHTML(k,panel,editMode){
   var syncFn=isCP?'syncToggle':'syncSpToggle';
   var defVal=(k==='sc')?'':(k==='cd'||k==='qt')?'2':'1';
   var placeholder=(k==='sc')?'0':'';
-  var maxAttr=(k==='sc')?'':' max="100"';
+  var custom=isCustomInc(k),cMode=custom?incModeOf(panel,k):null,cAbs=(cMode==='abs');
+  var maxAttr=(k==='sc'||cAbs)?'':' max="100"';
 
   var delBtn=editMode?'<button class="inc-del-btn" onclick="deleteInc(\''+panel+'\',\''+k+'\')" title="Delete" aria-label="Delete">&#x2212;</button>':'';
   var labelHtml=editMode
-    ?'<input class="inc-label-edit" id="'+lblId+'" value="'+lbl+'" oninput="INC_LABELS[\''+k+'\']=this.value.trim()||INC_LABELS_DEFAULT[\''+k+'\'];saveLabels()" maxlength="30" autocomplete="off" spellcheck="false">'
+    ?'<input class="inc-label-edit" id="'+lblId+'" value="'+lbl+'" onfocus="pushUndo(\'rename incentive\')" oninput="INC_LABELS[\''+k+'\']=this.value.trim()||INC_LABELS_DEFAULT[\''+k+'\'];saveLabels()" maxlength="30" autocomplete="off" spellcheck="false">'
     :'<span class="inc-name" id="'+lblId+'">'+lbl+'</span>';
 
-  var unitId=(k==='sc')?' id="'+(isCP?'sc':'ssc')+'-unit"':'';
+  var unitId=(k==='sc')?' id="'+(isCP?'sc':'ssc')+'-unit"':(custom?' id="unit-'+panel+'-'+k+'"':'');
+  var unitTxt=cAbs?'&#x20B9;':'%';
   var pctWrapId=(k==='sc'&&isCP)?' id="sc-pct-wrap"':'';
 
-  var mainRow='<div class="inc-row-main">'+delBtn+'<label class="toggle"><input type="checkbox" id="'+cbId+'" onchange="'+syncFn+'(\''+k+'\');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>'+labelHtml+'<div class="inc-pct-wrap"'+pctWrapId+'><input type="number" inputmode="decimal" id="'+inpId+'" value="'+defVal+'" placeholder="'+placeholder+'" min="0"'+maxAttr+' step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym"'+unitId+'>%</span></div></div>';
+  var mainRow='<div class="inc-row-main">'+delBtn+'<label class="toggle"><input type="checkbox" id="'+cbId+'" onchange="'+syncFn+'(\''+k+'\');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>'+labelHtml+'<div class="inc-pct-wrap"'+pctWrapId+'><input type="number" inputmode="decimal" id="'+inpId+'" value="'+defVal+'" placeholder="'+placeholder+'" min="0"'+maxAttr+' step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym"'+unitId+'>'+unitTxt+'</span></div></div>';
 
   var subRow='';
   var gPct=Math.round(G*100);
@@ -1668,8 +1995,39 @@ function _incRowHTML(k,panel,editMode){
     var ssub=isCP?' id="sc-sub"':'';
     var pp=isCP?'CP':'SP';
     subRow='<div class="inc-row-sub"'+ssub+'><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Scheme type:</div><div class="sub-tabs" style="width:100%"><button class="stab on" id="'+sp1+'" onclick="'+fn3+'" style="padding:6px 8px;line-height:1.3"><span id="'+lsp+'">% of '+pp+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab" id="'+sp2+'" onclick="'+fn4+'" style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
+  } else if(custom){
+    var m1='im-'+panel+'-'+k+'-pct',m2='im-'+panel+'-'+k+'-abs';
+    var lm='lbl-im-'+panel+'-'+k;
+    var cp2=isCP?'CP':'SP';
+    subRow='<div class="inc-row-sub"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Incentive type:</div><div class="sub-tabs" style="width:100%"><button class="stab'+(cAbs?'':' on')+'" id="'+m1+'" onclick="setIncMode(\''+panel+'\',\''+k+'\',\'pct\')" style="padding:6px 8px;line-height:1.3"><span id="'+lm+'">% of '+cp2+' excl '+gPct+'% GST</span><br><span style="font-weight:300;font-size:9.5px;opacity:.8">percentage</span></button><button class="stab'+(cAbs?' on':'')+'" id="'+m2+'" onclick="setIncMode(\''+panel+'\',\''+k+'\',\'abs\')" style="padding:6px 8px;line-height:1.3">&#x20B9; Absolute<br><span style="font-weight:300;font-size:9.5px;opacity:.8">fixed amount</span></button></div></div>';
   }
   return '<div class="inc-row" id="'+rowId+'">'+mainRow+subRow+'</div>';
+}
+
+/* Paint a user-added incentive's %/₹ state onto its row without side effects */
+function applyIncModeVisuals(panel,k){
+  var m=incModeOf(panel,k);
+  var b1=document.getElementById('im-'+panel+'-'+k+'-pct'),b2=document.getElementById('im-'+panel+'-'+k+'-abs');
+  if(b1)b1.className=(m==='pct')?'stab on':'stab';
+  if(b2)b2.className=(m==='abs')?'stab on':'stab';
+  var u=document.getElementById('unit-'+panel+'-'+k);
+  if(u)u.textContent=(m==='abs')?'₹':'%';
+  var iv=document.getElementById((panel==='cp'?'iv-':'siv-')+k);
+  if(iv){iv.placeholder=(m==='abs')?'0.00':'0';if(m==='abs'){iv.removeAttribute('max')}else{iv.max='100'}}
+}
+
+function setIncMode(panel,k,m){
+  haptic('select');
+  (panel==='cp'?INC_MODE:SP_INC_MODE)[k]=m;
+  var b1=el('im-'+panel+'-'+k+'-pct'),b2=el('im-'+panel+'-'+k+'-abs');
+  if(b1)b1.className=(m==='pct')?'stab on':'stab';
+  if(b2)b2.className=(m==='abs')?'stab on':'stab';
+  var u=el('unit-'+panel+'-'+k);
+  if(u)u.textContent=(m==='abs')?'₹':'%';
+  var iv=el((panel==='cp'?'iv-':'siv-')+k);
+  if(iv){iv.placeholder=(m==='abs')?'0.00':'0';if(m==='abs'){iv.removeAttribute('max')}else{iv.max='100'}}
+  saveLabels();
+  calc();
 }
 
 function _snapshotInc(panel){
@@ -1695,6 +2053,8 @@ function _restoreInc(panel,snap){
     if(inp&&snap[k].value!=='')inp.value=snap[k].value;
     if(row)row.className='inc-row'+(snap[k].checked?(isCP?' active':' sp-active'):'');
   });
+  // Re-apply per-key %/₹ state for user-added incentives
+  keys.forEach(function(k){if(isCustomInc(k))applyIncModeVisuals(panel,k)});
   // Re-apply sub-row active states
   if(isCP){
     var cb=document.getElementById('cdm-before');if(cb)cb.className=(CDM==='before')?'stab on':'stab';
@@ -1750,6 +2110,7 @@ function toggleIncEditMode(panel){
 }
 
 function addInc(panel){
+  pushUndo('add incentive');
   var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS;
   var i=1;
   var allKeys=INC_KEYS.concat(SP_INC_KEYS);
@@ -1757,6 +2118,7 @@ function addInc(panel){
   var k='c'+i;
   INC_LABELS[k]='Incentive '+i;
   INC_LABELS_DEFAULT[k]='Incentive '+i;
+  (panel==='cp'?INC_MODE:SP_INC_MODE)[k]='pct';
   keys.push(k);
   saveLabels();
   var snap=_snapshotInc(panel);
@@ -1765,17 +2127,31 @@ function addInc(panel){
   elClearCache();
   calc();
   haptic('light');
+  // Only an input in edit mode — outside it the label renders as a span.
   var lblEl=document.getElementById('lbl-'+(panel==='cp'?'cp':'sp')+'-'+k);
-  if(lblEl){lblEl.focus();lblEl.select();}
+  if(lblEl&&typeof lblEl.select==='function'){lblEl.focus();lblEl.select();}
 }
 
 function deleteInc(panel,key){
   var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS;
+  if(keys.indexOf(key)===-1)return;
+  var name=INC_LABELS[key]||key;
+  askConfirm('Delete incentive',
+    'Delete "'+name+'" from '+(panel==='cp'?'CP':'SP')+' incentives?',
+    'It stops counting toward the total straight away. You can undo this.',
+    'Delete',
+    function(){doDeleteInc(panel,key)});
+}
+function doDeleteInc(panel,key){
+  var keys=panel==='cp'?INC_KEYS:SP_INC_KEYS;
   var idx=keys.indexOf(key);
   if(idx===-1)return;
+  var name=INC_LABELS[key]||key;
+  pushUndo('delete "'+name+'"');
   var snap=_snapshotInc(panel);
   keys.splice(idx,1);
   delete snap[key];
+  delete (panel==='cp'?INC_MODE:SP_INC_MODE)[key];
   saveLabels();
   if(panel==='cp')renderCPIncRows();else renderSPIncRows();
   _restoreInc(panel,snap);
@@ -1785,7 +2161,7 @@ function deleteInc(panel,key){
 }
 
 function saveLabels(){
-  try{localStorage.setItem('pc-labels',JSON.stringify({labels:INC_LABELS,cpKeys:INC_KEYS,spKeys:SP_INC_KEYS}));}catch(e){}
+  try{localStorage.setItem('pc-labels',JSON.stringify({labels:INC_LABELS,cpKeys:INC_KEYS,spKeys:SP_INC_KEYS,cpModes:INC_MODE,spModes:SP_INC_MODE}));}catch(e){}
 }
 function loadLabels(){
   try{
@@ -1796,6 +2172,8 @@ function loadLabels(){
     Object.keys(labels).forEach(function(k){INC_LABELS[k]=labels[k];if(!INC_LABELS_DEFAULT[k])INC_LABELS_DEFAULT[k]=labels[k];});
     if(parsed.cpKeys&&Array.isArray(parsed.cpKeys))INC_KEYS=parsed.cpKeys;
     if(parsed.spKeys&&Array.isArray(parsed.spKeys))SP_INC_KEYS=parsed.spKeys;
+    if(parsed.cpModes)INC_MODE=parsed.cpModes;
+    if(parsed.spModes)SP_INC_MODE=parsed.spModes;
   }catch(e){}
 }
 
@@ -1812,6 +2190,8 @@ function getIncentiveInr(cp){
     if(isNaN(v)||v<=0)return;
     if(k==='sc'){
       t+=(SCM==='abs')?v:(cp.e*v/100);
+    } else if(isCustomInc(k)){
+      t+=(incModeOf('cp',k)==='abs')?v:(cp.e*v/100);
     } else {
       t+=(k==='cd'&&CDM==='after')?(cp.i*v/100):(cp.e*v/100);
     }
@@ -1827,11 +2207,11 @@ function updateIncSummaryTag(){
     var inp=document.getElementById('iv-'+k);
     var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
-    if(k==='sc'&&SCM==='abs'){hasAbsSc=true;absScVal=v;}
+    if((k==='sc'&&SCM==='abs')||(isCustomInc(k)&&incModeOf('cp',k)==='abs')){hasAbsSc=true;absScVal+=v;}
     else nom+=v;
   });
   var _itcd=document.getElementById('it-cd');var note=(_itcd&&_itcd.checked&&CDM==='after')?' (CD on +GST)':'';
-  var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' scheme':'';
+  var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' fixed':'';
   el('inc-summary-tag').textContent=(active===0?'All off':active+' active')+' — '+nom.toFixed(2)+'%'+scNote+note;
 }
 function computeK(){
@@ -1846,6 +2226,7 @@ function computeK(){
     var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
     if(k==='sc'&&SCM==='abs')return; // abs scheme handled separately
+    if(isCustomInc(k)&&incModeOf('cp',k)==='abs')return; // ditto for ₹ user-added incentives
     K-=(k==='cd'&&CDM==='after')?(v/100)*(1+G):(v/100);
   });
   return K;
@@ -1863,6 +2244,8 @@ function getSPIncentiveInr(sp){
     if(isNaN(v)||v<=0)return;
     if(k==='sc'){
       t+=(SSCM==='abs')?v:(sp.e*v/100);
+    } else if(isCustomInc(k)){
+      t+=(incModeOf('sp',k)==='abs')?v:(sp.e*v/100);
     } else {
       t+=(k==='cd'&&SCDM==='after')?(sp.i*v/100):(sp.e*v/100);
     }
@@ -1878,11 +2261,11 @@ function updateSpIncSummaryTag(){
     var inp=document.getElementById('siv-'+k);
     var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
-    if(k==='sc'&&SSCM==='abs'){hasAbsSc=true;absScVal=v;}
+    if((k==='sc'&&SSCM==='abs')||(isCustomInc(k)&&incModeOf('sp',k)==='abs')){hasAbsSc=true;absScVal+=v;}
     else nom+=v;
   });
   var _sitcd=document.getElementById('sit-cd');var note=(_sitcd&&_sitcd.checked&&SCDM==='after')?' (CD on +GST)':'';
-  var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' scheme':'';
+  var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' fixed':'';
   el('sp-inc-summary-tag').textContent=(active===0?'All off':active+' active')+' — '+nom.toFixed(2)+'%'+scNote+note;
 }
 function syncSpToggle(k){
@@ -2066,12 +2449,12 @@ function cpFromProfit(spe,mode,val){
   var n=e/K;return{e:n,i:n*(1+G)};
 }
 function resolveCP(){
-  if(CM==='manual')return priceFromManual(parseAmt('cpv'),CPMS);
-  var d=parseFloat(el('cpd').value);return isNaN(d)?null:priceFromDisc(d,CM);
+  if(CM==='manual')return roundPrice(priceFromManual(parseAmt('cpv'),CPMS));
+  var d=parseFloat(el('cpd').value);return isNaN(d)?null:roundPrice(priceFromDisc(d,CM));
 }
 function resolveSP(){
-  if(SM==='manual')return priceFromManual(parseAmt('spv'),SPMS);
-  var d=parseFloat(el('spd').value);return isNaN(d)?null:priceFromDisc(d,SM);
+  if(SM==='manual')return roundPrice(priceFromManual(parseAmt('spv'),SPMS));
+  var d=parseFloat(el('spd').value);return isNaN(d)?null:roundPrice(priceFromDisc(d,SM));
 }
 
 /* ── Fill helpers ── */
@@ -2151,6 +2534,16 @@ function fillSummary(cp,sp){
   sumSet('s-pr',INR(pr),pr>=0?'pos':'neg');
   sumSet('s-gp',PCT(gp),gpCls(gp,floor));sumSet('s-mg',PCT(mg),mgCls(mg,floor));
   sumSet('s-dcp',PCT(dcp.de),'');sumSet('s-dsp',PCT(dsp.de),'');
+  // Order-level totals — only shown once qty > 1, so single-unit use is unchanged
+  var q=getQty(),multi=q>1;
+  ['s-order-sep','s-item-qty','s-item-order','s-item-tpr'].forEach(function(id){
+    var e=el(id);if(e)e.style.display=multi?'':'none';
+  });
+  if(multi){
+    sumSet('s-qty',q+' units','');
+    sumSet('s-order',INR(sp.i*q),'');
+    sumSet('s-tpr',INR(pr*q),pr>=0?'pos':'neg');
+  }
   // Flash key values
   ['s-pr','s-gp','s-mg'].forEach(flashSumVal);
 }
@@ -2369,16 +2762,26 @@ function saveToHistory(){
   var inc=getIncentiveInr(LAST_CP),eff=LAST_CP.e-inc;
   var spInc=getSPIncentiveInr(LAST_SP),effSP=LAST_SP.e-spInc;
   var pr=effSP-eff;
-  HISTORY.unshift({time:now(),ts:Date.now(),mrp:MI,cpE:LAST_CP.e,cpI:LAST_CP.i,spE:LAST_SP.e,spI:LAST_SP.i,effCPE:eff,effSPE:effSP,incInr:inc,spIncInr:spInc,pr:pr,gp:(effSP>0)?(pr/effSP)*100:null,mg:(eff>0)?(pr/eff)*100:null,gst:G*100});
+  var q=getQty();
+  HISTORY.unshift({time:now(),ts:Date.now(),mrp:MI,cpE:LAST_CP.e,cpI:LAST_CP.i,spE:LAST_SP.e,spI:LAST_SP.i,effCPE:eff,effSPE:effSP,incInr:inc,spIncInr:spInc,pr:pr,gp:(effSP>0)?(pr/effSP)*100:null,mg:(eff>0)?(pr/eff)*100:null,gst:G*100,qty:q,totalPr:pr*q});
   if(HISTORY.length>MAX_HIST)HISTORY.pop();
   saveHistoryToStorage();
   renderHistory();
   if(el('body-hist').style.display!=='block')togglePanel('hist');
 }
 function clearHistory(){
-  HISTORY=[];
-  try{localStorage.removeItem('pc-history');}catch(e){}
-  renderHistory();
+  if(HISTORY.length===0){toast('History is already empty');return}
+  askConfirm('Clear history',
+    'Delete all '+HISTORY.length+' history entries?',
+    'You can undo this straight after.',
+    'Clear all',
+    function(){
+      pushUndo('clear history');
+      HISTORY=[];
+      try{localStorage.removeItem('pc-history');}catch(e){}
+      renderHistory();
+      toast('History cleared',true);
+    });
 }
 function saveHistoryToStorage(){
   try{localStorage.setItem('pc-history',JSON.stringify(HISTORY));}catch(e){}
@@ -2394,13 +2797,33 @@ function loadHistoryFromStorage(){
   }catch(e){}
 }
 function renderHistory(){
-  el('hist-tag').textContent=HISTORY.length+' entr'+(HISTORY.length===1?'y':'ies');
   var c=el('hist-content');
   c.setAttribute('role','list');
-  if(HISTORY.length===0){c.innerHTML='<div class="hist-empty" role="status">No entries yet — save a calculation to start.</div>';return}
+  var tools=el('hist-tools');
+  if(tools)tools.style.display=HISTORY.length?'flex':'none';
+  if(HISTORY.length===0){
+    el('hist-tag').textContent='0 entries';
+    c.innerHTML='<div class="hist-empty" role="status">No entries yet — save a calculation to start.</div>';
+    return;
+  }
   var floor=getFloor();
+  // Keep the true HISTORY index alongside each row so delete/compare/tag stay correct
+  var rows=[];
+  HISTORY.forEach(function(h,idx){if(histMatches(h,floor))rows.push({h:h,idx:idx})});
+  var filtering=(HIST_QUERY||HIST_FILTER!=='all');
+  el('hist-tag').textContent=filtering
+    ? rows.length+' of '+HISTORY.length
+    : HISTORY.length+' entr'+(HISTORY.length===1?'y':'ies');
+  if(rows.length===0){
+    c.innerHTML='<div class="hist-none" role="status">No entries match this search or filter.</div>';
+    return;
+  }
   var html='';
-  HISTORY.forEach(function(h,idx){
+  rows.forEach(function(row){
+    var h=row.h,idx=row.idx;
+    var tagHtml=h.tag
+      ?'<span class="hist-tag" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Edit tag">'+String(h.tag).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>'
+      :'<span class="hist-tag empty" id="tag-'+idx+'" onclick="startTagEdit('+idx+')" title="Add a tag">+ Tag</span>';
     var timeDisp=h.ts?relTime(h.ts):h.time;
     var timeFull=h.ts?fmtTime(h.ts):h.time;
     var gpCls=belowFloor(h.gp,floor.gp)?'warn':(h.gp>=0?'pos':'neg');
@@ -2410,6 +2833,8 @@ function renderHistory(){
       +'<div class="hist-inner">'
         +'<div class="hist-meta">'
           +'<span class="hist-time" title="'+timeFull+'">'+timeDisp+'</span>'
+          +tagHtml
+          +(h.qty>1?'<span class="hist-gst">×'+h.qty+'</span>':'')
           +'<span class="hist-gst">GST '+h.gst+'%</span>'
           +'<button class="cmp-hist-btn" onclick="openCompare('+idx+')" aria-label="Compare entry from '+timeDisp+'">Compare</button>'
           +'<button class="hist-del-btn" onclick="deleteHistEntry('+idx+')" aria-label="Delete entry from '+timeDisp+'" title="Delete">'
@@ -2434,11 +2859,12 @@ function renderHistory(){
 /* ── History export ── */
 function exportHistoryCSV(){
   if(HISTORY.length===0){alert('No history entries to export.');return}
-  var headers=['Time','MRP (incl GST)','CP excl GST','CP incl GST','SP excl GST','SP incl GST','Eff CP excl GST','CP Incentives INR','Eff SP excl GST','SP Incentives INR','Profit INR','GP %','Margin %','GST Rate %'];
+  var headers=['Time','Tag','MRP (incl GST)','CP excl GST','CP incl GST','SP excl GST','SP incl GST','Eff CP excl GST','CP Incentives INR','Eff SP excl GST','SP Incentives INR','Profit INR','GP %','Margin %','GST Rate %','Qty','Total Profit INR'];
   var rows=[headers.join(',')];
   HISTORY.forEach(function(h){
     rows.push([
       '"'+h.time+'"',
+      '"'+String(h.tag||'').replace(/"/g,'""')+'"',
       h.mrp.toFixed(2),
       h.cpE.toFixed(2),
       h.cpI.toFixed(2),
@@ -2451,7 +2877,9 @@ function exportHistoryCSV(){
       h.pr.toFixed(2),
       h.gp!==null?h.gp.toFixed(2):'',
       h.mg!==null?h.mg.toFixed(2):'',
-      h.gst
+      h.gst,
+      h.qty||1,
+      (h.totalPr!=null?h.totalPr:h.pr*(h.qty||1)).toFixed(2)
     ].join(','));
   });
   var csv=rows.join('\r\n');
@@ -2667,6 +3095,7 @@ function calc(){
 
 /* ── Reset ── */
 function resetAll(){
+  pushUndo('reset');
   clearTimeout(_autoSaveTimer);
   // Numeric inputs
   el('mrp').value='100';
@@ -2674,6 +3103,8 @@ function resetAll(){
   el('spd').value=''; el('spv').value=''; el('pri').value='';
   // Floor limits
   el('floor-gp').value='5'; el('floor-mg').value='';
+  // Quantity
+  if(el('qty'))el('qty').value='1';
   // GST back to 18%
   setGST(18);
   // CP mode
@@ -3577,9 +4008,55 @@ function fcToDefault(){
 
 /* ── Swipe-to-delete history (per-element listeners added in renderHistory) ── */
 function deleteHistEntry(idx){
+  if(idx<0||idx>=HISTORY.length)return;
+  pushUndo('delete history entry');
   HISTORY.splice(idx,1);
   saveHistoryToStorage();
   renderHistory();
+  toast('Entry deleted',true);
+}
+
+/* ── History search / filter / tags ── */
+function setHistQuery(q){HIST_QUERY=(q||'').trim().toLowerCase();renderHistory()}
+function setHistFilter(f){
+  HIST_FILTER=f;
+  ['all','pos','neg','below','tagged'].forEach(function(k){
+    var b=el('hf-'+k);if(b)b.className='hist-fpill'+(k===f?' on':'');
+  });
+  renderHistory();
+}
+function histMatches(h,floor){
+  if(HIST_FILTER==='pos'&&!(h.pr>0))return false;
+  if(HIST_FILTER==='neg'&&!(h.pr<0))return false;
+  if(HIST_FILTER==='tagged'&&!h.tag)return false;
+  if(HIST_FILTER==='below'&&!(belowFloor(h.gp,floor.gp)||belowFloor(h.mg,floor.mg)))return false;
+  if(!HIST_QUERY)return true;
+  var hay=[h.tag||'',(h.gst!=null?h.gst+'%':''),
+    h.mrp,h.cpE,h.spE,h.pr,
+    (h.gp!=null?h.gp.toFixed(2):''),(h.mg!=null?h.mg.toFixed(2):''),
+    h.ts?fmtTime(h.ts):(h.time||'')].join(' ').toLowerCase();
+  return hay.indexOf(HIST_QUERY)!==-1;
+}
+function startTagEdit(idx){
+  var cell=document.getElementById('tag-'+idx);
+  if(!cell)return;
+  var cur=HISTORY[idx]&&HISTORY[idx].tag?HISTORY[idx].tag:'';
+  cell.outerHTML='<input class="hist-tag-input" id="tagin-'+idx+'" value="'+cur.replace(/"/g,'&quot;')+'" maxlength="24" placeholder="Tag…" autocomplete="off" '
+    +'onblur="commitTag('+idx+',this.value)" '
+    +'onkeydown="if(event.key===\'Enter\'){this.blur()}else if(event.key===\'Escape\'){this.value=\'\\u0000\';this.blur()}">';
+  var inp=document.getElementById('tagin-'+idx);
+  if(inp){inp.focus();inp.select()}
+}
+function commitTag(idx,val){
+  if(val==='\u0000'){renderHistory();return} // Escape — discard
+  if(!HISTORY[idx]){renderHistory();return}
+  var v=(val||'').trim().slice(0,24);
+  if((HISTORY[idx].tag||'')===v){renderHistory();return}
+  pushUndo('tag entry');
+  if(v)HISTORY[idx].tag=v;else delete HISTORY[idx].tag;
+  saveHistoryToStorage();
+  renderHistory();
+  haptic('light');
 }
 
 /* ── Pull to reset ── */
@@ -3783,6 +4260,223 @@ function wzToDefault(){
   setMode('default');calc();
 }
 
+/* ── Quote builder (multi-line) ──
+   Each line is self-contained: MRP, qty and net CP/SP discounts on MRP.
+   Incentives are deliberately excluded — enter the net landed discount per line. */
+function qtBlank(){return{desc:'',mrp:'',qty:1,cpd:'',spd:''}}
+function saveQuote(){try{localStorage.setItem('pc-quote',JSON.stringify(QUOTE))}catch(e){}}
+function loadQuote(){
+  try{
+    var raw=localStorage.getItem('pc-quote');
+    if(!raw)return;
+    var a=JSON.parse(raw);
+    if(Array.isArray(a))QUOTE=a;
+  }catch(e){}
+}
+function qtCalcLine(L){
+  var mrp=parseFloat(L.mrp),qty=parseInt(L.qty,10)||1;
+  if(isNaN(mrp)||mrp<=0)return null;
+  var cpd=parseFloat(L.cpd),spd=parseFloat(L.spd);
+  if(isNaN(cpd)||isNaN(spd))return null;
+  var cp=roundPrice({e:mrp*(1-cpd/100),i:mrp*(1-cpd/100)*(1+G)});
+  var sp=roundPrice({e:mrp*(1-spd/100),i:mrp*(1-spd/100)*(1+G)});
+  var unitPr=sp.e-cp.e;
+  return{
+    qty:qty,cpE:cp.e,spE:sp.e,spI:sp.i,
+    unitPr:unitPr,
+    lineVal:sp.i*qty,
+    linePr:unitPr*qty,
+    gp:(sp.e>0)?(unitPr/sp.e)*100:null
+  };
+}
+function qtTotals(){
+  var t={val:0,pr:0,cost:0,rev:0,units:0,lines:0};
+  QUOTE.forEach(function(L){
+    var r=qtCalcLine(L);
+    if(!r)return;
+    t.lines++;t.units+=r.qty;
+    t.val+=r.lineVal;t.pr+=r.linePr;
+    t.cost+=r.cpE*r.qty;t.rev+=r.spE*r.qty;
+  });
+  t.gp=(t.rev>0)?(t.pr/t.rev)*100:null;
+  t.mg=(t.cost>0)?(t.pr/t.cost)*100:null;
+  return t;
+}
+function qtRender(){
+  var tbl=el('qt-table');
+  if(!tbl)return;
+  if(QUOTE.length===0){
+    tbl.innerHTML='<tr><td class="qt-empty">No lines yet — add one, or pull in the current calculation.</td></tr>';
+    return;
+  }
+  var g=Math.round(G*100),floor=getFloor();
+  var h='<thead><tr>'
+    +'<th>#</th><th>Description</th><th class="num">MRP</th><th class="num">Qty</th>'
+    +'<th class="num">CP disc %</th><th class="num">SP disc %</th>'
+    +'<th class="num">SP incl '+g+'%</th><th class="num">Line value</th>'
+    +'<th class="num">Profit</th><th class="num">GP %</th><th></th>'
+    +'</tr></thead><tbody>';
+  QUOTE.forEach(function(L,i){
+    var r=qtCalcLine(L);
+    var prCls=r?(r.linePr>=0?'qt-pos':'qt-neg'):'';
+    var gpCls=r&&belowFloor(r.gp,floor.gp)?'qt-neg':prCls;
+    h+='<tr>'
+      +'<td>'+(i+1)+'</td>'
+      +'<td><input class="qt-in desc" value="'+String(L.desc||'').replace(/"/g,'&quot;')+'" placeholder="Part / description" onfocus="pushUndo(\'edit quote line\')" oninput="qtSet('+i+',\'desc\',this.value)" autocomplete="off"></td>'
+      +'<td class="num"><input class="qt-in" type="number" inputmode="decimal" value="'+(L.mrp||'')+'" placeholder="0" min="0" step="0.01" onfocus="pushUndo(\'edit quote line\')" oninput="qtSet('+i+',\'mrp\',this.value)" autocomplete="off"></td>'
+      +'<td class="num"><input class="qt-in" type="number" inputmode="numeric" value="'+(L.qty||1)+'" min="1" step="1" style="width:52px" onfocus="pushUndo(\'edit quote line\')" oninput="qtSet('+i+',\'qty\',this.value)" autocomplete="off"></td>'
+      +'<td class="num"><input class="qt-in" type="number" inputmode="decimal" value="'+(L.cpd||'')+'" placeholder="0" min="0" max="100" step="0.01" style="width:62px" onfocus="pushUndo(\'edit quote line\')" oninput="qtSet('+i+',\'cpd\',this.value)" autocomplete="off"></td>'
+      +'<td class="num"><input class="qt-in" type="number" inputmode="decimal" value="'+(L.spd||'')+'" placeholder="0" min="0" max="100" step="0.01" style="width:62px" onfocus="pushUndo(\'edit quote line\')" oninput="qtSet('+i+',\'spd\',this.value)" autocomplete="off"></td>'
+      +'<td class="num">'+(r?INR(r.spI):'—')+'</td>'
+      +'<td class="num">'+(r?INR(r.lineVal):'—')+'</td>'
+      +'<td class="num '+prCls+'">'+(r?INR(r.linePr):'—')+'</td>'
+      +'<td class="num '+gpCls+'">'+(r?PCT(r.gp):'—')+'</td>'
+      +'<td><button class="qt-del" onclick="qtDelLine('+i+')" title="Remove line" aria-label="Remove line '+(i+1)+'"><svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button></td>'
+      +'</tr>';
+  });
+  var t=qtTotals();
+  h+='</tbody><tfoot><tr class="qt-foot">'
+    +'<td colspan="3">Total — '+t.lines+' line'+(t.lines===1?'':'s')+'</td>'
+    +'<td class="num">'+t.units+'</td>'
+    +'<td colspan="2"></td>'
+    +'<td></td>'
+    +'<td class="num" id="qt-total-val">'+INR(t.val)+'</td>'
+    +'<td class="num '+(t.pr>=0?'qt-pos':'qt-neg')+'" id="qt-total-pr">'+INR(t.pr)+'</td>'
+    +'<td class="num" id="qt-total-gp">'+PCT(t.gp)+'</td>'
+    +'<td></td>'
+    +'</tr></tfoot>';
+  tbl.innerHTML=h;
+}
+function qtSet(i,field,val){
+  if(!QUOTE[i])return;
+  QUOTE[i][field]=val;
+  saveQuote();
+  // Recompute derived cells without rebuilding the row (keeps focus/caret intact)
+  qtRefreshDerived();
+}
+function qtRefreshDerived(){
+  var rowsEls=document.querySelectorAll('#qt-table tbody tr');
+  var floor=getFloor();
+  QUOTE.forEach(function(L,i){
+    var tr=rowsEls[i];if(!tr)return;
+    var cells=tr.children;
+    var r=qtCalcLine(L);
+    var prCls=r?(r.linePr>=0?'qt-pos':'qt-neg'):'';
+    var gpCls=r&&belowFloor(r.gp,floor.gp)?'qt-neg':prCls;
+    if(cells[6])cells[6].textContent=r?INR(r.spI):'—';
+    if(cells[7])cells[7].textContent=r?INR(r.lineVal):'—';
+    if(cells[8]){cells[8].textContent=r?INR(r.linePr):'—';cells[8].className='num '+prCls}
+    if(cells[9]){cells[9].textContent=r?PCT(r.gp):'—';cells[9].className='num '+gpCls}
+  });
+  var t=qtTotals();
+  var tv=el('qt-total-val'),tp=el('qt-total-pr'),tg=el('qt-total-gp');
+  if(tv)tv.textContent=INR(t.val);
+  if(tp){tp.textContent=INR(t.pr);tp.className='num '+(t.pr>=0?'qt-pos':'qt-neg')}
+  if(tg)tg.textContent=PCT(t.gp);
+}
+function qtAddLine(){
+  pushUndo('add quote line');
+  QUOTE.push(qtBlank());
+  saveQuote();qtRender();haptic('light');
+}
+function qtAddFromCalc(){
+  var mrpV=parseMRP();
+  if(!mrpV||!LAST_CP||!LAST_SP){toast('Enter MRP, CP and SP first');return}
+  pushUndo('add quote line');
+  var dcp=discFromPrice(LAST_CP.e),dsp=discFromPrice(LAST_SP.e);
+  QUOTE.push({
+    desc:'',
+    mrp:String(parseFloat(mrpV.toFixed(2))),
+    qty:getQty(),
+    cpd:String(parseFloat(dcp.de.toFixed(4))),
+    spd:String(parseFloat(dsp.de.toFixed(4)))
+  });
+  saveQuote();qtRender();haptic('light');
+  toast('Line added from calculator',true);
+}
+function qtDelLine(i){
+  if(!QUOTE[i])return;
+  pushUndo('delete quote line');
+  QUOTE.splice(i,1);
+  saveQuote();qtRender();haptic('light');
+  toast('Line removed',true);
+}
+function qtClear(){
+  if(QUOTE.length===0){toast('Quote is already empty');return}
+  askConfirm('Clear quote',
+    'Remove all '+QUOTE.length+' line'+(QUOTE.length===1?'':'s')+' from the quote?',
+    'You can undo this straight after.',
+    'Clear all',
+    function(){
+      pushUndo('clear quote');
+      QUOTE=[];saveQuote();qtRender();
+      toast('Quote cleared',true);
+    });
+}
+function qtExportCSV(){
+  if(QUOTE.length===0){toast('Nothing to export');return}
+  var g=Math.round(G*100);
+  var rows=[['Line','Description','MRP','Qty','CP disc %','SP disc %','CP excl GST','SP excl GST','SP incl '+g+'% GST','Line value','Unit profit','Line profit','GP %'].join(',')];
+  QUOTE.forEach(function(L,i){
+    var r=qtCalcLine(L);
+    rows.push([
+      i+1,
+      '"'+String(L.desc||'').replace(/"/g,'""')+'"',
+      L.mrp||'',L.qty||1,L.cpd||'',L.spd||'',
+      r?r.cpE.toFixed(2):'',r?r.spE.toFixed(2):'',r?r.spI.toFixed(2):'',
+      r?r.lineVal.toFixed(2):'',r?r.unitPr.toFixed(2):'',r?r.linePr.toFixed(2):'',
+      (r&&r.gp!==null)?r.gp.toFixed(2):''
+    ].join(','));
+  });
+  var t=qtTotals();
+  rows.push(['','TOTAL','',''+t.units,'','','','','',t.val.toFixed(2),'',t.pr.toFixed(2),(t.gp!==null?t.gp.toFixed(2):'')].join(','));
+  var blob=new Blob([rows.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='quote-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url)},200);
+}
+function getQuoteText(){
+  if(QUOTE.length===0)return null;
+  var g=Math.round(G*100),t=qtTotals();
+  var lines=['QUOTE — '+now(),'─────────────────────────','GST Rate: '+g+'%',''];
+  QUOTE.forEach(function(L,i){
+    var r=qtCalcLine(L);
+    if(!r)return;
+    lines.push((i+1)+'. '+(L.desc||'(no description)'));
+    lines.push('   MRP '+INR(parseFloat(L.mrp))+' × '+r.qty
+      +'  |  SP '+INR(r.spI)+' incl GST');
+    lines.push('   Line value '+INR(r.lineVal)+'  |  Profit '+INR(r.linePr)+'  |  GP '+PCT(r.gp));
+  });
+  lines.push('');
+  lines.push('─────────────────────────');
+  lines.push('Lines:        '+t.lines);
+  lines.push('Units:        '+t.units);
+  lines.push('Order value:  '+INR(t.val));
+  lines.push('Total profit: '+INR(t.pr));
+  lines.push('Blended GP:   '+PCT(t.gp));
+  return lines.join('\n');
+}
+function qtCopy(){
+  var txt=getQuoteText();
+  if(!txt){toast('Nothing to copy');return}
+  function done(){toast('Quote copied')}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done,function(){fallbackCopyQuote(txt,done)});
+  } else fallbackCopyQuote(txt,done);
+}
+function fallbackCopyQuote(txt,done){
+  try{
+    var ta=document.createElement('textarea');
+    ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    done();
+  }catch(e){toast('Copy failed')}
+}
+
 /* ── Share as link ── */
 function getShareState(){
   var inc={},spinc={};
@@ -3801,7 +4495,8 @@ function getShareState(){
     cm:CM,cpms:CPMS,cpd:el('cpd').value,cpv:el('cpv').value,
     sm:SM,spms:SPMS,spd:el('spd').value,spv:el('spv').value,
     pm:PM,pri:el('pri').value,
-    cdm:CDM,scm:SCM,scdm:SCDM,sscm:SSCM,
+    cdm:CDM,scm:SCM,scdm:SCDM,sscm:SSCM,incm:INC_MODE,spincm:SP_INC_MODE,
+    qty:el('qty')?el('qty').value:'1',rnd:ROUND_MODE,
     fgp:el('floor-gp').value,fmg:el('floor-mg').value,
     inc:inc,spinc:spinc
   };
@@ -3809,6 +4504,8 @@ function getShareState(){
 
 function applyShareState(s){
   try{
+    if(s.rnd)setRounding(s.rnd);
+    if(s.qty!==undefined&&el('qty'))el('qty').value=s.qty;
     if(s.g)setGST(parseFloat(s.g));
     if(s.m)el('mrp').value=s.m;
     if(s.cm)setCM(s.cm);
@@ -3845,6 +4542,8 @@ function applyShareState(s){
     }
     if(s.scdm)setSCDMode(s.scdm);
     if(s.sscm)setSpSchemeMode(s.sscm);
+    if(s.incm){INC_MODE=s.incm;INC_KEYS.forEach(function(k){if(isCustomInc(k))applyIncModeVisuals('cp',k)});}
+    if(s.spincm){SP_INC_MODE=s.spincm;SP_INC_KEYS.forEach(function(k){if(isCustomInc(k))applyIncModeVisuals('sp',k)});}
     if(s.t)setT(s.t);
     calc();
   }catch(e){console.warn('share state restore failed',e)}
@@ -3939,6 +4638,13 @@ document.addEventListener('keydown',function(e){
   // "?" always opens shortcuts (even in input, but we use shift+/)
   if(e.key==='?'&&!inInput){openModal('shortcuts');return}
 
+  // Undo/redo work even while typing — matches how every other app behaves
+  if((e.metaKey||e.ctrlKey)&&(e.key==='z'||e.key==='Z')){
+    e.preventDefault();
+    if(e.shiftKey)redo();else undo();
+    return;
+  }
+
   if(inInput)return; // all others require no active input
 
   // Quick mode arrow keys already handled in keyboard nav block; apply defaults only
@@ -3958,6 +4664,7 @@ document.addEventListener('keydown',function(e){
       if(e.metaKey||e.ctrlKey){/* let browser copy */}
       break;
     case 'q': case 'Q': setMode(APP_MODE==='default'?'quick':'default'); break;
+    case 'm': case 'M': openModal('quote'); break;
     case '1': setGST(18); break;
     case '2': setGST(5); break;
     case 'p': case 'P': setT('profit'); break;
@@ -4021,12 +4728,14 @@ loadLabels();
 renderCPIncRows();
 renderSPIncRows();
 loadHistoryFromStorage();
+loadQuote();
 document.querySelectorAll('.kbd-mod').forEach(function(el){el.textContent=MOD_KEY;});
 updateLayout();
 if(!restoreFromUrl()){
   if(!loadCalcState()) calc();
 }
 updateGSTLabels();
+updateUndoBtns();
 registerSW();
 // Show onboarding on first visit
 setTimeout(function(){

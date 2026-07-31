@@ -17,6 +17,20 @@ All prices derive from the Maximum Retail Price (MRP).
 - **Custom GST rate:** type any rate (0–100 %, decimals allowed) into the **Other %** box in the control bar. It feeds straight into every calculation, and all `excl/incl X% GST` labels update to match.
 - Every price is shown in two forms: **excl GST** (for accounting) and **incl GST** (sticker price)
 
+### Quantity / Order Value
+Set a **Quantity** in the MRP bar. Per-unit figures are unaffected; once quantity is above 1 the summary gains an order block:
+
+| Row | Meaning |
+|---|---|
+| **Quantity** | Units in the order |
+| **Order Value (incl GST)** | SP incl GST × qty |
+| **Total Profit ₹** | Per-unit profit × qty |
+
+Quantity is saved with history entries and included in the CSV export. Absolute (₹) incentives are per-unit, consistent with every other figure.
+
+### Rounding
+Settings → **Rounding**: **Off**, **₹1** or **₹5**. Rounding is applied to the incl-GST (sticker) price, with excl-GST and profit derived from the rounded figure — so what you quote and what you bank stay consistent. It applies to the main calculator and every quote line.
+
 ### Three Solve Modes
 Select what you want the calculator to *compute* vs what you *input*:
 
@@ -78,13 +92,13 @@ Tapping **Edit** puts that panel into edit mode:
 | Action | How |
 |---|---|
 | **Rename** | The label becomes a text field — type a new name (max 30 chars) |
-| **Delete** | Tap the red **⊖** badge on the row (iOS-style) |
+| **Delete** | Tap the red **⊖** badge on the row (iOS-style), then confirm |
 | **Add** | Tap **+ Add incentive** below the grid |
 
 Tap **Done** to leave edit mode.
 
-- **New incentives** are plain percentage deductions on the base price excl GST, and count toward the totals and profit as soon as you switch them on.
-- **Deleting** an incentive removes it from the calculation immediately. The built-in five can be deleted too — including CD and Scheme, along with their extra option rows.
+- **New incentives** get the same **% / ₹ Absolute** choice the Scheme row has — pick *percentage* to deduct a share of the base price excl GST, or *fixed amount* to deduct a flat rupee value. They default to percentage, and the unit beside the input flips between `%` and `₹` to match. Each added incentive keeps its own setting, and CP and SP are independent.
+- **Deleting** asks for confirmation first, and is undoable. Removal takes effect in the calculation immediately. The built-in five can be deleted too — including CD and Scheme, along with their extra option rows.
 - Toggle states and entered values are preserved when entering or leaving edit mode.
 - Your incentive list and custom names **persist across sessions** (`pc-labels` in `localStorage`).
 
@@ -128,14 +142,21 @@ Three side-by-side SP scenarios (A · B · C) to compare outcomes before committ
 - Up to **50 entries** retained
 
 ### Per Entry
-Each history card shows: Time (relative + absolute on hover), MRP, CP excl, SP excl, CP incentives ₹, Profit ₹, GP %, Margin %, GST rate.
+Each history card shows: Time (relative + absolute on hover), tag, quantity (if above 1), MRP, CP excl, SP excl, CP incentives ₹, Profit ₹, GP %, Margin %, GST rate.
+
+### Search, Filters & Tags
+- **Search** — matches tags, GST rate, date and any numeric value in the entry (case-insensitive)
+- **Filters** — `All` · `Profit +` · `Loss` · `Below floor` · `Tagged`
+- **Tags** — click **+ Tag** on any entry to label it (e.g. a dealer or customer name), max 24 chars. Click an existing tag to edit, clear it to remove. Tags are searchable and exported to CSV.
+
+The panel header shows `N of M` while a search or filter is active.
 
 ### Actions
 - **Save current** — manually save the active calculation
 - **Compare** — open a side-by-side comparison with the current state showing deltas (↑↓) for CP, SP, Profit, GP %, Margin %
-- **× button** — delete an individual entry
+- **× button** — delete an individual entry (undoable)
 - **Export CSV** — download full history as a spreadsheet
-- **Clear all** — remove all history entries
+- **Clear all** — remove all entries, after confirmation (undoable)
 
 ---
 
@@ -147,6 +168,7 @@ Each history card shows: Time (relative + absolute on hover), MRP, CP excl, SP e
 | **Minimum GP %** | Highlights values in red when GP % falls below this threshold |
 | **Minimum Margin %** | Highlights values in red when Margin % falls below this threshold |
 | **Auto-save** | Toggle automatic history logging |
+| **Rounding** | Round prices to the nearest ₹1 or ₹5 (or off) |
 | **App tour** | Restart the interactive onboarding walkthrough |
 | **Keyboard shortcuts** | View all shortcuts |
 
@@ -181,6 +203,35 @@ In Default mode, **pull down from the top of the page** to reveal the reset bar.
 
 ---
 
+## ↩️ Undo / Redo
+
+Every state-changing action is undoable: adding, deleting, renaming or retyping an incentive, changing rounding, resetting, editing the quote, and all history operations (delete, clear, tag).
+
+- **Undo / Redo buttons** in the header (Undo also appears in the mobile menu)
+- `⌘/Ctrl + Z` to undo, `⌘/Ctrl + ⇧ + Z` to redo — these work even while typing in a field
+- Destructive actions show a toast with an inline **Undo**
+- Up to **40 steps** are retained
+
+---
+
+## 🧾 Quote Builder
+
+A multi-line quoting tool — press `M`, or use **Quote** in the header / menu.
+
+Each line takes a description, MRP, quantity and net CP/SP discounts, and computes SP incl GST, line value, line profit and GP %. Lines below your GP floor are flagged red. A totals row gives line count, total units, order value, total profit and **blended GP %** across the whole quote.
+
+| Action | Description |
+|---|---|
+| **Add line** | Append a blank line |
+| **Add current calculation** | Pull MRP, quantity and both discounts in from the main calculator |
+| **Export CSV** | Per-line breakdown plus a totals row |
+| **Copy quote** | Formatted plain-text quote for pasting into email or WhatsApp |
+| **Clear all** | Remove every line, after confirmation |
+
+Lines use the calculator's current GST rate and rounding setting. Incentives are **not** applied per line — enter the net discount you're quoting. The quote persists across sessions.
+
+---
+
 ## ⌨️ Keyboard Shortcuts
 
 | Key | Action |
@@ -191,6 +242,9 @@ In Default mode, **pull down from the top of the page** to reveal the reset bar.
 | `⌘/Ctrl + S` | Save to history |
 | `⌘/Ctrl + C` | Copy summary |
 | `Q` | Toggle Default / Quick mode |
+| `M` | Open quote builder |
+| `⌘/Ctrl + Z` | Undo |
+| `⌘/Ctrl + ⇧ + Z` | Redo |
 | `1` | Set GST to 18% |
 | `2` | Set GST to 5% (any other rate: use the **Other %** box) |
 | `P` | Calculate Profit mode |
@@ -203,9 +257,10 @@ In Default mode, **pull down from the top of the page** to reveal the reset bar.
 
 | Key | Contents |
 |---|---|
-| `pc-state` | Full calculator state (MRP, CP/SP inputs, modes, incentives, floor limits, auto-save pref) |
+| `pc-state` | Full calculator state (MRP, quantity, CP/SP inputs, modes, incentives, rounding, floor limits, auto-save pref) |
 | `pc-history` | History array — up to 50 entries |
 | `pc-qstate` | Quick mode inputs and settings |
+| `pc-quote` | Quote builder lines |
 | `pc-labels` | Custom incentive names + the CP/SP incentive lists |
 | `pc-theme` | Dark / light mode preference |
 | `ob-done` | Onboarding completion flag |
