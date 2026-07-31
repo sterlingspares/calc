@@ -228,7 +228,23 @@ Each line takes a description, MRP, quantity and net CP/SP discounts, and comput
 | **Copy quote** | Formatted plain-text quote for pasting into email or WhatsApp |
 | **Clear all** | Remove every line, after confirmation |
 
+On phones the table becomes a **stacked card per line** — no sideways scrolling — with the action bar pinned to the bottom of the dialog. Wide screens keep the table. Rotating the device switches layout automatically.
+
 Lines use the calculator's current GST rate and rounding setting. Incentives are **not** applied per line — enter the net discount you're quoting. The quote persists across sessions.
+
+---
+
+## 📱 Mobile
+
+The layout adapts below 800px:
+
+- **Sticky result bar** — Profit, GP % and Margin % stay pinned above the bottom nav in Default mode, so you can watch them move while editing discounts instead of scrolling to the summary and back. Values below your floor limits turn amber; losses turn red.
+- **Floating action button** — a thumb-reachable ⊕ above the bottom-right corner opens the six primary actions (Save to history, Copy summary, WhatsApp, Share link, Email, Export PDF), which otherwise live in the top header. Tap the scrim or press Escape to dismiss. Default mode only.
+- **Bottom nav** — Calc · Incentives · Summary · History · Quote
+- **Quote builder** — card layout per line, pinned action bar
+- **Dialogs** — every modal is constrained to the viewport with a scrolling body, so its buttons are always reachable
+- **Touch targets** — controls meet the 44px guidance, with press feedback (touch has no hover)
+- **Zoom** — pinch-zoom works; double-tap zoom is suppressed only on controls
 
 ---
 
