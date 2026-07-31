@@ -218,6 +218,11 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .inc-label-edit{font-size:12px;font-weight:500;font-family:var(--font-body);border:none;border-bottom:1px solid var(--accent);background:transparent;color:var(--text2);padding:0 0 1px;width:0;min-width:0;flex:1;outline:none}
 .inc-add-btn{width:100%;margin-top:6px;padding:8px;border:1.5px dashed var(--border2);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:var(--font-body);display:none}
 .inc-add-btn:hover{border-color:var(--accent);color:var(--accent)}
+.gst-custom-wrap{display:inline-flex;align-items:center;gap:1px;border:1.5px solid var(--border2);border-radius:20px;padding:1px 6px 1px 2px;background:var(--surface);transition:border-color .15s}
+.gst-custom-wrap:focus-within{border-color:var(--accent)}
+.gst-custom-wrap input{border:none;background:transparent;width:38px;font-size:12px;font-family:var(--font-body);text-align:center;outline:none;color:var(--text);padding:2px;-moz-appearance:textfield}
+.gst-custom-wrap input::-webkit-outer-spin-button,.gst-custom-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.gst-custom-wrap span{font-size:11px;color:var(--text3)}
 
 /* ── SUMMARY ── */
 .summary-wrap{margin-bottom:1.25rem}
@@ -745,6 +750,7 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
       <div class="pill-group">
         <button class="pill on" id="g18" onclick="setGST(18)">18%</button>
         <button class="pill"    id="g5"  onclick="setGST(5)">5%</button>
+        <div class="gst-custom-wrap"><input type="number" id="gst-custom" value="" placeholder="Other" min="0" max="100" step="0.5" inputmode="decimal" onchange="var p=parseFloat(this.value);if(!isNaN(p)&&p>=0&&p<=100)setGST(p)" autocomplete="off" aria-label="Custom GST rate"><span>%</span></div>
       </div>
     </div>
     <div class="divider"></div>
@@ -900,8 +906,10 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         <span class="panel-title">Incentives on CP</span>
         <span class="panel-tag" id="inc-summary-tag">All off — 0.00%</span>
       </div>
-      <button class="panel-edit-btn" id="cp-inc-edit-btn" onclick="event.stopPropagation();toggleIncEditMode('cp')">Edit</button>
-      <svg class="panel-chevron" id="chev-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <button class="panel-edit-btn" id="cp-inc-edit-btn" onclick="event.stopPropagation();toggleIncEditMode('cp')">Edit</button>
+        <svg class="panel-chevron" id="chev-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
     </div>
     <div class="panel-body" id="body-inc">
       <div class="inc-grid" id="cp-inc-grid"></div>
@@ -924,8 +932,10 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
         <span class="panel-title">Incentives on SP</span>
         <span class="panel-tag" id="sp-inc-summary-tag">All off — 0.00%</span>
       </div>
-      <button class="panel-edit-btn" id="sp-inc-edit-btn" onclick="event.stopPropagation();toggleIncEditMode('sp')">Edit</button>
-      <svg class="panel-chevron" id="chev-sp-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <button class="panel-edit-btn" id="sp-inc-edit-btn" onclick="event.stopPropagation();toggleIncEditMode('sp')">Edit</button>
+        <svg class="panel-chevron" id="chev-sp-inc" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
     </div>
     <div class="panel-body" id="body-sp-inc">
       <p style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5">Optional discounts to customer that reduce effective selling price. Profit = Eff. SP − Eff. CP.</p>
@@ -1639,7 +1649,7 @@ function _incRowHTML(k,panel,editMode){
     :'<span class="inc-name" id="'+lblId+'">'+lbl+'</span>';
 
   var unitId=(k==='sc')?' id="'+(isCP?'sc':'ssc')+'-unit"':'';
-  var pctWrapId=(k==='sc')?' id="sc-pct-wrap"':'';
+  var pctWrapId=(k==='sc'&&isCP)?' id="sc-pct-wrap"':'';
 
   var mainRow='<div class="inc-row-main">'+delBtn+'<label class="toggle"><input type="checkbox" id="'+cbId+'" onchange="'+syncFn+'(\''+k+'\');calc()"><span class="toggle-track"></span><span class="toggle-thumb"></span></label>'+labelHtml+'<div class="inc-pct-wrap"'+pctWrapId+'><input type="number" inputmode="decimal" id="'+inpId+'" value="'+defVal+'" placeholder="'+placeholder+'" min="0"'+maxAttr+' step="0.01" oninput="calc()" autocomplete="off"><span class="inc-pct-sym"'+unitId+'>%</span></div></div>';
 
@@ -1736,6 +1746,7 @@ function toggleIncEditMode(panel){
   }
   _restoreInc(panel,snap);
   elClearCache();
+  calc();
 }
 
 function addInc(panel){
@@ -1752,6 +1763,7 @@ function addInc(panel){
   if(panel==='cp')renderCPIncRows();else renderSPIncRows();
   _restoreInc(panel,snap);
   elClearCache();
+  calc();
   haptic('light');
   var lblEl=document.getElementById('lbl-'+(panel==='cp'?'cp':'sp')+'-'+k);
   if(lblEl){lblEl.focus();lblEl.select();}
@@ -1788,13 +1800,15 @@ function loadLabels(){
 }
 
 /* ── Incentive helpers ── */
-function syncToggle(k){haptic('select');el('ir-'+k).className='inc-row'+(el('it-'+k).checked?' active':'')}
+function syncToggle(k){haptic('select');var row=el('ir-'+k),cb=el('it-'+k);if(row&&cb)row.className='inc-row'+(cb.checked?' active':'')}
 function getIncentiveInr(cp){
   if(!cp)return 0;
   var t=0;
   INC_KEYS.forEach(function(k){
-    if(!el('it-'+k).checked)return;
-    var v=parseFloat(el('iv-'+k).value);
+    var cb=document.getElementById('it-'+k);
+    if(!cb||!cb.checked)return;
+    var inp=document.getElementById('iv-'+k);
+    var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
     if(k==='sc'){
       t+=(SCM==='abs')?v:(cp.e*v/100);
@@ -1805,16 +1819,18 @@ function getIncentiveInr(cp){
   return t;
 }
 function updateIncSummaryTag(){
-  var active=INC_KEYS.filter(function(k){return el('it-'+k).checked}).length;
+  var active=INC_KEYS.filter(function(k){var e=document.getElementById('it-'+k);return e&&e.checked}).length;
   var nom=0, hasAbsSc=false, absScVal=0;
   INC_KEYS.forEach(function(k){
-    if(!el('it-'+k).checked)return;
-    var v=parseFloat(el('iv-'+k).value);
+    var cb=document.getElementById('it-'+k);
+    if(!cb||!cb.checked)return;
+    var inp=document.getElementById('iv-'+k);
+    var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
     if(k==='sc'&&SCM==='abs'){hasAbsSc=true;absScVal=v;}
     else nom+=v;
   });
-  var _itcd=el('it-cd');var note=(_itcd&&_itcd.checked&&CDM==='after')?' (CD on +GST)':'';
+  var _itcd=document.getElementById('it-cd');var note=(_itcd&&_itcd.checked&&CDM==='after')?' (CD on +GST)':'';
   var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' scheme':'';
   el('inc-summary-tag').textContent=(active===0?'All off':active+' active')+' — '+nom.toFixed(2)+'%'+scNote+note;
 }
@@ -1824,8 +1840,10 @@ function computeK(){
   // cpFromProfit uses K to estimate cp.e, then getIncentiveInr handles the abs deduction precisely.
   var K=1;
   INC_KEYS.forEach(function(k){
-    if(!el('it-'+k).checked)return;
-    var v=parseFloat(el('iv-'+k).value);
+    var cb=document.getElementById('it-'+k);
+    if(!cb||!cb.checked)return;
+    var inp=document.getElementById('iv-'+k);
+    var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
     if(k==='sc'&&SCM==='abs')return; // abs scheme handled separately
     K-=(k==='cd'&&CDM==='after')?(v/100)*(1+G):(v/100);
@@ -1838,8 +1856,10 @@ function getSPIncentiveInr(sp){
   if(!sp)return 0;
   var t=0;
   SP_INC_KEYS.forEach(function(k){
-    if(!el('sit-'+k).checked)return;
-    var v=parseFloat(el('siv-'+k).value);
+    var cb=document.getElementById('sit-'+k);
+    if(!cb||!cb.checked)return;
+    var inp=document.getElementById('siv-'+k);
+    var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
     if(k==='sc'){
       t+=(SSCM==='abs')?v:(sp.e*v/100);
@@ -1850,38 +1870,40 @@ function getSPIncentiveInr(sp){
   return t;
 }
 function updateSpIncSummaryTag(){
-  var active=SP_INC_KEYS.filter(function(k){return el('sit-'+k).checked}).length;
+  var active=SP_INC_KEYS.filter(function(k){var e=document.getElementById('sit-'+k);return e&&e.checked}).length;
   var nom=0,hasAbsSc=false,absScVal=0;
   SP_INC_KEYS.forEach(function(k){
-    if(!el('sit-'+k).checked)return;
-    var v=parseFloat(el('siv-'+k).value);
+    var cb=document.getElementById('sit-'+k);
+    if(!cb||!cb.checked)return;
+    var inp=document.getElementById('siv-'+k);
+    var v=parseFloat(inp?inp.value:'');
     if(isNaN(v)||v<=0)return;
     if(k==='sc'&&SSCM==='abs'){hasAbsSc=true;absScVal=v;}
     else nom+=v;
   });
-  var _sitcd=el('sit-cd');var note=(_sitcd&&_sitcd.checked&&SCDM==='after')?' (CD on +GST)':'';
+  var _sitcd=document.getElementById('sit-cd');var note=(_sitcd&&_sitcd.checked&&SCDM==='after')?' (CD on +GST)':'';
   var scNote=hasAbsSc?' + ₹'+absScVal.toFixed(2)+' scheme':'';
   el('sp-inc-summary-tag').textContent=(active===0?'All off':active+' active')+' — '+nom.toFixed(2)+'%'+scNote+note;
 }
 function syncSpToggle(k){
   haptic('select');
-  el('sir-'+k).className='inc-row'+(el('sit-'+k).checked?' sp-active':'');
+  var row=el('sir-'+k),cb=el('sit-'+k);
+  if(row&&cb)row.className='inc-row'+(cb.checked?' sp-active':'');
 }
 function setSCDMode(m){
-  haptic('select');
-  SCDM=m;
-  el('scdm-before').className=(m==='before')?'stab on':'stab';
-  el('scdm-after').className=(m==='after')?'stab on':'stab';
+  haptic('select');SCDM=m;
+  var e1=el('scdm-before'),e2=el('scdm-after');
+  if(e1)e1.className=(m==='before')?'stab on':'stab';
+  if(e2)e2.className=(m==='after')?'stab on':'stab';
   calc();
 }
 function setSpSchemeMode(m){
-  haptic('select');
-  SSCM=m;
-  el('sscm-pct').className=(m==='pct')?'stab on':'stab';
-  el('sscm-abs').className=(m==='abs')?'stab on':'stab';
-  el('ssc-unit').textContent=(m==='abs')?'₹':'%';
-  el('siv-sc').placeholder=(m==='abs')?'0.00':'0';
-  if(m==='abs'){el('siv-sc').removeAttribute('max')}else{el('siv-sc').max='100'}
+  haptic('select');SSCM=m;
+  var e1=el('sscm-pct'),e2=el('sscm-abs'),eu=el('ssc-unit'),iv=el('siv-sc');
+  if(e1)e1.className=(m==='pct')?'stab on':'stab';
+  if(e2)e2.className=(m==='abs')?'stab on':'stab';
+  if(eu)eu.textContent=(m==='abs')?'₹':'%';
+  if(iv){iv.placeholder=(m==='abs')?'0.00':'0';if(m==='abs'){iv.removeAttribute('max')}else{iv.max='100'}}
   calc();
 }
 function fillSpIncPanel(sp){
@@ -1957,7 +1979,7 @@ function updateGSTLabels(){
   R('wz-rlbl-effi','Eff. '+wzLbl+' incl '+wzg+'% GST');
 }
 
-function setGST(p){haptic('select');G=p/100;el('g18').className=(p===18)?'pill on':'pill';el('g5').className=(p===5)?'pill on':'pill';el('grate').textContent=p+'%';updateGSTLabels();calc()}
+function setGST(p){haptic('select');G=p/100;el('g18').className=(p===18)?'pill on':'pill';el('g5').className=(p===5)?'pill on':'pill';var gc=el('gst-custom');if(gc&&document.activeElement!==gc)gc.value=(p===18||p===5)?'':p;el('grate').textContent=p+'%';updateGSTLabels();calc()}
 function setT(t){haptic('select');T=t;el('tprofit').className=(t==='profit')?'pill on':'pill';el('tsp').className=(t==='sp')?'pill on':'pill';el('tcp').className=(t==='cp')?'pill on':'pill';updateLayout();calc()}
 function setCM(m){
   CM=m;
@@ -1989,15 +2011,14 @@ function setSPManual(s){
   calc();
 }
 function setPM(m){haptic('select');PM=m;el('pmv').className=(m==='val')?'mtab on':'mtab';el('pmg').className=(m==='gp')?'mtab on':'mtab';el('pmm').className=(m==='margin')?'mtab on':'mtab';el('pru').textContent=(m==='val')?'₹':'%';calc()}
-function setCDMode(m){haptic('select');CDM=m;el('cdm-before').className=(m==='before')?'stab on':'stab';el('cdm-after').className=(m==='after')?'stab on':'stab';calc()}
+function setCDMode(m){haptic('select');CDM=m;var e1=el('cdm-before'),e2=el('cdm-after');if(e1)e1.className=(m==='before')?'stab on':'stab';if(e2)e2.className=(m==='after')?'stab on':'stab';calc()}
 function setSchemeMode(m){
-  haptic('select');
-  SCM=m;
-  el('scm-pct').className=(m==='pct')?'stab on':'stab';
-  el('scm-abs').className=(m==='abs')?'stab on':'stab';
-  el('sc-unit').textContent=(m==='abs')?'₹':'%';
-  el('iv-sc').placeholder=(m==='abs')?'0.00':'0';
-  if(m==='abs'){el('iv-sc').removeAttribute('max')}else{el('iv-sc').max='100'}
+  haptic('select');SCM=m;
+  var e1=el('scm-pct'),e2=el('scm-abs'),eu=el('sc-unit'),iv=el('iv-sc');
+  if(e1)e1.className=(m==='pct')?'stab on':'stab';
+  if(e2)e2.className=(m==='abs')?'stab on':'stab';
+  if(eu)eu.textContent=(m==='abs')?'₹':'%';
+  if(iv){iv.placeholder=(m==='abs')?'0.00':'0';if(m==='abs'){iv.removeAttribute('max')}else{iv.max='100'}}
   calc();
 }
 
@@ -2670,21 +2691,23 @@ function resetAll(){
   // Incentives
   var def={cd:2,eb:1,qt:2,an:1,sc:''};
   INC_KEYS.forEach(function(k){
-    el('it-'+k).checked=false;
-    el('iv-'+k).value=def[k];
-    el('ir-'+k).className='inc-row';
+    var cb=el('it-'+k),iv=el('iv-'+k),row=el('ir-'+k);
+    if(cb)cb.checked=false;
+    if(iv)iv.value=(def[k]!==undefined)?def[k]:'1';
+    if(row)row.className='inc-row';
   });
-  setCDMode('before');
-  setSchemeMode('pct');
+  if(INC_KEYS.indexOf('cd')!==-1)setCDMode('before');
+  if(INC_KEYS.indexOf('sc')!==-1)setSchemeMode('pct');
   // Reset SP incentives
   var spDef={cd:2,eb:1,qt:2,an:1,sc:''};
   SP_INC_KEYS.forEach(function(k){
-    el('sit-'+k).checked=false;
-    el('siv-'+k).value=spDef[k]||'';
-    el('sir-'+k).className='inc-row';
+    var cb=el('sit-'+k),iv=el('siv-'+k),row=el('sir-'+k);
+    if(cb)cb.checked=false;
+    if(iv)iv.value=(spDef[k]!==undefined)?spDef[k]:'1';
+    if(row)row.className='inc-row';
   });
-  setSCDMode('before');
-  setSpSchemeMode('pct');
+  if(SP_INC_KEYS.indexOf('cd')!==-1)setSCDMode('before');
+  if(SP_INC_KEYS.indexOf('sc')!==-1)setSpSchemeMode('pct');
   // What-if
   WI_SCENES=[
     {spDisc:'',spMode:'excl',spVal:'',spManualSub:'incl'},
@@ -3762,9 +3785,14 @@ function wzToDefault(){
 
 /* ── Share as link ── */
 function getShareState(){
-  var inc={};
+  var inc={},spinc={};
   INC_KEYS.forEach(function(k){
-    inc[k]={on:el('it-'+k).checked,v:el('iv-'+k).value};
+    var cb=document.getElementById('it-'+k),iv=document.getElementById('iv-'+k);
+    inc[k]={on:cb?cb.checked:false,v:iv?iv.value:''};
+  });
+  SP_INC_KEYS.forEach(function(k){
+    var cb=document.getElementById('sit-'+k),iv=document.getElementById('siv-'+k);
+    spinc[k]={on:cb?cb.checked:false,v:iv?iv.value:''};
   });
   return{
     m:el('mrp').value,
@@ -3773,15 +3801,15 @@ function getShareState(){
     cm:CM,cpms:CPMS,cpd:el('cpd').value,cpv:el('cpv').value,
     sm:SM,spms:SPMS,spd:el('spd').value,spv:el('spv').value,
     pm:PM,pri:el('pri').value,
-    cdm:CDM,scm:SCM,
+    cdm:CDM,scm:SCM,scdm:SCDM,sscm:SSCM,
     fgp:el('floor-gp').value,fmg:el('floor-mg').value,
-    inc:inc
+    inc:inc,spinc:spinc
   };
 }
 
 function applyShareState(s){
   try{
-    if(s.g)setGST(parseInt(s.g,10));
+    if(s.g)setGST(parseFloat(s.g));
     if(s.m)el('mrp').value=s.m;
     if(s.cm)setCM(s.cm);
     if(s.cpms)setCPManual(s.cpms);
@@ -3799,13 +3827,24 @@ function applyShareState(s){
     if(s.fmg!==undefined)el('floor-mg').value=s.fmg;
     if(s.inc){
       INC_KEYS.forEach(function(k){
-        if(s.inc[k]){
-          el('it-'+k).checked=!!s.inc[k].on;
-          el('iv-'+k).value=s.inc[k].v||'';
-          syncToggle(k);
-        }
+        if(!s.inc[k])return;
+        var cb=document.getElementById('it-'+k),iv=document.getElementById('iv-'+k);
+        if(cb)cb.checked=!!s.inc[k].on;
+        if(iv)iv.value=s.inc[k].v||'';
+        syncToggle(k);
       });
     }
+    if(s.spinc){
+      SP_INC_KEYS.forEach(function(k){
+        if(!s.spinc[k])return;
+        var cb=document.getElementById('sit-'+k),iv=document.getElementById('siv-'+k);
+        if(cb)cb.checked=!!s.spinc[k].on;
+        if(iv)iv.value=s.spinc[k].v||'';
+        syncSpToggle(k);
+      });
+    }
+    if(s.scdm)setSCDMode(s.scdm);
+    if(s.sscm)setSpSchemeMode(s.sscm);
     if(s.t)setT(s.t);
     calc();
   }catch(e){console.warn('share state restore failed',e)}
