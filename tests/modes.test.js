@@ -172,9 +172,10 @@ ok('result-only refresh does not throw', !threw);
 w.closeModal('whatif');
 
 // Regression: renderWhatIf empties #wi-grid and rebuilds cells with the same
-// ids, so every node el() had cached becomes detached. Before elClearCache()
-// was added, updateWiResults wrote into the old nodes and every re-open after
-// the first showed '—'.
+// ids. When el() memoised its lookups those cached nodes became detached, so
+// updateWiResults wrote into them and every re-open after the first showed '—'.
+// el() no longer caches; the generic rebuild assertions live in the feature
+// suite, and this one pins the resulting values.
 let wiDiag = '';
 ok('what-if respects incentives and landed cost', (() => {
   d.getElementById('landed').value = '50';

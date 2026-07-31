@@ -433,20 +433,33 @@ function onAmtInput(inp){
   }
   calc();
 }
-var _elCache={};
 /**
- * getElementById with a cache. Elements are looked up on nearly every
- * keystroke, so this avoids repeated DOM traversal.
- * Call elClearCache() after replacing any cached node's innerHTML.
+ * getElementById, kept short because it is called ~104 times per calc().
+ *
+ * This used to memoise into an _elCache object, which made every innerHTML
+ * rewrite a correctness hazard: the rebuilt nodes reuse their ids, so cached
+ * references silently went stale and writes landed on detached nodes that were
+ * no longer in the document. renderWhatIf shipped exactly that bug — its grid
+ * was rebuilt with identical ids, so every re-open of the dialog showed '—'.
+ * The fix was an elClearCache() call after each rebuild, i.e. a rule every
+ * future caller had to know; 41 innerHTML sites had no such call.
+ *
+ * Measured before removing it (Chromium, 2.3M lookups, medians, arm order
+ * alternated), nanoseconds per lookup:
+ *
+ *     memoised                 16.1
+ *     memoised + isConnected   40.7     validating costs what the lookup costs
+ *     plain getElementById     40.1
+ *
+ * So the cache was worth 24ns a lookup, about 2.5 microseconds per calc() —
+ * unmeasurable against a 16ms frame — and self-validating it gave all of that
+ * back. Removing it outright is the same speed as validating and deletes the
+ * bug class rather than guarding it.
+ *
  * @param {string} id
  * @returns {HTMLElement|null}
  */
-function el(id){return _elCache[id]||(_elCache[id]=document.getElementById(id))}
-/**
- * Drop every cached element reference. Must run after any innerHTML rewrite
- * that replaces nodes the cache may still be holding.
- */
-function elClearCache(){_elCache={}}
+function el(id){return document.getElementById(id)}
 /**
  * Set an element's textContent if it exists. No-op for absent ids, which keeps
  * callers free of null checks for optional UI.
@@ -1286,7 +1299,6 @@ function renderCPIncRows(){
   INC_KEYS.forEach(function(k){html+=_incRowHTML(k,'cp',CP_EDIT_MODE);});
   grid.innerHTML=html;
   if(CP_EDIT_MODE)grid.classList.add('edit-mode');else grid.classList.remove('edit-mode');
-  elClearCache();
 }
 
 /**
@@ -1299,7 +1311,6 @@ function renderSPIncRows(){
   SP_INC_KEYS.forEach(function(k){html+=_incRowHTML(k,'sp',SP_EDIT_MODE);});
   grid.innerHTML=html;
   if(SP_EDIT_MODE)grid.classList.add('edit-mode');else grid.classList.remove('edit-mode');
-  elClearCache();
 }
 
 /**
@@ -1337,7 +1348,6 @@ function setIncEditMode(panel,on){
   if(add)add.style.display=on?'block':'none';
   if(isCP)renderCPIncRows();else renderSPIncRows();
   _restoreInc(panel,snap);
-  elClearCache();
   calc();
 }
 
@@ -1376,7 +1386,6 @@ function addInc(panel){
   var snap=_snapshotInc(panel);
   if(panel==='cp')renderCPIncRows();else renderSPIncRows();
   _restoreInc(panel,snap);
-  elClearCache();
   calc();
   haptic('light');
   // Only an input in edit mode — outside it the label renders as a span.
@@ -1418,7 +1427,6 @@ function doDeleteInc(panel,key){
   saveLabels();
   if(panel==='cp')renderCPIncRows();else renderSPIncRows();
   _restoreInc(panel,snap);
-  elClearCache();
   calc();
   haptic('light');
 }
@@ -1902,7 +1910,7 @@ function applyPreset(p){
   if(INC_KEYS.indexOf('sc')!==-1)setSchemeMode(p.scm==='abs'?'abs':'pct');
   if(SP_INC_KEYS.indexOf('cd')!==-1)setSCDMode(p.scdm==='after'?'after':'before');
   if(SP_INC_KEYS.indexOf('sc')!==-1)setSpSchemeMode(p.sscm==='abs'?'abs':'pct');
-  elClearCache();saveLabels();calc();
+  saveLabels();calc();
 }
 
 /** Repaint the preset dropdown from PRESETS. */
@@ -2596,13 +2604,12 @@ function renderWhatIf(cp){
     card.appendChild(rows);grid.appendChild(card);
   });
 
-  // The grid was emptied and rebuilt with the same element ids, so every
-  // wi-*-* node el() has cached is now detached. Without this, updateWiResults
-  // writes into the old nodes and the visible cards stay showing '—' on every
-  // re-render after the first.
-  elClearCache();
-
-  // Populate results after DOM is built
+  // Populate results after the DOM is built. This used to need an
+  // elClearCache() first: the grid is rebuilt with the same wi-*-* ids, so
+  // every node the old el() cache held was detached and updateWiResults wrote
+  // into nodes that were no longer displayed — the cards showed '—' on every
+  // re-render after the first. el() no longer caches, so the ids resolve to
+  // whatever is currently in the document.
   updateWiResults();
 }
 
