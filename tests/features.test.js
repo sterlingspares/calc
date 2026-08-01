@@ -2836,6 +2836,94 @@ R.section('\n=== 31. Settings is grouped into tabs ===');
      w.SETTINGS_TAB);
   w.closeModal('settings');
 
+  R.section('\n=== 31b. Stacked dialogs, header presets, factory reset ===');
+
+  // ── A dialog raised from a dialog must paint above it ───────────────────
+  // Saving a preset from the manager opened the naming dialog behind it: both
+  // are .modal-overlay, and at the same z-index the one later in the markup
+  // wins. It also left the focus trap pointing at the closed dialog.
+  // The raised rule is a grouped selector, so the name may not start the line.
+  const zFor = sel => {
+    const m = readAsset('assets/styles.css').match(
+      new RegExp('(^|,)' + sel.replace(/[#.]/g, '\\$&') + '[^{]*\\{[^}]*z-index:(\\d+)', 'm'));
+    return m ? +m[2] : null;
+  };
+  ok('the naming dialog outranks an ordinary one',
+     zFor('#overlay-prompt') > zFor('.modal-overlay'),
+     zFor('#overlay-prompt') + ' vs ' + zFor('.modal-overlay'));
+  ok('so does the confirmation', zFor('#overlay-confirm') > zFor('.modal-overlay'));
+
+  w.PRESETS = {};
+  w.openModal('settings');
+  ok('the trap starts on Settings', w._openOverlay.id === 'overlay-settings', w._openOverlay.id);
+  w.ACT.settingsPresets();
+  ok('Manage closes Settings and opens the manager',
+     !overlayOpen('settings') && overlayOpen('presets'));
+  w.savePresetAs();
+  ok('the naming dialog opens over the manager',
+     overlayOpen('prompt') && overlayOpen('presets'));
+  ok('and takes the focus trap', w._openOverlay.id === 'overlay-prompt', w._openOverlay.id);
+  d.getElementById('prompt-input').value = 'Bosch';
+  w.validatePrompt(); w.runPrompt();
+  ok('saving closes only the top dialog',
+     !overlayOpen('prompt') && overlayOpen('presets'));
+  ok('and the trap goes back to the manager',
+     w._openOverlay.id === 'overlay-presets', w._openOverlay && w._openOverlay.id);
+  w.deletePreset('Bosch');
+  ok('a confirmation stacks too', overlayOpen('confirm') && overlayOpen('presets'));
+  ok('and the trap follows it', w._openOverlay.id === 'overlay-confirm');
+  w.closeConfirm();
+  ok('cancelling hands the trap back', w._openOverlay.id === 'overlay-presets');
+  w.closeModal('presets');
+  ok('with everything closed there is no trap', w._openOverlay === null);
+  ok('and the scroll lock is released', d.body.style.overflow === '');
+
+  // ── Presets is reachable from the header ────────────────────────────────
+  ok('there is a Presets button in the header', d.getElementById('hbtn-presets') !== null);
+  ok('beside Quote', d.getElementById('hbtn-presets').nextElementSibling.id === 'hbtn-quote',
+     d.getElementById('hbtn-presets').nextElementSibling.id);
+  ok('and it opens the manager', (() => {
+    w.PRESETS = {};
+    w.ACT.presetManage();
+    const open = overlayOpen('presets');
+    w.closeModal('presets');
+    return open;
+  })());
+  ok('the switch hides it along with the menu entry',
+     w.featureDef('presets').els.indexOf('hbtn-presets') !== -1,
+     w.featureDef('presets').els.join(','));
+
+  // ── Factory reset ───────────────────────────────────────────────────────
+  w.HISTORY.push({ mrp: 900, cpE: 1, spE: 2, pr: 1, gp: 1, mg: 1, gst: 18, time: w.nowMs() });
+  w.PRESETS = { A: w.capturePreset() };
+  w.QUOTE.push({ mrp: '1000', cpd: '40', spd: '25', qty: '1' });
+  w.factoryReset();
+  ok('reset asks before wiping anything', overlayOpen('confirm'));
+  ok('and says what is held',
+     d.getElementById('confirm-msg').textContent.indexOf('1 history entry') !== -1 &&
+     d.getElementById('confirm-msg').textContent.indexOf('1 preset') !== -1 &&
+     d.getElementById('confirm-msg').textContent.indexOf('1 quote line') !== -1,
+     d.getElementById('confirm-msg').textContent);
+  ok('and warns it is final',
+     d.getElementById('confirm-sub').textContent.indexOf('cannot be undone') !== -1,
+     d.getElementById('confirm-sub').textContent);
+  w.closeConfirm();
+  ok('cancelling changes nothing',
+     w.HISTORY.length === 1 && Object.keys(w.PRESETS).length === 1 && w.QUOTE.length === 1);
+
+  // It clears the app's own keys rather than the whole origin.
+  ok('it names every key the app writes',
+     ['pc-state', 'pc-history', 'pc-labels', 'pc-presets', 'pc-qstate', 'pc-quote',
+      'pc-theme', 'pc-fx', 'pc-features', 'ob-done'].every(k => w.STORAGE_KEYS.indexOf(k) !== -1),
+     w.STORAGE_KEYS.join(','));
+  // Comments stripped first: the reason for not using it is written next to the
+  // key list, and matching prose would fail on the explanation itself.
+  ok('and does not reach for localStorage.clear()',
+     !/localStorage\.clear\(\)/.test(
+       readAsset('assets/app.js').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')),
+     'wipes the whole origin');
+  w.HISTORY.length = 0; w.QUOTE.length = 0; w.PRESETS = {};
+
   R.section('\n=== 32. Turning features off ===');
 
   // Walk the registry rather than naming elements here: a feature added later
@@ -2843,12 +2931,18 @@ R.section('\n=== 31. Settings is grouped into tabs ===');
   freshCalc(1000, 40, 25);
   w.setDisplayCcy('INR', 'both');
   w.openModal('settings');
-  ok('a switch per feature', d.querySelectorAll('#feat-grid .feat-chip').length === 8,
+  ok('a switch per feature', d.querySelectorAll('#feat-grid .feat-chip').length === 7,
      'got ' + d.querySelectorAll('#feat-grid .feat-chip').length);
-  ok('all eight are named',
-     ['presets', 'quote', 'whatif', 'forex', 'landed', 'solver', 'inccp', 'incsp']
+  ok('all seven are named',
+     ['presets', 'quote', 'whatif', 'landed', 'solver', 'inccp', 'incsp']
        .every(k => w.FEATURE_DEFS.some(f => f.k === k)),
      w.FEATURE_DEFS.map(f => f.k).join(','));
+  // Currency is configured in Settings → Pricing, so a switch for it here was a
+  // second place to look for the same setting.
+  ok('currency is not among them', !w.FEATURE_DEFS.some(f => f.k === 'forex'),
+     w.FEATURE_DEFS.map(f => f.k).join(','));
+  ok('but its settings section is still there',
+     d.getElementById('sec-set-forex') !== null);
   ok('each switch reports its state to assistive tech',
      [...d.querySelectorAll('#feat-grid .feat-chip')]
        .every(b => b.getAttribute('role') === 'switch' && b.getAttribute('aria-checked') === 'true'));
@@ -2938,12 +3032,6 @@ R.section('\n=== 31. Settings is grouped into tabs ===');
   ok('the incentives tab goes with them',
      d.getElementById('bnav-inc').style.display === 'none',
      d.getElementById('bnav-inc').style.display);
-
-  // Turning off the currency feature returns the display to rupees.
-  w.toggleFeature('forex'); w.runConfirm();
-  ok('turning off currency goes back to rupees', w.DISPLAY_CCY === 'INR', w.DISPLAY_CCY);
-  w.setDisplayCcy('USD', 'sale');
-  ok('and it cannot be set again while off', w.DISPLAY_CCY === 'INR', w.DISPLAY_CCY);
 
   w.toggleFeature('whatif'); w.runConfirm();
   ok('every feature is now off', w.FEATURE_DEFS.every(f => !w.featOn(f.k)),

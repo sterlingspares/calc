@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1356%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1379%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -127,8 +127,8 @@ docs/                   screenshots for this README
 ## Pricing
 
 The control bar carries only what changes per calculation: **GST**, what to
-**Calculate**, and **Reset**. Presets live in the header menu (or `E`), and the
-currency control in Settings → Pricing → Currency — neither changes from one
+**Calculate**, and **Reset**. Presets have their own header button (or `E`), and the
+currency control lives in Settings → Pricing → Currency — neither changes from one
 quote to the next.
 
 ### MRP and GST
@@ -340,8 +340,8 @@ Incentive setups repeat — one supplier's terms, one dealer's scheme. A preset
 snapshots both panels entirely: the rows, their names, their % / ₹ modes, which
 are switched on, the values in them, and the CD/Scheme base selectors.
 
-Everything lives in one manager, reached from the header menu, **Settings →
-Features → Saved presets**, or `E`:
+Everything lives in one manager, reached from the **Presets** button in the
+header, **Settings → Features → Saved presets**, or `E`:
 
 | Action | Where | What it does |
 |---|---|---|
@@ -512,6 +512,7 @@ switched off hides rather than leading nowhere.
 | **Exchange rates** | Update now, and set a manual rate |
 | **App tour** | Restart the onboarding walkthrough |
 | **Keyboard shortcuts** | View all shortcuts |
+| **Reset everything** | Clear every saved key and start as if the app were new |
 
 Floor limits, auto-save preference and theme persist across sessions.
 
@@ -523,10 +524,9 @@ and it disappears from the screen:
 
 | | |
 |---|---|
-| **Presets** | the control-bar picker and the manager |
+| **Presets** | the header button, menu entry and the manager |
 | **Quote builder** | the header button, menu item and bottom-nav tab |
 | **What-if scenarios** | the button on the summary |
-| **Currency conversion** | the Show control; the display returns to rupees |
 | **Landed costs** | both fields in the MRP bar |
 | **Target GP solver** | the row under break-even |
 | **Incentives on CP** · **Incentives on SP** | the whole panel; the Incentives tab goes when both are off |
@@ -628,7 +628,11 @@ taken by Solve-for-Profit and Settings, so presets use `E`.
 | `pc-theme` | Dark / light preference |
 | `ob-done` | Onboarding completion flag |
 
-A URL share (`?s=…`) encodes calculator state as base64 JSON and takes
+A **Settings → Help → Reset everything** clears exactly these keys — not
+`localStorage.clear()`, since the origin may hold something that is not ours —
+and reloads, so the app comes up the way a new visitor sees it.
+
+URL share (`?s=…`) encodes calculator state as base64 JSON and takes
 **priority over localStorage** on load. Every field is allow-listed on the way
 in — an unrecognised or malformed payload is discarded, not partially applied.
 
@@ -702,7 +706,7 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 1356 passing, 7 suites | `npm test` |
+| Tests | 1379 passing, 7 suites | `npm test` |
 | Statement coverage | **82.6%** (app.js 86.3%, app-extra.js 68.5%) | `npm run coverage` |
 | Lighthouse Performance | **98** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
@@ -730,7 +734,7 @@ commands after significant changes.
 
 ## Tests
 
-1356 assertions across seven suites. They load the real `index.html`,
+1379 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -741,7 +745,7 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 929 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 952 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 78 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
