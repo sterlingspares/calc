@@ -482,6 +482,8 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
 .ob-btn-skip{background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;font-family:var(--font-body);padding:8px 4px}
 .ob-btn-next{flex:1;padding:12px;border-radius:50px;border:none;background:var(--accent);color:var(--accent-fg);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:opacity .15s}
 .ob-btn-next:hover{opacity:.88}
+.ob-btn-action{display:block;width:100%;margin-top:14px;padding:10px 16px;border-radius:20px;border:1px solid var(--border-ctrl);background:transparent;color:var(--text2);font-size:12.5px;font-weight:600;font-family:var(--font-body);cursor:pointer;min-height:44px;transition:all .15s}
+.ob-btn-action:hover{background:var(--surface2);color:var(--text)}
 .ob-tip{font-size:11.5px;color:var(--text2);text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;line-height:1.5}
 
 .hmenu-dropdown{display:none;position:absolute;right:0;top:calc(100% + 8px);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);min-width:160px;overflow:hidden;z-index:400}

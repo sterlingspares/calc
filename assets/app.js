@@ -255,6 +255,7 @@ ACT.a138 = function(self, event){ // Onboarding backdrop: dismiss only when the 
   if(event.target===self)obSkip(); };
 ACT.a139 = function(self, event){ OB_STEP===0?obSkip():(OB_STEP--,obRender()) };
 ACT.a140 = function(self, event){ obNext() };
+ACT.obAction = function(){ var s=OB_STEPS[OB_STEP]; if(s&&s.action==='example')obFillExample(); };
 
 /**
  * Register a delegated listener for one event type.
@@ -4920,14 +4921,53 @@ document.addEventListener('keydown',function(e){
 });
 
 /* ── Onboarding ── */
+/* The tour is most people's first contact with the app — someone arriving from
+   a search result has not read the README and may not know the vocabulary. It
+   used to be a feature list ("Default Mode", "Summary & What-If") that assumed
+   you already knew what MRP, GP% and an incentive were, and step one said it
+   was built for one company. It now explains the problem, then shows the sum
+   on real numbers, then names the two figures people most often confuse. */
 var OB_STEPS=[
-  {icon:'₹',iconBg:'#1a191614',title:'Welcome to Pricing Calc',body:'A fast calculator for MRP-based pricing with GST, incentives, and margin analysis — built for Sterling Spares.',tip:'This tour takes about 30 seconds.'},
-  {icon:'📊',iconBg:'var(--blue-bg)',title:'Default Mode',body:'Enter MRP, Cost Price disc%, and Selling Price disc%. The calculator shows GP%, Margin%, CP incl/excl GST, and flags if prices exceed MRP.',tip:'Use the <b>Calculate</b> bar to solve for Profit, SP, or CP.'},
-  {icon:'⚡',iconBg:'var(--green-bg)',title:'Quick / Flashcard Mode',body:'Tap <b>Quick</b> in the header for a swipeable card-by-card flow. Enter MRP → CP → SP and get an instant summary. Works like Tinder — swipe left to advance.',tip:'On desktop, use Enter or arrow keys to navigate.'},
-  {icon:'🎯',iconBg:'var(--amber-bg)',title:'Incentives',body:'CD, Early Bird, Quarterly, Annual, and Scheme incentives all reduce effective CP. Toggle them on with the Incentives panel — they feed into profit and margin automatically.',tip:'CD can be calculated on CP excl or incl GST.'},
-  {icon:'📈',iconBg:'var(--surface2)',title:'Summary &amp; What-If',body:'The Summary bar shows all key metrics at a glance. The <b>What-if</b> button lets you compare three SP scenarios side-by-side to find the best margin.',tip:'History auto-saves calculations. Use <b>Compare</b> to diff two entries.'},
-  {icon:'⌨️',iconBg:'var(--surface2)',title:'Shortcuts &amp; Settings',body:'Press <b>?</b> anytime to see keyboard shortcuts. Settings lets you set floor limits for GP% and Margin%, toggle dark mode, and control auto-save.',tip:'Press Q to toggle between Default and Quick mode instantly.'},
+  {icon:'%',iconBg:'#1a191614',title:'What this works out',
+   body:'You buy at a discount off a printed list price and sell at a smaller one. The gap is your margin — but rebates, tax and freight all move it. This does that sum live, so a quote can be checked before you give it.',
+   tip:'Six short steps, about a minute. Skip any time.'},
+
+  {icon:'🧮',iconBg:'var(--blue-bg)',title:'Try it on real numbers',
+   body:'A part listed at <b>1,000</b>. You buy at <b>40% off</b> and sell at <b>25% off</b>, so you pay 600 and charge 750 — a profit of <b>150</b>. Enter those three and the whole screen fills in.',
+   tip:'Press <b>Fill this in</b> below and the example is on screen when the tour ends.',
+   action:'example'},
+
+  {icon:'🎯',iconBg:'var(--amber-bg)',title:'The part that catches people out',
+   body:'Your supplier also gives you money that never appears on the invoice — a cash discount for paying early, a quarterly or annual rebate, a scheme. Switch those on under <b>Incentives on CP</b> and your real cost drops. Anything you pass on to your own customer goes under <b>Incentives on SP</b>.',
+   tip:'On the example, a 2% cash discount and 1% early-bird turn 150 of profit into 168.'},
+
+  {icon:'⚖️',iconBg:'var(--green-bg)',title:'GP % and Margin % are not the same',
+   body:'<b>GP %</b> is profit as a share of what you sell for. <b>Margin %</b> is profit as a share of what it cost you. The same deal reads 20.00% GP and 25.00% margin — so it is worth being sure which one your supplier means.',
+   tip:'Margin % is what a finance textbook calls markup. It is always the larger number.'},
+
+  {icon:'🌍',iconBg:'var(--surface2)',title:'Your currency, your tax rate',
+   body:'GST is one tap at 18% or 5%, but any rate from 0 to 100% works — VAT at 20% behaves identically. Under <b>Show</b> you can put the cost side, the sale side, or both into another currency, which is how an importer or exporter prices a deal.',
+   tip:'Rates are fetched on demand, cached for offline, and you can type your own.'},
+
+  {icon:'⌨️',iconBg:'var(--surface2)',title:'Where the rest lives',
+   body:'<b>Quick</b> is a card-by-card version for phones. <b>Quote</b> builds a multi-line quote with a blended GP. Everything saves as you type and works offline. If a feature is not useful to you, switch it off in <b>Settings → Features</b> and it leaves the screen.',
+   tip:'Press <b>?</b> for shortcuts. Nothing you enter leaves your device.'}
 ];
+
+/**
+ * Fill the calculator with the tour's example.
+ *
+ * An empty calculator teaches nothing, and a newcomer will not invent numbers
+ * to try. Populating it means the tour has something to point at, and the
+ * screen is already working when the tour ends.
+ */
+function obFillExample(){
+  var m=el('mrp'); if(m)m.value='1000';
+  setCM('excl'); var c=el('cpd'); if(c)c.value='40';
+  setSM('excl'); var p=el('spd'); if(p)p.value='25';
+  calc();
+  toast('Example filled in',true);
+}
 function obShow(){
   OB_STEP=0;
   el('ob-overlay').classList.add('show');
@@ -4974,6 +5014,9 @@ function obRender(){
     ?'<span style="font-family:\'Syne\',sans-serif;font-size:24px;font-weight:700;color:var(--text)">'+s.icon+'</span>'
     :'<span>'+s.icon+'</span>';
   el('ob-title').innerHTML=s.title;
+  // Only one step offers an action; the button is hidden on the rest.
+  var act=el('ob-action');
+  if(act)act.style.display=s.action?'':'none';
   el('ob-body').innerHTML=s.body;
   var tip=el('ob-tip');
   if(s.tip){tip.innerHTML=s.tip;tip.style.display=''}else{tip.style.display='none'}

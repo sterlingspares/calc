@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1387%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-97-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1406%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-97-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -146,6 +146,7 @@ manifest.json           PWA manifest
 _headers                response headers for the host
 tests/                  test suite (dev-only)
 docs/                   screenshots for this README
+robots.txt · sitemap.xml  indexing
 ```
 
 ---
@@ -528,6 +529,14 @@ a phone — rather than one long scroll:
 Arrow keys, Home and End move between tabs, and a tab whose sections are all
 switched off hides rather than leading nowhere.
 
+### First run
+
+A six-step tour opens on a first visit, written for someone who arrived without
+reading any of this. It starts with the problem rather than the features, offers
+to **fill the example in** so the screen is working rather than empty, warns that
+GP % and Margin % are not the same figure, and says plainly that the tax rate and
+the currency are yours to set. Restart it any time from Settings → Help.
+
 | Setting | Description |
 |---|---|
 | **Dark mode** | Full dark colour scheme |
@@ -538,7 +547,7 @@ switched off hides rather than leading nowhere.
 | **Features** | Switch off anything you do not use |
 | **Saved presets** | Open the preset manager |
 | **Exchange rates** | Update now, and set a manual rate |
-| **App tour** | Restart the onboarding walkthrough |
+| **App tour** | Restart the six-step tour |
 | **Keyboard shortcuts** | View all shortcuts |
 | **Reset everything** | Clear every saved key and start as if the app were new |
 
@@ -734,12 +743,12 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 1387 passing, 7 suites | `npm test` |
+| Tests | 1406 passing, 7 suites | `npm test` |
 | Statement coverage | **82.7%** (app.js 86.3%, app-extra.js 72.3%) | `npm run coverage` |
 | Lighthouse Performance | **97** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
 | Lighthouse Best Practices | **100** | ” |
-| Lighthouse SEO | 60 | ” |
+| Lighthouse SEO | **100** | ” |
 
 Lighthouse runs against a local server that gzips and sets the same cache headers
 as `_headers`, on emulated mobile with throttling — so the scores reflect a
@@ -758,10 +767,8 @@ no-build-step trade: what is in the repo is what the browser runs.
 `unused-javascript` (~88KB) is mostly the deferred bundle, warmed during idle so
 the quote builder and what-if open instantly — paid for after load, not before.
 
-**On the SEO score:** it is capped entirely by
-`<meta name="robots" content="noindex, nofollow">`. `is-crawlable` is the only
-failing audit, and it fails by design — this is an internal tool that should not
-be indexed. Removing the meta tag would score 100 and is not wanted.
+The app is indexable, with a `robots.txt`, a sitemap, and share-card metadata
+that says what the tool does rather than who built it.
 
 Coverage is measured by mapping V8 coverage back to each bundle. The app runs
 inside jsdom as an inline script, so c8 and nyc attribute everything to the
@@ -773,7 +780,7 @@ commands after significant changes.
 
 ## Tests
 
-1387 assertions across seven suites. They load the real `index.html`,
+1406 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -784,7 +791,7 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 960 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 979 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 78 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |

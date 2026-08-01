@@ -29,16 +29,22 @@
      suppressed per-control with `touch-action:manipulation` instead of by
      disabling zoom globally. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-<meta name="description" content="Pricing calculator for automotive parts distribution. Calculate cost price, selling price, GP%, margin%, GST, and incentives on MRP.">
-<meta name="keywords" content="pricing calculator, automotive parts, MRP, GST, margin, GP, distributor, Sterling Spares">
+<meta name="description" content="Free margin calculator for distributors and traders. Work out cost price, selling price, GP% and margin from discounts off a list price — including off-invoice rebates, GST or VAT, landed costs and multi-currency quotes. Works offline, no sign-up.">
+<meta name="keywords" content="margin calculator, distributor pricing, trade discount calculator, GP percentage, markup calculator, MRP calculator, GST calculator, VAT margin, landed cost, wholesale pricing">
 <meta name="author" content="Sterling Spares">
 <meta name="theme-color" content="#1a1916">
-<meta name="robots" content="noindex, nofollow">
-<meta property="og:title" content="Price Calc — Sterling Spares">
-<meta property="og:description" content="Calculate CP, SP, GP%, margin%, GST and incentives for automotive parts distribution.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://calc.sterlingspares.com/">
+<meta property="og:title" content="Price Calc — margin calculator for distributors">
+<meta property="og:description" content="Buy at a discount off list, sell at a smaller one. Work out what you actually make once off-invoice rebates, tax and freight are counted. Works offline, no sign-up.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://calc.sterlingspares.com/">
+<meta property="og:image" content="https://calc.sterlingspares.com/icon-512.png">
+<meta property="og:site_name" content="Price Calc">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Price Calc — Sterling Spares">
+<meta name="twitter:description" content="Margin calculator for distributors: discounts off list, off-invoice rebates, GST or VAT, landed costs, multi-currency. Offline, no sign-up.">
+<meta name="twitter:image" content="https://calc.sterlingspares.com/icon-512.png">
+<meta name="twitter:title" content="Price Calc — margin calculator for distributors">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Pricing Calc">
@@ -49,7 +55,7 @@
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Price Calc — Sterling Spares</title>
+<title>Price Calc — margin calculator for distributors and traders</title>
 <!-- Self-hosted fonts: no third-party origin on the critical path, and
      typography now works offline. Preloaded because they are render-blocking-ish
      via font-display:swap and we want the swap to happen fast. -->
@@ -1138,6 +1144,7 @@
     <div class="ob-title" id="ob-title"></div>
     <div class="ob-body" id="ob-body"></div>
     <div class="ob-tip" id="ob-tip" style="display:none"></div>
+    <button class="ob-btn-action" id="ob-action" data-click="obAction" style="display:none">Fill this in</button>
     <div class="ob-actions">
       <button class="ob-btn-skip" id="ob-skip" data-click="a139">Skip tour</button>
       <button class="ob-btn-next" id="ob-next" data-click="a140">Next →</button>

@@ -2659,7 +2659,83 @@ runFetchCases().then(() => {
   ok('an unknown scope leaves the current one alone',
      (w.setDisplayCcy('USD', 'nonsense'), w.FX_SCOPE === 'both'), w.FX_SCOPE);
 
-  R.section('\n=== 30a. The default view stays uncluttered ===');
+  R.section('\n=== 29b. Onboarding, and indexing ===');
+
+// Most people's first contact is the tour, not the README. It used to be a
+// feature list that assumed the vocabulary and said it was built for one
+// company; the figures it quotes are now checked against what the app renders,
+// because a tour that misstates the numbers is worse than no tour.
+ok('the tour no longer names one company',
+   !w.OB_STEPS.some(s => /Sterling Spares/.test(s.body + s.title)),
+   w.OB_STEPS.map(s => s.title).join(' | '));
+ok('it opens with the problem, not a feature',
+   /works out/i.test(w.OB_STEPS[0].title), w.OB_STEPS[0].title);
+ok('it explains GP versus margin somewhere',
+   w.OB_STEPS.some(s => /GP %[\s\S]*Margin %|Margin %[\s\S]*GP %/.test(s.title + s.body)),
+   w.OB_STEPS.map(s => s.title).join(' | '));
+ok('and that the tax rate is not fixed',
+   w.OB_STEPS.some(s => /VAT|0 to 100/.test(s.body)));
+ok('one step offers to fill the example in',
+   w.OB_STEPS.filter(s => s.action === 'example').length === 1);
+
+// The example is what the tour points at, so its figures must be the ones the
+// copy quotes.
+// freshCalc does not reset the display currency or the landed-cost fields, and
+// earlier blocks leave both set — which showed up as $149.20 where the tour
+// quotes 150, the 0.80 being a leftover outbound freight.
+w.setDisplayCcy('INR', 'both');
+if (d.getElementById('landed')) d.getElementById('landed').value = '';
+if (d.getElementById('sp-landed')) d.getElementById('sp-landed').value = '';
+freshCalc(1000, 40, 25);
+w.obFillExample();
+ok('the example fills the calculator',
+   d.getElementById('mrp').value === '1000' && d.getElementById('cpd').value === '40' &&
+   d.getElementById('spd').value === '25');
+ok('and profit reads the 150 the tour quotes',
+   d.getElementById('s-pr').textContent.trim() === '₹150.00',
+   d.getElementById('s-pr').textContent);
+ok('with the 20.00% GP it quotes',
+   d.getElementById('s-gp').textContent.trim() === '20.00%',
+   d.getElementById('s-gp').textContent);
+ok('and the 25.00% margin it quotes',
+   d.getElementById('s-mg').textContent.trim() === '25.00%',
+   d.getElementById('s-mg').textContent);
+// Step three claims the two incentives turn 150 into 168.
+d.getElementById('it-cd').checked = true; d.getElementById('iv-cd').value = '2'; w.syncToggle('cd');
+d.getElementById('it-eb').checked = true; d.getElementById('iv-eb').value = '1'; w.syncToggle('eb');
+w.calc();
+ok('and the incentive claim holds: 150 becomes 168',
+   d.getElementById('s-pr').textContent.trim() === '₹168.00',
+   d.getElementById('s-pr').textContent);
+d.getElementById('it-cd').checked = false; w.syncToggle('cd');
+d.getElementById('it-eb').checked = false; w.syncToggle('eb');
+
+ok('the action button is a real control with a label',
+   d.getElementById('ob-action') !== null &&
+   d.getElementById('ob-action').textContent.trim().length > 0,
+   (d.getElementById('ob-action') || {}).textContent);
+
+// ── Indexing ────────────────────────────────────────────────────────────
+ok('the page is indexable', /<meta name="robots" content="index, follow">/.test(mk),
+   (mk.match(/robots[^>]*/) || [''])[0]);
+ok('with a canonical URL', /rel="canonical"/.test(mk));
+ok('a description that says what it does, not who made it',
+   /<meta name="description" content="[^"]*margin calculator[^"]*"/i.test(mk),
+   (mk.match(/name="description" content="[^"]{0,70}/) || [''])[0]);
+ok('and a title that would earn a click',
+   /<title>[^<]*calculator[^<]*<\/title>/i.test(mk), (mk.match(/<title>[^<]*/) || [''])[0]);
+ok('share cards carry an image and a URL',
+   /og:image/.test(mk) && /og:url/.test(mk));
+ok('robots.txt allows crawling',
+   fs.readFileSync(path.join(ROOT, 'robots.txt'), 'utf8').indexOf('Allow: /') !== -1);
+ok('and points at a sitemap',
+   fs.readFileSync(path.join(ROOT, 'robots.txt'), 'utf8').indexOf('Sitemap:') !== -1);
+ok('the sitemap lists the app', (() => {
+  const sm = fs.readFileSync(path.join(ROOT, 'sitemap.xml'), 'utf8');
+  return sm.indexOf('<loc>') !== -1 && sm.indexOf('calc.sterlingspares.com') !== -1;
+})());
+
+R.section('\n=== 30a. The default view stays uncluttered ===');
 // The main screen had grown to a control bar of 13, five derived rows per price
 // card, and a 17-cell summary in which five cells repeated numbers shown in the
 // cards directly above them.

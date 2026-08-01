@@ -1,0 +1,5 @@
+# Indexable: this is a public tool, not an internal one.
+User-agent: *
+Allow: /
+
+Sitemap: https://calc.sterlingspares.com/sitemap.xml
