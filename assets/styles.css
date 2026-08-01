@@ -278,7 +278,10 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .preset-btn.danger:hover:not(:disabled){border-color:var(--red);color:var(--red)}
 
 /* Inside the summary card, so it inherits the dark treatment */
-.solver{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* A grid item now, not a row of its own. Margin % used to sit alone on the
+   second line with five empty columns beside it while the solver took a
+   whole extra row under a divider; it fills that gap instead. */
+.solver{grid-column:span 3;display:flex;align-items:center;gap:10px;flex-wrap:wrap;align-self:start}
 .solver-lbl{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-weight:600;white-space:nowrap}
 .solver-input{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,0.42);border-radius:20px;padding:1px 9px;background:rgba(255,255,255,0.08)}
 .solver-input:focus-within{border-color:#fff;background:rgba(255,255,255,0.14)}
@@ -286,7 +289,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .solver-input input::-webkit-outer-spin-button,.solver-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .solver-input input::placeholder{color:rgba(255,255,255,0.55)}
 .solver-input::after{content:'%';font-size:11px;color:rgba(255,255,255,0.55);margin-left:3px}
-.solver-out{flex:1;min-width:220px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,0.75)}
+.solver-out{flex:1;min-width:180px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,0.75)}
 .solver-out.ok{color:#8fe3b0}
 .solver-out.bad{color:#ffb4ab}
 @media(max-width:800px){
@@ -936,6 +939,7 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
      sits before the base rules they override — so .pm-btn kept its 30px height
      and .fx-note kept nowrap. Same specificity, later wins. */
   .inc-pair{grid-template-columns:1fr;gap:10px}
+  .solver{grid-column:1/-1;padding-top:10px;border-top:1px solid rgba(255,255,255,0.16)}
   .fx-note{white-space:normal;width:100%}
   .fx-manual-wrap input{min-height:44px}
   .pm-row{flex-direction:column;align-items:stretch;gap:8px}

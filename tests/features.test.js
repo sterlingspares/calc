@@ -2692,6 +2692,24 @@ ok('break-even moved into the profit card',
 ok('and left the summary', !sumLabels.some(l => l.indexOf('Break-even') === 0),
    sumLabels.join(' · '));
 
+// The solver shares the summary grid rather than taking a row of its own:
+// Margin % was sitting alone on the second line with five empty columns beside
+// it while the solver sat under a divider below.
+ok('the target-GP solver is part of the summary grid',
+   d.getElementById('solver').parentElement.className.indexOf('summary-grid') !== -1,
+   d.getElementById('solver').parentElement.className);
+ok('it spans several columns rather than one',
+   /\.solver\{[^}]*grid-column:span \d/.test(readAsset('assets/styles.css')),
+   'no column span');
+// Anchored to the start of a line: the mobile override is indented and does
+// keep a divider, since it goes full width there.
+ok('and no longer draws its own divider on desktop',
+   !/^\.solver\{[^}]*border-top/m.test(readAsset('assets/styles.css')),
+   'still has a border-top');
+ok('but goes full width on a phone',
+   /grid-column:1\/-1/.test(mobileRule(readAsset('assets/styles.css'), '.solver')),
+   mobileRule(readAsset('assets/styles.css'), '.solver'));
+
 // The two incentive panels sit side by side rather than stacked.
 ok('the incentive panels are paired',
    d.querySelector('.inc-pair') !== null &&
