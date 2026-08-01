@@ -670,7 +670,7 @@ var SYM_SIDES={
 };
 /** Fields whose typed value is an amount, and the side it is quoted in. */
 var MONEY_FIELDS=[
-  {id:'cpv',side:'cost'},{id:'spv',side:'sale'},
+  {id:'mrp',side:'base'},{id:'cpv',side:'cost'},{id:'spv',side:'sale'},
   {id:'pri',side:'sale'},{id:'landed',side:'cost'},{id:'sp-landed',side:'sale'}
 ];
 /**
@@ -882,11 +882,13 @@ var FX_SCOPES=['cost','sale','both'];
  */
 function ccyFor(side){
   if(DISPLAY_CCY==='INR')return'INR';
-  // MRP is a rupee price printed on the pack by law — there is no dollar MRP —
-  // so it and the figures derived straight from it stay in rupees under every
-  // scope. Converting it would also mean a rate update silently restating the
-  // one number in the deal that cannot move.
-  if(side==='base')return'INR';
+  // MRP follows 'both' and nothing else. Under a one-sided scope it stays in
+  // rupees, because an exporter quoting in dollars still buys against a rupee
+  // MRP and a rate update must not restate the one figure fixed by law. Under
+  // 'both' the whole deal has been declared to be in another currency — which
+  // is how a trader outside India works in theirs — so the printed price is in
+  // that currency too, and there is no rupee left on screen.
+  if(side==='base')return FX_SCOPE==='both'?DISPLAY_CCY:'INR';
   if(side==='cost')return(FX_SCOPE==='cost'||FX_SCOPE==='both')?DISPLAY_CCY:'INR';
   return(FX_SCOPE==='sale'||FX_SCOPE==='both')?DISPLAY_CCY:'INR';
 }

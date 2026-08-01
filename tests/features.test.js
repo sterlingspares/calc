@@ -2119,8 +2119,9 @@ w.setDisplayCcy('USD');
 ok('a foreign currency groups in thousands, not lakhs',
    w.SINR(987654321.55) === '$987,654,321.55', w.SINR(987654321.55));
 ok('and at a million exactly', w.SINR(1000000) === '$1,000,000.00', w.SINR(1000000));
-// MRP is never converted, so the base formatter stays in rupees throughout.
-ok('MRP stays in rupees even so', w.INR(1000000) === '₹10,00,000.00', w.INR(1000000));
+// MRP follows the 'both' scope only; the block above is in 'both', so it
+// converts here and groups in thousands like any other foreign amount.
+ok('MRP converts under the both scope', w.INR(1000000) === '$1,000,000.00', w.INR(1000000));
 w.setDisplayCcy('EUR');
 ok('same for the euro', w.SINR(1234567.891) === '€1,234,567.89', w.SINR(1234567.891));
 w.setDisplayCcy('AED');
@@ -2402,14 +2403,22 @@ runFetchCases().then(() => {
      ['cve', 's-ecp', 's-inc', 'sve', 's-esp', 's-pr', 's-be'].every(i => startsUsd(cell(i))),
      ['cve', 's-ecp', 's-inc', 'sve', 's-esp', 's-pr', 's-be'].map(i => cell(i)).join(' '));
 
-  // ── MRP is never converted ──────────────────────────────────────────────
-  // There is no dollar MRP: it is a rupee price fixed by law, and converting it
-  // would let a rate update restate the one figure that cannot move.
-  ['cost', 'sale', 'both'].forEach(scope => {
+  // ── MRP follows 'both' and nothing else ─────────────────────────────────
+  // Under a one-sided scope an exporter still buys against a rupee MRP, and a
+  // rate update must not restate a figure fixed by law. Under 'both' the whole
+  // deal has been declared to be in another currency, which is how a trader
+  // outside India works entirely in theirs.
+  ['cost', 'sale'].forEach(scope => {
     w.setDisplayCcy('USD', scope);
     ok(scope + ': MRP stays in rupees', startsRs(cell('mx')), cell('mx'));
     ok(scope + ': and so does its input prefix', sym('sym-mrp') === '₹', sym('sym-mrp'));
   });
+  w.setDisplayCcy('USD', 'both');
+  ok('both: MRP converts with everything else', startsUsd(cell('mx')), cell('mx'));
+  ok('both: and its input prefix follows', sym('sym-mrp') === '$', sym('sym-mrp'));
+  ok('both: leaving no rupee sign anywhere on the calculator',
+     ['mx', 's-ecp', 's-esp', 's-pr'].every(i => !startsRs(cell(i))),
+     ['mx', 's-ecp', 's-esp', 's-pr'].map(i => cell(i)).join(' '));
 
   // ── Rounding follows the sticker price, i.e. the sale side ──────────────
   w.setDisplayCcy('USD', 'sale');
@@ -3040,7 +3049,13 @@ R.section('\n=== 31. Settings is grouped into tabs ===');
      w.FEATURE_DEFS.every(f => f.els.every(id => {
        const e = d.getElementById(id); return !e || e.style.display === 'none';
      })));
-  // The calculator itself still works with everything switched off.
+  // The calculator itself still works with everything switched off. Back to
+  // rupees and re-enter the price first: MRP follows the 'both' scope, so the
+  // 1000 typed earlier while dollars were showing genuinely meant $1,000 —
+  // switching back re-expresses it as ₹100,000, which is right but is not what
+  // this block is asserting.
+  w.setDisplayCcy('INR', 'both');
+  d.getElementById('mrp').value = '1000';
   w.calc();
   ok('the core calculation survives with everything off',
      Math.abs(w.LAST_CP.e - 600) < 0.01 && Math.abs(w.LAST_SP.e - 750) < 0.01,

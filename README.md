@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1379%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1380%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -51,15 +51,14 @@ given rather than regretted after.
 |---|---|
 | **Any list-price trade** | Auto parts, FMCG, electronics, pharma, hardware — anywhere you buy and sell at discounts off a printed price, with rebates that never touch the invoice |
 | **Import and export** | The cost side and the sale side can be shown in different currencies, so buying in one and selling in another is a supported case rather than a workaround. Landed costs are per-unit, inbound and outbound |
-| **Outside India** | The maths is currency-agnostic: it is all ratios and one tax rate. Twenty currencies are available for display, and non-rupee amounts group in thousands rather than lakhs |
+| **Outside India** | Set **Show** to *Cost & Sale* in your own currency and nothing on the calculator is in rupees — the list price included. The maths is all ratios and one tax rate, so the unit is yours to choose |
 
-One caveat worth stating plainly. Rupees are the **base unit** everything is
-stored and calculated in, and the printed-price field is labelled `₹` because
-MRP is an Indian construct. If you trade in another currency you can work
-entirely in it by treating that field as your own list price — every ratio,
-percentage and margin comes out right, because none of them care what the unit
-is — but the symbol on that one field will still say `₹` until the base currency
-is made configurable. Everything downstream of it already converts.
+Rupees remain the internal unit everything is stored in, but that is an
+implementation detail rather than something you see: under *Cost & Sale* every
+field and figure, MRP among them, is entered and shown in the currency you pick.
+Under a one-sided scope the printed price deliberately stays in rupees — an
+exporter quoting in dollars still buys against a rupee MRP, and a rate update
+must not restate a figure fixed by law.
 
 ### A worked example
 
@@ -255,9 +254,11 @@ currency — twenty are available:
 | **Cost & Sale** | both of the above |
 
 Profit follows the **sale** side, because that is the currency the money arrives
-in. **MRP is never converted** under any scope: it is a rupee price fixed by law,
-and converting it would let a rate update restate the one figure in the deal that
-cannot move.
+in. **MRP follows *Cost & Sale* only.** Under a one-sided scope it stays in
+rupees — an exporter quoting abroad still buys against a rupee MRP, and a rate
+update must not restate a figure fixed by law. Under *Cost & Sale* the whole deal
+has been declared to be in another currency, so the printed price is too, which
+is how a trader outside India works entirely in theirs.
 
 Fields on a converted side are **entered in that currency too** — a box showing
 `$` holds dollars. Switching currency re-expresses what you typed, so a ₹50
@@ -733,7 +734,7 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 1379 passing, 7 suites | `npm test` |
+| Tests | 1380 passing, 7 suites | `npm test` |
 | Statement coverage | **82.6%** (app.js 86.3%, app-extra.js 68.5%) | `npm run coverage` |
 | Lighthouse Performance | **98** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
@@ -761,7 +762,7 @@ commands after significant changes.
 
 ## Tests
 
-1379 assertions across seven suites. They load the real `index.html`,
+1380 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -772,7 +773,7 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 952 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 953 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 78 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
