@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1303%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1352%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -126,6 +126,11 @@ docs/                   screenshots for this README
 
 ## Pricing
 
+The control bar carries only what changes per calculation: **GST**, what to
+**Calculate**, and **Reset**. Presets live in the header menu (or `E`), and the
+currency control in Settings → Pricing → Currency — neither changes from one
+quote to the next.
+
 ### MRP and GST
 
 Every price derives from the Maximum Retail Price, and every price is shown in
@@ -142,6 +147,10 @@ two forms: **excl GST** for accounting and **incl GST** as the sticker price.
 ### Price input methods
 
 CP and SP each have three independent input modes:
+
+Each card shows the two prices that result; the derivation — the two discount
+percentages and the GST amount — folds away behind **Show details**, collapsed
+by default on desktop as well as mobile.
 
 | Mode | How it works |
 |---|---|
@@ -238,7 +247,7 @@ not round — which is the point when quoting abroad.
 | **Rates** | Fetched from [open.er-api.com](https://open.er-api.com) — free, no key, updated daily |
 | **When** | Never on load. Only when you first switch to a foreign currency, or press **Rates** |
 | **Offline** | The last fetch is cached and reused, labelled with its age (`1 USD = ₹95.69 · 4h ago`) |
-| **Override** | Settings → Currency takes a rate you type, for a contracted rate or no connection. Yours wins over the feed |
+| **Override** | Settings → Pricing → Currency takes a rate you type, for a contracted rate or no connection. Yours wins over the feed. The row is always there; it enables once a currency is chosen |
 | **Scope** | Carried in share links along with the currency, so a link opens the way it was sent |
 | **No rate** | Amounts show `—`. A rupee figure is never shown wearing a foreign symbol |
 
@@ -257,6 +266,8 @@ you *effectively* pay and receive, which is what the profit is actually made of.
 Effective CP = CP excl GST − CP incentives + Landed CP
 Effective SP = SP excl GST − SP incentives − Landed SP
 ```
+
+The two panels sit side by side on desktop and stack on a phone.
 
 ### CP incentives
 
@@ -329,15 +340,13 @@ Incentive setups repeat — one supplier's terms, one dealer's scheme. A preset
 snapshots both panels entirely: the rows, their names, their % / ₹ modes, which
 are switched on, the values in them, and the CD/Scheme base selectors.
 
-The control bar carries the essentials — a dropdown to apply one, **Save** to
-store what is on screen, and **Manage** for everything else. The manager is also
-in **Settings → Presets**, or press `E`:
+Everything lives in one manager, reached from the header menu, **Settings →
+Features → Saved presets**, or `E`:
 
 | Action | Where | What it does |
 |---|---|---|
-| Apply | dropdown | Replaces both panels with the saved setup |
-| **Save** | control bar | Names and stores the current setup |
-| **Load** | Manage | Same as the dropdown, from the list |
+| **Load** | Manage | Applies a saved setup to both panels |
+| **Save** | Manage | Names and stores the current setup |
 | **Rename** | Manage | Renames without touching the contents |
 | **Update** | Manage | Replaces a saved preset with what is on screen |
 | **Delete** | Manage | Removes it, after confirming |
@@ -359,13 +368,16 @@ hand-edited entry is dropped rather than trusted.
 
 ### Summary
 
-A sticky bar below the cards shows CP incl GST · SP incl GST · Effective CP ·
-Effective SP · Profit ₹ · GP % · Margin %, with warnings when GP % or Margin %
-fall below your floor limits.
+A sticky bar below the cards. It carries only what the cards do not — effective
+CP and SP, the incentive totals, profit, GP %, Margin %, break-even and the
+order block — rather than repeating the prices shown directly above it. Values
+below your floor limits are flagged.
 
 ### Break-even
 
 Two thresholds, both quoted **incl GST** because that is what gets negotiated:
+
+Shown in the **Profit card**, beside the profit they are measured against:
 
 | Row | Meaning |
 |---|---|
@@ -690,8 +702,8 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 1303 passing, 7 suites | `npm test` |
-| Statement coverage | **82.4%** (app.js 86.0%, app-extra.js 68.5%) | `npm run coverage` |
+| Tests | 1352 passing, 7 suites | `npm test` |
+| Statement coverage | **82.6%** (app.js 86.3%, app-extra.js 68.5%) | `npm run coverage` |
 | Lighthouse Performance | **98** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
 | Lighthouse Best Practices | **100** | ” |
@@ -718,7 +730,7 @@ commands after significant changes.
 
 ## Tests
 
-1303 assertions across seven suites. They load the real `index.html`,
+1352 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -729,13 +741,13 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 878 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 925 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 78 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
 | `modes` | 85 | solve modes, price input modes, what-if, comparison, Quick mode, wizard, share-link round trip, theming, auto-save |
 | `a11y` | 103 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
-| `browser` | 76 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport, axe with layout |
+| `browser` | 78 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport, axe with layout |
 
 Individual suites: `npm run test:features`, `test:errors`, `test:mobile`,
 `test:fab`, `test:modes`, `test:a11y`, `test:browser`. Full assertion output:

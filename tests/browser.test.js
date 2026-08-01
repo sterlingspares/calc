@@ -172,9 +172,10 @@ async function launchChromium(chromium) {
   ok('app functions are defined', await page.evaluate(() => typeof window.calc === 'function'));
   ok('JS-rendered incentive rows exist',
      await page.evaluate(() => document.querySelectorAll('#cp-inc-grid .inc-row').length) === 5);
-  // Initialisation reads the DOM; if defer timing were wrong this would be empty
-  ok('initialisation populated the summary',
-     (await page.textContent('#s-mrp')).includes('100'), await page.textContent('#s-mrp'));
+  // Initialisation reads the DOM; if defer timing were wrong this would be empty.
+  // #mx is the MRP-excl readout — the summary no longer repeats MRP.
+  ok('initialisation populated the derived figures',
+     (await page.textContent('#mx')).includes('84'), await page.textContent('#mx'));
 
   /* ── 4. End-to-end calculation through the UI ─────────────────────── */
   R.section('\n=== 4. Calculation through the real UI ===');
@@ -184,8 +185,10 @@ async function launchChromium(chromium) {
   await page.waitForTimeout(150);
   ok('profit is 150', (await page.textContent('#pvv')).includes('150'),
      await page.textContent('#pvv'));
-  ok('CP excl is 600', (await page.textContent('#s-cp')).includes('600'),
-     await page.textContent('#s-cp'));
+  // CP excl lives in the cost card now; the summary carries only what the cards
+  // do not, so it no longer repeats this.
+  ok('CP excl is 600', (await page.textContent('#cve')).includes('600'),
+     await page.textContent('#cve'));
   ok('GP is 20%', (await page.textContent('#s-gp')).includes('20.00'),
      await page.textContent('#s-gp'));
 
@@ -536,6 +539,34 @@ async function launchChromium(chromium) {
        (await probe('https://example.com/rates.json')) === true,
        'not blocked — connect-src is too broad');
     await p6.close();
+  }
+
+  /* ── 7f3. A toast raised inside a dialog is actually visible ───────── */
+  R.section('\n=== 7f3. Toasts clear the dialog above them ===');
+  {
+    // Stacking is one thing; being the element actually painted is another.
+    // The overlay carries a backdrop-filter, so a toast beneath it was dimmed
+    // and blurred rather than merely behind — invisible in practice.
+    const p7 = await browser.newPage({ viewport: { width: 1100, height: 900 } });
+    // Onboarding is z-index 1000 and would be the topmost element on a first visit.
+    await p7.addInitScript(() => { try { localStorage.setItem('ob-done', '1'); } catch (e) {} });
+    await p7.goto(origin + '/');
+    await p7.waitForTimeout(500);
+    await p7.emulateMedia({ reducedMotion: 'reduce' });
+    await p7.evaluate(() => { window.openModal('settings'); window.toast('Rates updated', true); });
+    await p7.waitForTimeout(400);
+    const hit = await p7.evaluate(() => {
+      const t = document.getElementById('toast');
+      const b = t.getBoundingClientRect();
+      const top = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      return { inside: t.contains(top), top: top ? (top.id || top.className) : null,
+               tz: +getComputedStyle(t).zIndex,
+               oz: +getComputedStyle(document.getElementById('overlay-settings')).zIndex };
+    });
+    ok('the toast is the element painted at its own centre', hit.inside === true,
+       'topmost was ' + hit.top);
+    ok('and it stacks above the dialog', hit.tz > hit.oz, hit.tz + ' vs ' + hit.oz);
+    await p7.close();
   }
 
   /* ── 7g. Non-text contrast, WCAG 1.4.11 ───────────────────────────── */

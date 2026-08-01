@@ -603,12 +603,16 @@ html[data-theme="dark"] .fc-dot.cur{background:var(--text)}
 }
 
 /* ── ACCORDION (card rows) ── */
-.acc-toggle{display:none;width:100%;background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-body)}
+.acc-toggle{display:block;width:100%;background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-body)}
 .acc-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 0 2px;border-top:1px solid var(--border);margin-top:4px}
 .acc-lbl{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:.04em}
 .acc-chevron{transition:transform .2s;color:var(--text3);flex-shrink:0}
 .acc-chevron.open{transform:rotate(180deg)}
-.acc-body{overflow:hidden;transition:max-height .25s ease}
+.rows-be{margin-top:10px;padding-top:8px;border-top:1px solid var(--border)}
+.rows-primary{margin-top:10px}
+.rows-primary .row-val{font-size:14px;font-weight:600;color:var(--text)}
+.acc-body{overflow:hidden;max-height:0;transition:max-height .25s ease}
+.acc-body.open{max-height:400px}
 @media(max-width:800px){
   .acc-toggle{display:block}
   .acc-body{max-height:0}
@@ -758,7 +762,10 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 @keyframes valueBump{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}
 
 /* ── TOAST ── */
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--surface);padding:10px 16px;border-radius:22px;font-size:12.5px;font-family:var(--font-body);box-shadow:0 6px 24px rgba(0,0,0,0.25);z-index:400;opacity:0;transition:transform var(--dur-slow) var(--ease-spring),opacity var(--dur);pointer-events:none;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px)}
+/* Above .modal-overlay (600). A toast confirming something you did inside a
+   dialog — "Rates updated" from Settings, "Saved" from the preset dialog — was
+   rendering underneath it, dimmed by the scrim and softened by its blur. */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--surface);padding:10px 16px;border-radius:22px;font-size:12.5px;font-family:var(--font-body);box-shadow:0 6px 24px rgba(0,0,0,0.25);z-index:700;opacity:0;transition:transform var(--dur-slow) var(--ease-spring),opacity var(--dur);pointer-events:none;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px)}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
 .toast-undo{background:none;border:none;color:var(--amber);font-weight:600;font-size:12.5px;cursor:pointer;font-family:var(--font-body);padding:0;white-space:nowrap}
 /* On mobile the toast shares the bottom edge with the FAB, so it stops short of
@@ -920,11 +927,15 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
 .qtc-total .qt-pos{color:#a7f3d0}
 .qtc-total .qt-neg{color:#ffb4ab}
 
+.inc-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;margin-bottom:1.25rem}
+.inc-pair > .panel{margin-bottom:0}
+
 /* ── MOBILE-ONLY OVERRIDES (must come after base rules) ── */
 @media(max-width:800px){
   /* These were originally added to the first @media block in the file, which
      sits before the base rules they override — so .pm-btn kept its 30px height
      and .fx-note kept nowrap. Same specificity, later wins. */
+  .inc-pair{grid-template-columns:1fr;gap:10px}
   .fx-note{white-space:normal;width:100%}
   .fx-manual-wrap input{min-height:44px}
   .pm-row{flex-direction:column;align-items:stretch;gap:8px}
