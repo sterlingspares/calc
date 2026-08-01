@@ -670,7 +670,7 @@ var SYM_SIDES={
 };
 /** Fields whose typed value is an amount, and the side it is quoted in. */
 var MONEY_FIELDS=[
-  {id:'cpv',side:'cost'},{id:'spv',side:'sale'},
+  {id:'mrp',side:'base'},{id:'cpv',side:'cost'},{id:'spv',side:'sale'},
   {id:'pri',side:'sale'},{id:'landed',side:'cost'},{id:'sp-landed',side:'sale'}
 ];
 /**
@@ -826,7 +826,6 @@ function renderFxNote(){
  * @param {string} c currency code
  */
 function setDisplayCcy(c,scope){
-  if(!featOn('forex')&&c!=='INR')return;
   if(CCY_CODES.indexOf(c)===-1){
     logWarn('ignoring unknown currency '+JSON.stringify(c));
     c='INR';
@@ -883,11 +882,13 @@ var FX_SCOPES=['cost','sale','both'];
  */
 function ccyFor(side){
   if(DISPLAY_CCY==='INR')return'INR';
-  // MRP is a rupee price printed on the pack by law — there is no dollar MRP —
-  // so it and the figures derived straight from it stay in rupees under every
-  // scope. Converting it would also mean a rate update silently restating the
-  // one number in the deal that cannot move.
-  if(side==='base')return'INR';
+  // MRP follows 'both' and nothing else. Under a one-sided scope it stays in
+  // rupees, because an exporter quoting in dollars still buys against a rupee
+  // MRP and a rate update must not restate the one figure fixed by law. Under
+  // 'both' the whole deal has been declared to be in another currency — which
+  // is how a trader outside India works in theirs — so the printed price is in
+  // that currency too, and there is no rupee left on screen.
+  if(side==='base')return FX_SCOPE==='both'?DISPLAY_CCY:'INR';
   if(side==='cost')return(FX_SCOPE==='cost'||FX_SCOPE==='both')?DISPLAY_CCY:'INR';
   return(FX_SCOPE==='sale'||FX_SCOPE==='both')?DISPLAY_CCY:'INR';
 }
@@ -1030,7 +1031,27 @@ var FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]),select:not([
 /** Element that had focus before the current dialog opened, restored on close. */
 var _lastFocused=null;
 /** The open dialog's overlay, or null. Used by the Tab handler. */
+/* Dialogs can stack: the preset manager opens the naming dialog, which opens a
+   confirmation. Tracking only the newest one left the focus trap pointing at
+   nothing once the top dialog closed, so Tab escaped into the page behind. */
+var _overlayStack=[];
 var _openOverlay=null;
+/** Push a dialog onto the stack and give it the focus trap. */
+function pushOverlay(o){
+  if(!o)return;
+  var i=_overlayStack.indexOf(o);
+  if(i!==-1)_overlayStack.splice(i,1);
+  _overlayStack.push(o);
+  _openOverlay=o;
+}
+/** Remove a dialog and hand the trap back to whatever is still open. */
+function popOverlay(o){
+  var i=_overlayStack.indexOf(o);
+  if(i!==-1)_overlayStack.splice(i,1);
+  _openOverlay=_overlayStack.length?_overlayStack[_overlayStack.length-1]:null;
+  // Only release the scroll lock once nothing is left open.
+  if(!_overlayStack.length)document.body.style.overflow='';
+}
 
 /**
  * Visible focusable descendants of an element.
@@ -1083,7 +1104,7 @@ function openModal(id){
     _lastFocused=document.activeElement;
     o.classList.add('open');
     document.body.style.overflow='hidden';
-    _openOverlay=o;
+    pushOverlay(o);
   }
   if(id==='whatif')renderWhatIf(LAST_CP);
   if(id==='quote')withExtras(function(){qtRender()});
@@ -1103,7 +1124,7 @@ function closeModal(id){
   if(!o||!o.classList.contains('open'))return;
   o.classList.remove('open');
   document.body.style.overflow='';
-  if(_openOverlay===o)_openOverlay=null;
+  popOverlay(o);
   // Return focus to whatever opened the dialog, so keyboard users are not
   // dumped back at the top of the document.
   if(_lastFocused&&typeof _lastFocused.focus==='function'){
@@ -1152,14 +1173,14 @@ function onCustomGST(inp){
    adding a feature is one entry rather than edits in four places, and the
    tests can walk the registry rather than naming elements by hand.
    ─────────────────────────────────────────────────────────────────────────── */
-var FEATURES={presets:true,quote:true,whatif:true,forex:true,landed:true,solver:true,inccp:true,incsp:true};
+var FEATURES={presets:true,quote:true,whatif:true,landed:true,solver:true,inccp:true,incsp:true};
 
 /** True when the named feature is switched on. Unknown keys read as on. */
 function featOn(k){ return FEATURES[k]!==false }
 
 var FEATURE_DEFS=[
   {k:'presets',name:'Presets',hint:'Save and reuse incentive setups.',
-   els:['hmenu-presets','sec-set-presets'],
+   els:['hbtn-presets','hmenu-presets','sec-set-presets'],
    values:function(){ var n=Object.keys(PRESETS).length; return n?[n+' saved preset'+(n===1?'':'s')]:[] },
    clear:function(){ PRESETS={}; savePresets(); renderPresetList(); renderPresetManager(); }},
 
@@ -1180,16 +1201,6 @@ var FEATURE_DEFS=[
      closeModal('whatif');
    }},
 
-  {k:'forex',name:'Currency conversion',hint:'Show either side of the deal in another currency.',
-   els:['sec-set-forex'],
-   values:function(){
-     var out=[];
-     if(DISPLAY_CCY!=='INR')out.push('showing '+DISPLAY_CCY);
-     var m=Object.keys(FX.manual||{}).filter(function(c){return FX.manual[c]>0});
-     if(m.length)out.push(m.length+' manual rate'+(m.length===1?'':'s'));
-     return out;
-   },
-   clear:function(){ FX.manual={}; saveFx(); setDisplayCcy('INR','both'); }},
 
   {k:'landed',name:'Landed costs',hint:'Per-unit freight in and out.',
    els:['stat-landed-cp','stat-landed-sp'],
@@ -1259,6 +1270,39 @@ function applyFeatureVisibility(){
   var nInc=el('bnav-inc');
   if(nInc)nInc.style.display=(featOn('inccp')||featOn('incsp'))?'':'none';
 }
+
+/**
+ * Put the app back to how it ships.
+ *
+ * Every key this app writes, not localStorage.clear() — the origin may hold
+ * something that is not ours, and wiping a neighbour's data would be a rude
+ * way to reset a calculator. The list is the same one documented in the README.
+ */
+var STORAGE_KEYS=['pc-state','pc-history','pc-labels','pc-presets','pc-qstate',
+                  'pc-quote','pc-theme','pc-fx','pc-features','ob-done'];
+function factoryReset(){
+  var held=[];
+  if(HISTORY.length)held.push(HISTORY.length+' history entr'+(HISTORY.length===1?'y':'ies'));
+  var np=Object.keys(PRESETS).length;
+  if(np)held.push(np+' preset'+(np===1?'':'s'));
+  if(QUOTE.length)held.push(QUOTE.length+' quote line'+(QUOTE.length===1?'':'s'));
+  var off=FEATURE_DEFS.filter(function(f){return !featOn(f.k)}).length;
+  if(off)held.push(off+' switched-off feature'+(off===1?'':'s'));
+  askConfirm('Reset the app',
+    held.length?('This will clear '+held.join(', ')+', along with every setting.')
+               :'This will clear every saved setting and start fresh.',
+    'It cannot be undone — undo history goes too.','Reset everything',function(){
+      STORAGE_KEYS.forEach(function(k){
+        try{ localStorage.removeItem(k) }catch(e){ logError('could not clear '+k,e) }
+      });
+      // Reload rather than unpick the state by hand: every module reads its own
+      // storage on boot, so a fresh load is the one path guaranteed to agree
+      // with what a new visitor sees.
+      try{ location.replace(location.pathname) }
+      catch(e){ logError('could not reload after reset',e); location.reload() }
+    });
+}
+ACT.factoryReset = function(){ factoryReset() };
 
 /* ── Settings tabs ──────────────────────────────────────────────────────────
    Eight stacked sections became a long scroll that was hard to find anything
@@ -1555,7 +1599,7 @@ function askConfirm(title,msg,sub,btnLabel,fn){
     _lastFocused=document.activeElement;
     o.classList.add('open');
     document.body.style.overflow='hidden';
-    _openOverlay=o;
+    pushOverlay(o);
     // Focus Cancel, not the destructive button — a stray Enter should not delete.
     setTimeout(function(){
       var cancel=o.querySelector('.confirm-btn:not(.danger)');
@@ -1618,7 +1662,7 @@ function askPrompt(o){
     _lastFocused=document.activeElement;
     ov.classList.add('open');
     document.body.style.overflow='hidden';
-    _openOverlay=ov;
+    pushOverlay(ov);
     // Select the text so typing replaces it, which is what prompt() did.
     setTimeout(function(){if(inp){inp.focus();if(inp.select)inp.select()}},30);
   }
@@ -1656,7 +1700,7 @@ function closePrompt(){
   if(ov&&ov.classList.contains('open')){
     ov.classList.remove('open');
     document.body.style.overflow='';
-    if(_openOverlay===ov)_openOverlay=null;
+    popOverlay(ov);
     if(_lastFocused&&_lastFocused.focus)_lastFocused.focus();
   }
 }
@@ -1677,7 +1721,7 @@ function closeConfirm(){
   if(o&&o.classList.contains('open')){
     o.classList.remove('open');
     document.body.style.overflow='';
-    if(_openOverlay===o)_openOverlay=null;
+    popOverlay(o);
     if(_lastFocused&&typeof _lastFocused.focus==='function'){
       try{_lastFocused.focus()}catch(e){logWarn('could not restore focus after closing confirm',e)}
     }

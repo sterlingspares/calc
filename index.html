@@ -96,6 +96,10 @@
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1" width="9" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         PDF
       </button>
+      <button class="hbtn" id="hbtn-presets" data-click="presetManage" title="Saved incentive presets (E)">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="2" y="2" width="10" height="3" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="2" y="7.5" width="10" height="4.5" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
+        Presets
+      </button>
       <button class="hbtn" id="hbtn-quote" data-click="a6" title="Multi-line quote builder (M)">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1.5" width="9" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         Quote
@@ -435,11 +439,12 @@
         <div class="sum-item sum-order" id="s-item-qty" style="display:none"><div class="sum-lbl">Quantity</div><div class="sum-val dim" id="s-qty">—</div></div>
         <div class="sum-item sum-order" id="s-item-order" style="display:none"><div class="sum-lbl">Order Value (incl GST)</div><div class="sum-val dim" id="s-order">—</div></div>
         <div class="sum-item sum-order" id="s-item-tpr" style="display:none"><div class="sum-lbl">Total Profit <span id="sym-s-tpr">₹</span></div><div class="sum-val dim" id="s-tpr">—</div></div>
-      </div>
+      
       <div class="solver" id="solver">
         <label class="solver-lbl" for="solver-gp">Target GP %</label>
         <span class="solver-input"><input type="number" id="solver-gp" placeholder="12" min="0" max="99.9" step="0.1" inputmode="decimal" data-input="solve" autocomplete="off" aria-describedby="solver-out"></span>
         <p class="solver-out" id="solver-out" role="status" aria-live="polite">Enter a target GP % to see the incentive it needs.</p>
+      </div>
       </div>
     </div>
   </div>
@@ -902,6 +907,15 @@
           </div>
           <div class="settings-control">
             <button class="pill" data-click="a112" style="font-size:11px;padding:5px 12px">Restart tour</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-lbl">
+            <span>Reset everything</span>
+            <small>Clear every saved setting, preset, quote and history entry, and start as if the app were new.</small>
+          </div>
+          <div class="settings-control">
+            <button class="pill danger-pill" data-click="factoryReset" style="font-size:11px;padding:5px 12px">Reset app</button>
           </div>
         </div>
         <div class="settings-row" id="settings-kb-row">

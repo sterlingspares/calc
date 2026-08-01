@@ -104,6 +104,8 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .pill{padding:5px 13px;border-radius:20px;border:1px solid var(--border-ctrl);background:transparent;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap}
 .pill:hover{border-color:var(--border2);color:var(--text)}
 .pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pill.danger-pill{border-color:var(--red);color:var(--red)}
+.pill.danger-pill:hover{background:var(--red);color:#fff}
 .divider{width:1px;height:24px;background:var(--border);flex-shrink:0}
 .sep{flex:1;min-width:8px}
 .btn-reset{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid var(--border-ctrl);background:transparent;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);transition:all .15s}
@@ -278,7 +280,10 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .preset-btn.danger:hover:not(:disabled){border-color:var(--red);color:var(--red)}
 
 /* Inside the summary card, so it inherits the dark treatment */
-.solver{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* A grid item now, not a row of its own. Margin % used to sit alone on the
+   second line with five empty columns beside it while the solver took a
+   whole extra row under a divider; it fills that gap instead. */
+.solver{grid-column:span 3;display:flex;align-items:center;gap:10px;flex-wrap:wrap;align-self:start}
 .solver-lbl{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-weight:600;white-space:nowrap}
 .solver-input{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,0.42);border-radius:20px;padding:1px 9px;background:rgba(255,255,255,0.08)}
 .solver-input:focus-within{border-color:#fff;background:rgba(255,255,255,0.14)}
@@ -286,7 +291,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .solver-input input::-webkit-outer-spin-button,.solver-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .solver-input input::placeholder{color:rgba(255,255,255,0.55)}
 .solver-input::after{content:'%';font-size:11px;color:rgba(255,255,255,0.55);margin-left:3px}
-.solver-out{flex:1;min-width:220px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,0.75)}
+.solver-out{flex:1;min-width:180px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,0.75)}
 .solver-out.ok{color:#8fe3b0}
 .solver-out.bad{color:#ffb4ab}
 @media(max-width:800px){
@@ -388,6 +393,12 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
 /* z-index must beat .bottom-nav (500), or the nav renders over the dialog on
    mobile and can obstruct its buttons. */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,10,8,0.55);z-index:600;align-items:flex-start;justify-content:center;padding:clamp(1rem,3vw,2rem);overflow-y:auto;backdrop-filter:blur(2px)}
+/* The naming and confirmation dialogs are always secondary — raised from the
+   preset manager, from Settings, from a history row. At the shared z-index
+   they were ordered by position in the markup, so the prompt raised from
+   the preset manager painted behind it. */
+#overlay-prompt,#overlay-confirm{z-index:640}
+
 .modal-overlay.open{display:flex}
 .modal{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-modal);width:100%;max-width:720px;margin:auto;animation:modalIn var(--dur-slow) var(--ease-spring)}
 @keyframes modalIn{0%{opacity:0;transform:translateY(-14px) scale(.97)}60%{opacity:1}100%{opacity:1;transform:none}}
@@ -936,6 +947,7 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
      sits before the base rules they override — so .pm-btn kept its 30px height
      and .fx-note kept nowrap. Same specificity, later wins. */
   .inc-pair{grid-template-columns:1fr;gap:10px}
+  .solver{grid-column:1/-1;padding-top:10px;border-top:1px solid rgba(255,255,255,0.16)}
   .fx-note{white-space:normal;width:100%}
   .fx-manual-wrap input{min-height:44px}
   .pm-row{flex-direction:column;align-items:stretch;gap:8px}

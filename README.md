@@ -1,13 +1,19 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1352%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1380%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-98-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
-An offline-first web app for MRP-based pricing and profit calculations in
-automotive parts distribution. You enter a Maximum Retail Price, describe how
-cost and selling price are discounted off it, layer on the incentives your
-supplier and your customer actually give you, and it tells you what you make.
+An offline-first web app for list-price trading margins. You enter the printed
+price, describe how cost and selling price are discounted off it, layer on the
+rebates your supplier and your customer actually give you, and it tells you what
+you make.
+
+Built for automotive parts distribution, but the arithmetic is the same in any
+trade that buys at a discount off a list price and sells at a smaller one — FMCG,
+electronics, pharma, hardware, stationery. If you have ever worked out a quote
+by subtracting one percentage from another and then remembered the quarterly
+rebate, this is that sum.
 
 No build step, no framework, no runtime dependencies.
 
@@ -17,22 +23,42 @@ No build step, no framework, no runtime dependencies.
 
 ## What problem it solves
 
-In Indian distribution, the **MRP** printed on the pack is a legal ceiling — no
-one in the chain may sell above it. So price is not built up from cost; it is
-discounted *down* from the MRP. A distributor buys at, say, 40% off MRP and
-sells at 25% off. The gap is the business.
+Distribution prices downwards. There is a printed price on the pack — MRP in
+India, where it is a legal ceiling nobody in the chain may exceed; RRP or list
+price elsewhere — and everyone buys at a discount off it. A distributor buys at,
+say, 40% off and sells at 25% off. The gap is the business.
+
+That shape is not specific to any one trade. Whether the box holds a brake pad,
+a shampoo sachet or a laptop, the sum is the same.
 
 What makes that hard to hold in your head is that the invoice discount is not
 the real one. On top of it sit **incentives** — cash discount for paying
 promptly, early-bird for ordering in a window, quarterly and annual volume
 rebates, seasonal schemes. None appear on the invoice line, all change what the
 stock actually cost you. Some of them you receive; others you pass on to your
-own customer. Meanwhile every figure has to be tracked both **excl GST** (what
-profit is computed from, since the tax is passed through) and **incl GST** (what
-you actually quote and negotiate).
+own customer. Meanwhile every figure has to be tracked both **excl tax** (what
+profit is computed from, since the tax is passed through) and **incl tax** (what
+you actually quote and negotiate). The app calls that tax GST, and the rate is
+yours to set — 18% and 5% are one tap because they are India's common slabs, but
+any rate from 0 to 100% works, so VAT at 20% or GST at 10% behaves identically.
 
 This app does that arithmetic, live, so a quote can be checked before it is
 given rather than regretted after.
+
+### Who it fits
+
+| | |
+|---|---|
+| **Any list-price trade** | Auto parts, FMCG, electronics, pharma, hardware — anywhere you buy and sell at discounts off a printed price, with rebates that never touch the invoice |
+| **Import and export** | The cost side and the sale side can be shown in different currencies, so buying in one and selling in another is a supported case rather than a workaround. Landed costs are per-unit, inbound and outbound |
+| **Outside India** | Set **Show** to *Cost & Sale* in your own currency and nothing on the calculator is in rupees — the list price included. The maths is all ratios and one tax rate, so the unit is yours to choose |
+
+Rupees remain the internal unit everything is stored in, but that is an
+implementation detail rather than something you see: under *Cost & Sale* every
+field and figure, MRP among them, is entered and shown in the currency you pick.
+Under a one-sided scope the printed price deliberately stays in rupees — an
+exporter quoting in dollars still buys against a rupee MRP, and a rate update
+must not restate a figure fixed by law.
 
 ### A worked example
 
@@ -60,10 +86,10 @@ easy to forget.
 
 | Term | Means |
 |---|---|
-| **MRP** | Maximum Retail Price — the ceiling printed on the pack. Every price is a discount off it |
+| **MRP** | Maximum Retail Price — the price printed on the pack, and a legal ceiling in India. Read it as RRP or list price elsewhere; every price is a discount off it |
 | **CP** | Cost Price — what you pay your supplier |
 | **SP** | Selling Price — what you charge your customer |
-| **GST** | Goods and Services Tax. Auto parts are usually 18%, some 5% |
+| **GST** | The pass-through sales tax. 18% and 5% are one tap (India's common slabs); any rate 0–100% works, so VAT behaves the same |
 | **Incentive** | An off-invoice discount — cash discount, rebate, scheme — that changes real cost without changing the invoice line |
 | **Effective CP / SP** | The price after incentives and landed costs. Profit is computed from these, not from the invoice figures |
 | **Landed cost** | Per-unit freight, insurance or handling — added to CP inbound, deducted from SP outbound |
@@ -127,8 +153,8 @@ docs/                   screenshots for this README
 ## Pricing
 
 The control bar carries only what changes per calculation: **GST**, what to
-**Calculate**, and **Reset**. Presets live in the header menu (or `E`), and the
-currency control in Settings → Pricing → Currency — neither changes from one
+**Calculate**, and **Reset**. Presets have their own header button (or `E`), and the
+currency control lives in Settings → Pricing → Currency — neither changes from one
 quote to the next.
 
 ### MRP and GST
@@ -228,9 +254,11 @@ currency — twenty are available:
 | **Cost & Sale** | both of the above |
 
 Profit follows the **sale** side, because that is the currency the money arrives
-in. **MRP is never converted** under any scope: it is a rupee price fixed by law,
-and converting it would let a rate update restate the one figure in the deal that
-cannot move.
+in. **MRP follows *Cost & Sale* only.** Under a one-sided scope it stays in
+rupees — an exporter quoting abroad still buys against a rupee MRP, and a rate
+update must not restate a figure fixed by law. Under *Cost & Sale* the whole deal
+has been declared to be in another currency, so the printed price is too, which
+is how a trader outside India works entirely in theirs.
 
 Fields on a converted side are **entered in that currency too** — a box showing
 `$` holds dollars. Switching currency re-expresses what you typed, so a ₹50
@@ -340,8 +368,8 @@ Incentive setups repeat — one supplier's terms, one dealer's scheme. A preset
 snapshots both panels entirely: the rows, their names, their % / ₹ modes, which
 are switched on, the values in them, and the CD/Scheme base selectors.
 
-Everything lives in one manager, reached from the header menu, **Settings →
-Features → Saved presets**, or `E`:
+Everything lives in one manager, reached from the **Presets** button in the
+header, **Settings → Features → Saved presets**, or `E`:
 
 | Action | Where | What it does |
 |---|---|---|
@@ -389,7 +417,7 @@ so the quotable price is grossed back up accordingly.
 
 ### Target-margin solver
 
-Below the break-even rows, enter a **Target GP %** and it answers the question
+In the summary, beside Margin %, enter a **Target GP %** and it answers the question
 directly rather than making you converge on it by trial and error. What it says
 depends on which side of the target you are on:
 
@@ -512,6 +540,7 @@ switched off hides rather than leading nowhere.
 | **Exchange rates** | Update now, and set a manual rate |
 | **App tour** | Restart the onboarding walkthrough |
 | **Keyboard shortcuts** | View all shortcuts |
+| **Reset everything** | Clear every saved key and start as if the app were new |
 
 Floor limits, auto-save preference and theme persist across sessions.
 
@@ -523,10 +552,9 @@ and it disappears from the screen:
 
 | | |
 |---|---|
-| **Presets** | the control-bar picker and the manager |
+| **Presets** | the header button, menu entry and the manager |
 | **Quote builder** | the header button, menu item and bottom-nav tab |
 | **What-if scenarios** | the button on the summary |
-| **Currency conversion** | the Show control; the display returns to rupees |
 | **Landed costs** | both fields in the MRP bar |
 | **Target GP solver** | the row under break-even |
 | **Incentives on CP** · **Incentives on SP** | the whole panel; the Incentives tab goes when both are off |
@@ -628,7 +656,11 @@ taken by Solve-for-Profit and Settings, so presets use `E`.
 | `pc-theme` | Dark / light preference |
 | `ob-done` | Onboarding completion flag |
 
-A URL share (`?s=…`) encodes calculator state as base64 JSON and takes
+A **Settings → Help → Reset everything** clears exactly these keys — not
+`localStorage.clear()`, since the origin may hold something that is not ours —
+and reloads, so the app comes up the way a new visitor sees it.
+
+URL share (`?s=…`) encodes calculator state as base64 JSON and takes
 **priority over localStorage** on load. Every field is allow-listed on the way
 in — an unrecognised or malformed payload is discarded, not partially applied.
 
@@ -702,7 +734,7 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 1352 passing, 7 suites | `npm test` |
+| Tests | 1380 passing, 7 suites | `npm test` |
 | Statement coverage | **82.6%** (app.js 86.3%, app-extra.js 68.5%) | `npm run coverage` |
 | Lighthouse Performance | **98** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
@@ -730,7 +762,7 @@ commands after significant changes.
 
 ## Tests
 
-1352 assertions across seven suites. They load the real `index.html`,
+1380 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -741,7 +773,7 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 925 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 953 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 78 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
