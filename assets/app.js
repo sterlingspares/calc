@@ -2865,6 +2865,22 @@ function fillSpIncPanel(sp){
   R('sp-inc-total-inr',inc>0?SINR(inc):'—');
   R('sp-inc-eff-sp',SINR(eff));
 }
+/**
+ * Suffix for a discount field. Both discounts are percentages *off MRP* — the
+ * bare "%" left that to be inferred, and it is the one thing about the field a
+ * newcomer gets wrong.
+ * @param {'excl'|'incl'|'manual'} mode the card's input mode
+ * @param {number} gst whole-number GST rate for that mode
+ * @returns {string}
+ */
+function discSuffix(mode,gst){
+  /* The single normal space before the "+" is the only break point; everything
+     either side is joined with non-breaking spaces. In a narrow field the label
+     then wraps as "% on MRP" / "+ 18% GST" rather than leaving the "+" dangling
+     at the end of the first line. */
+  var base='%\u00A0on\u00A0MRP';
+  return (mode==='excl') ? base+' +\u00A0'+gst+'%\u00A0GST' : base;
+}
 /* ── Dynamic GST label updater ── */
 function updateGSTLabels(){
   var g   = Math.round(G   * 100); // main mode
@@ -2875,9 +2891,9 @@ function updateGSTLabels(){
 
   // Main mode — disc field suffixes
   var cpSuf=el('cpd-suf');
-  if(cpSuf) cpSuf.textContent = (CM==='excl') ? '% + '+g+'% GST' : '%';
+  if(cpSuf) cpSuf.textContent = discSuffix(CM,g);
   var spSuf=el('spd-suf');
-  if(spSuf) spSuf.textContent = (SM==='excl') ? '% + '+g+'% GST' : '%';
+  if(spSuf) spSuf.textContent = discSuffix(SM,g);
 
   // Manual entry sub-tabs
   R('cpm-incl','CP incl '+g+'% GST'); R('cpm-excl','CP excl '+g+'% GST');
@@ -2907,9 +2923,9 @@ function updateGSTLabels(){
 
   // Quick mode — disc field suffixes
   var fcCpSuf=el('fc-cpd-suf');
-  if(fcCpSuf) fcCpSuf.textContent = (FC_CM==='excl') ? '% + '+fcg+'% GST' : '%';
+  if(fcCpSuf) fcCpSuf.textContent = discSuffix(FC_CM,fcg);
   var fcSpSuf=el('fc-spd-suf');
-  if(fcSpSuf) fcSpSuf.textContent = (FC_SM==='excl') ? '% + '+fcg+'% GST' : '%';
+  if(fcSpSuf) fcSpSuf.textContent = discSuffix(FC_SM,fcg);
 
   // Quick mode manual sub-tabs
   R('fc-cpms-incl','CP incl '+fcg+'% GST'); R('fc-cpms-excl','CP excl '+fcg+'% GST');
@@ -2917,7 +2933,7 @@ function updateGSTLabels(){
 
   // Wizard — disc field suffix
   var wzSuf=el('wz-disc-suf');
-  if(wzSuf) wzSuf.textContent = (WZ_CM==='excl') ? '% + '+wzg+'% GST' : '%';
+  if(wzSuf) wzSuf.textContent = discSuffix(WZ_CM,wzg);
 
   // Wizard labels (replaces inline textContent calls in wzSetT)
   R('wz-ms-incl-lbl',  wzLbl+' incl '+wzg+'% GST');
