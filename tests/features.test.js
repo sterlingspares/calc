@@ -2797,10 +2797,36 @@ ok("and the markup matches the app's Markup %",
    cvMk.value + ' vs ' + d.getElementById('s-mg').textContent);
 w.closeConvert();
 ok('closing hands the focus trap back', w._openOverlay === null);
+// With nothing to pull in, the button used to disappear. From the outside that
+// reads as a broken feature rather than an unavailable one — the README
+// describes a button that simply is not there.
 w.resetAll();
+d.getElementById('cv-gp').value = ''; d.getElementById('cv-mk').value = '';
 w.openConvert();
-ok('with nothing calculated the offer is hidden',
-   d.getElementById('cv-use').style.display === 'none');
+ok('with nothing calculated the offer stays put',
+   d.getElementById('cv-use').style.display !== 'none',
+   d.getElementById('cv-use').style.display);
+ok('but cannot be pressed', d.getElementById('cv-use').disabled === true);
+ok('and says what is missing',
+   /MRP, cost and selling price/.test(d.getElementById('cv-use').title),
+   d.getElementById('cv-use').title);
+ok('with the same reason on screen, not only in a tooltip',
+   /MRP, cost and selling price/.test(d.getElementById('cv-out').textContent),
+   d.getElementById('cv-out').textContent);
+w.closeConvert();
+
+// And it comes back the moment there is something to offer
+freshCalc(1000, 40, 25);
+d.getElementById('cv-gp').value = ''; d.getElementById('cv-mk').value = '';
+w.openConvert();
+ok('a calculation re-enables it', d.getElementById('cv-use').disabled === false);
+ok('and the empty state invites either route',
+   /pull in the calculation/.test(d.getElementById('cv-out').textContent),
+   d.getElementById('cv-out').textContent);
+// Through the delegated handler, the way a click reaches it
+w.ACT.convertUseCurrent();
+ok('pressing it still seeds both boxes', cvGp.value === '20' && cvMk.value === '25',
+   cvGp.value + ' / ' + cvMk.value);
 w.closeConvert();
 
 ok('it is reachable from the Tools menu',

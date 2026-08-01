@@ -101,6 +101,53 @@ const SHOTS = [
   { file: 'screenshot-mobile.png', width: 390, height: 900, fullPage: false },
 ];
 
+/**
+ * Two pictures for the Tools section: the menu open, and the currency converter.
+ * Separately, not composed — the converter is a modal with a blurred backdrop,
+ * so a menu shown behind it photographs as a smear.
+ */
+async function toolsShots(browser, origin) {
+  const page = await browser.newPage({
+    viewport: { width: 1100, height: 560 }, deviceScaleFactor: 2,
+  });
+  await page.addInitScript(() => { try { localStorage.setItem('ob-done', '1') } catch (e) {} });
+  await page.goto(origin + '/', { waitUntil: 'load' });
+  await page.waitForFunction(() => typeof window.calc === 'function');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.evaluate(workedExample);
+  await page.waitForTimeout(600);
+  await page.evaluate(tidyUp);
+
+  await page.evaluate(() => window.openTools());
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(OUT, 'screenshot-tools.png'),
+                          clip: { x: 340, y: 0, width: 760, height: 300 } });
+  console.log('  wrote docs/screenshot-tools.png');
+  await page.evaluate(() => window.closeTools());
+
+  // Fixed rates, so the picture does not change with the day's market
+  await page.evaluate(() => {
+    window.FX.rates = { INR: 1, USD: 0.012, EUR: 0.011, GBP: 0.0094 };
+    window.FX.fetched = window.nowMs();
+  });
+  await page.waitForFunction(() => typeof window._renderCcyConvImpl === 'function',
+                             null, { timeout: 8000 });
+  await page.evaluate(() => {
+    window.openCcyConv();
+    document.getElementById('cc-from-amt').value = '250';
+    window.renderCcyConv('from');
+  });
+  // openCcyConv focuses and selects the first field on a 30ms timer, so the
+  // blur has to come after that or the figure photographs highlighted.
+  await page.waitForTimeout(400);
+  await page.evaluate(() => document.getElementById('cc-from-amt').blur());
+  await page.waitForTimeout(200);
+  await page.locator('#overlay-ccyconv .modal').screenshot({
+    path: path.join(OUT, 'screenshot-currency.png') });
+  console.log('  wrote docs/screenshot-currency.png');
+  await page.close();
+}
+
 (async () => {
   let chromium;
   try { ({ chromium } = require('playwright')); }
@@ -129,6 +176,8 @@ const SHOTS = [
     console.log('  wrote docs/' + shot.file);
     await page.close();
   }
+
+  await toolsShots(browser, origin);
 
   await browser.close();
   await new Promise(r => server.close(r));
