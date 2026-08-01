@@ -160,10 +160,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .field input{border:none;outline:none;background:transparent;padding:0 10px;height:38px;font-size:15px;font-family:var(--font-mono);font-weight:500;color:var(--text);width:100%;min-width:0}
 .field-next{display:none;flex-shrink:0;width:30px;height:30px;border-radius:50%;border:none;background:var(--accent);color:var(--accent-fg);cursor:pointer;margin-right:4px;align-items:center;justify-content:center;transition:opacity .15s;opacity:0.7}
 .field-next:hover{opacity:1}
-/* "% on MRP + 18% GST" on one line would take a third of the field. Wrapped to
-   two it still clears the 38px row, and it balances the two-line mode tabs
-   directly above. */
-.field .field-suf{padding:0 10px;font-size:12px;font-weight:500;color:var(--text3);border-left:1px solid var(--border);height:38px;display:flex;align-items:center;text-align:right;line-height:1.2;max-width:86px;background:var(--surface2);flex-shrink:0}
+.field .field-suf{padding:0 10px;font-size:12px;font-weight:500;color:var(--text3);border-left:1px solid var(--border);height:38px;display:flex;align-items:center;white-space:nowrap;background:var(--surface2);flex-shrink:0}
 /* The hint is not the data — at the input's own size it would not fit what is
    left of a narrow field. */
 .field input::placeholder{font-family:var(--font-body);font-size:12.5px}
@@ -497,6 +494,11 @@ html[data-theme="dark"] .hist-del-btn:hover{background:rgba(239,68,68,0.15);bord
 .ob-tip{font-size:11.5px;color:var(--text2);text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;line-height:1.5}
 
 .hmenu-dropdown{display:none;position:absolute;right:0;top:calc(100% + 8px);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);min-width:160px;overflow:hidden;z-index:400}
+/* The Tools menu reuses the hamburger's dropdown, but hangs off a button that
+   sits mid-row rather than at the right edge of the header. */
+.tools-wrap{position:relative;display:inline-flex}
+.tools-menu{left:0;right:auto;min-width:196px;text-align:left}
+.hbtn-caret{margin-left:1px;opacity:.75}
 .hmenu-dropdown.open{display:block;animation:modalIn .15s ease}
 .hmenu-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;font-family:var(--font-body);border:none;background:none;width:100%;text-align:left;transition:background .12s}
 .hmenu-item:hover{background:var(--surface2)}
@@ -884,6 +886,22 @@ html[data-theme="dark"] .lbl-field:focus-within{box-shadow:0 0 0 3px rgba(240,23
 .cv-input::after{content:'%';font-size:12px;color:var(--text3);margin-left:4px}
 .cv-hint{font-size:10.5px;color:var(--text3);line-height:1.4}
 .cv-swap{align-self:center;margin-top:14px;font-size:16px;color:var(--text3);flex-shrink:0}
+/* Currency converter: same two-field shape, but each side carries a currency
+   picker instead of the fixed "%" the GP converter appends. */
+/* Amounts here run long — ₹20,833.33 against a GP figure's "25" — so the
+   currency converter's boxes take a smaller size than the GP one's. */
+.cv-input.cc-input::after{content:none}
+.cc-input input{font-size:15px}
+/* 400px is right for a confirmation. This one carries two currency pickers
+   and two amounts, and ₹20,833.33 was being cut off at the last digit. */
+.cc-modal{max-width:500px}
+.cv-ccy{border:none;background:transparent;font-family:var(--font-body);font-size:12px;font-weight:600;
+  color:var(--text2);outline:none;cursor:pointer;padding:0 8px 0 0;margin-right:8px;
+  border-right:1px solid var(--border);align-self:stretch}
+.cv-swap-btn{background:none;border:1px solid var(--border-ctrl);border-radius:50%;width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;
+  color:var(--text2);font-family:var(--font-body);transition:all .15s;padding:0}
+.cv-swap-btn:hover{border-color:var(--text2);color:var(--text)}
 .cv-out{font-size:11.5px;line-height:1.55;color:var(--text2);min-height:34px;margin:14px 0 0}
 .cv-out.bad{color:var(--amber)}
 .feat-intro{font-size:12px;color:var(--text2);line-height:1.55;margin:0 0 12px}
@@ -988,6 +1006,7 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
   .control-bar .divider{display:none}
   .cv-pair{flex-direction:column;gap:14px}
   .cv-swap{align-self:flex-start;margin-top:0;transform:rotate(90deg)}
+  .cv-swap-btn{width:44px;height:44px}
   .cv-input input{min-height:44px}
   .solver{grid-column:1/-1;padding-top:10px;border-top:1px solid rgba(255,255,255,0.16)}
   .fx-note{white-space:normal;width:100%}
@@ -1046,6 +1065,24 @@ html[data-theme="dark"] .qt-del:hover{background:rgba(239,68,68,0.15)}
   .hist-v{font-size:12px}
   .inc-note,.qt-note{font-size:11.5px}
   .sum-lbl{font-size:10.5px}
+}
+
+/* ── NARROW PHONES (must come after the mobile block) ──
+   "% on MRP + 18% GST" stays on one line — the input beside it never holds
+   more than a couple of digits — but on a 320px screen the label and the
+   prefix together leave it nothing. Both step down to the 10.5px floor here,
+   and only here. */
+@media(max-width:380px){
+  /* No amount of trimming fits an 18-character label, a prefix, a number and a
+     next button across 264px. The label drops to its own row underneath
+     instead — still one line, and the input gets the width back. */
+  .field{flex-wrap:wrap}
+  /* width:100% would claim a whole row for the input alone; it has to share the
+     first one with the prefix and the next button. */
+  .field input{width:auto;flex:1 1 60px}
+  .field .field-suf{order:9;flex:0 0 100%;height:auto;padding:5px 10px;
+    justify-content:flex-end;border-left:none;border-top:1px solid var(--border)}
+  .field .sym{padding:0 8px}
 }
 
 /* ── MOTION ──

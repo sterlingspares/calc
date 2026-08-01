@@ -419,7 +419,7 @@ function fcBuildProfitCard(solveFor){
   var card=el('fcc-2');if(!card)return;
   card.innerHTML='';card.className='fc-card behind-2';
 
-  var titleText=solveFor==='sp'?'Profit / GP% / Margin%':'Profit / GP% / Margin%';
+  var titleText=solveFor==='sp'?'Profit / GP% / Markup%':'Profit / GP% / Markup%';
   var subText=solveFor==='sp'
     ?'Enter your target profit to calculate the Selling Price.'
     :'Enter your target profit to calculate the Cost Price.';
@@ -435,7 +435,7 @@ function fcBuildProfitCard(solveFor){
 
   // mode tabs
   var modes=document.createElement('div');modes.className='fc-mode-tabs';
-  [{k:'val',l:'₹ Value'},{k:'gp',l:'GP %'},{k:'margin',l:'Margin %'}].forEach(function(m){
+  [{k:'val',l:'₹ Value'},{k:'gp',l:'GP %'},{k:'margin',l:'Markup %'}].forEach(function(m){
     var b=document.createElement('button');b.className='fc-tab'+(FC_PM===m.k?' on':'');
     b.id='fc-pm-'+m.k;b.textContent=m.l;b.onclick=function(){fcSetPM(m.k)};modes.appendChild(b);
   });
@@ -511,7 +511,7 @@ function fcRenderResult(){
   html+=fcRItem('SP incl GST',  sp?SINR(sp.i):'—', spOver?'warn':'', '');
   html+=fcRItem('Profit', pr!==null?SINR(pr):'—', pr!==null?(pr>=0?'pos':'neg'):'', pr!==null&&pr<0?'profit-neg':pr!==null&&pr>=0?'profit-pos':'');
   html+=fcRItem('GP %',     gp!==null?fcPCT(gp):'—', gp!==null?(gp>=0?'pos':'neg'):'', '');
-  html+=fcRItem('Margin %', mg!==null?fcPCT(mg):'—', mg!==null?(mg>=0?'pos':'neg'):'', '');
+  html+=fcRItem('Markup %', mg!==null?fcPCT(mg):'—', mg!==null?(mg>=0?'pos':'neg'):'', '');
   html+='</div>';
 
   if(cpOver)html+='<div class="fc-over-alert" style="margin-top:6px">⚠ CP incl GST exceeds MRP</div>';
@@ -1512,7 +1512,7 @@ function _renderWhatIfImpl(cp){
 
     // result rows with stable IDs
     var rows=document.createElement('div');rows.className='wi-rows';
-    var LBLS=['SP excl GST','SP incl GST','Profit ₹','GP %','Margin %'];
+    var LBLS=['SP excl GST','SP incl GST','Profit ₹','GP %','Markup %'];
     var KEYS=['spe','spi','pr','gp','mg'];
     var sp=resolveWiSP(sc);
     LBLS.forEach(function(lbl,k){
@@ -1541,7 +1541,7 @@ function _exportHistoryCSVImpl(){
     toast('No history entries to export.');
     return;
   }
-  var headers=['Time','Tag','MRP (incl GST)','CP excl GST','CP incl GST','SP excl GST','SP incl GST','Eff CP excl GST','CP Incentives INR','Eff SP excl GST','SP Incentives INR','Profit INR','GP %','Margin %','GST Rate %','Qty','Total Profit INR'];
+  var headers=['Time','Tag','MRP (incl GST)','CP excl GST','CP incl GST','SP excl GST','SP incl GST','Eff CP excl GST','CP Incentives INR','Eff SP excl GST','SP Incentives INR','Profit INR','GP %','Markup %','GST Rate %','Qty','Total Profit INR'];
   var rows=[headers.join(',')];
   HISTORY.forEach(function(h){
     rows.push([
@@ -1661,7 +1661,7 @@ function _renderCompareImpl(){
     {label:'Incentives',       cur:cur?cur.incInr:null,hist:hist.incInr,fmt:'inr', higher:true, side:'cost'},
     {label:'Profit',           cur:cur?cur.pr:null,    hist:hist.pr,    fmt:'inr', higher:true, posNeg:true, side:'sale'},
     {label:'GP %',             cur:cur?cur.gp:null,    hist:hist.gp,    fmt:'pct', higher:true, isGP:true},
-    {label:'Margin %',         cur:cur?cur.mg:null,    hist:hist.mg,    fmt:'pct', higher:true, isMG:true},
+    {label:'Markup %',         cur:cur?cur.mg:null,    hist:hist.mg,    fmt:'pct', higher:true, isMG:true},
     {label:'GST Rate',         cur:cur?cur.gst:null,   hist:hist.gst,   fmt:'gst', higher:null}
   ];
 
@@ -1691,3 +1691,387 @@ function _renderCompareImpl(){
 
 
 
+
+/* ── Moved off the critical path ────────────────────────────────────────────
+   None of these runs before a user opens the thing it draws: the target-GP
+   solver, the two converters, the preset manager and the factory reset. Each
+   keeps a shim in the core bundle that fetches this file on first use.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+function _factoryResetImpl(){
+  var held=[];
+  if(HISTORY.length)held.push(HISTORY.length+' history entr'+(HISTORY.length===1?'y':'ies'));
+  var np=Object.keys(PRESETS).length;
+  if(np)held.push(np+' preset'+(np===1?'':'s'));
+  if(QUOTE.length)held.push(QUOTE.length+' quote line'+(QUOTE.length===1?'':'s'));
+  var off=FEATURE_DEFS.filter(function(f){return !featOn(f.k)}).length;
+  if(off)held.push(off+' switched-off feature'+(off===1?'':'s'));
+  askConfirm('Reset the app',
+    held.length?('This will clear '+held.join(', ')+', along with every setting.')
+               :'This will clear every saved setting and start fresh.',
+    'It cannot be undone — undo history goes too.','Reset everything',function(){
+      STORAGE_KEYS.forEach(function(k){
+        try{ localStorage.removeItem(k) }catch(e){ logError('could not clear '+k,e) }
+      });
+      // Reload rather than unpick the state by hand: every module reads its own
+      // storage on boot, so a fresh load is the one path guaranteed to agree
+      // with what a new visitor sees.
+      try{ location.replace(location.pathname) }
+      catch(e){ logError('could not reload after reset',e); location.reload() }
+    });
+}
+
+/**
+ * Recompute the other field and the worked line beneath.
+ * @param {'gp'|'mk'} from which field the user is typing in
+ */
+function _renderConvertImpl(from){
+  var gpEl=el('cv-gp'), mkEl=el('cv-mk'), out=el('cv-out');
+  if(!gpEl||!mkEl||!out)return;
+  var raw=(from==='gp'?gpEl:mkEl).value;
+  if(String(raw).trim()===''){
+    (from==='gp'?mkEl:gpEl).value='';
+    out.textContent='';out.className='cv-out';
+    return;
+  }
+  var v=parseFloat(raw);
+  var other=(from==='gp')?gpToMarkup(v):markupToGp(v);
+  if(other===null){
+    (from==='gp'?mkEl:gpEl).value='';
+    out.textContent=(from==='gp')
+      ? 'A GP of 100% or more would mean the goods cost nothing — there is no markup that matches.'
+      : 'A markup of −100% or less would mean selling for nothing — there is no GP that matches.';
+    out.className='cv-out bad';
+    return;
+  }
+  (from==='gp'?mkEl:gpEl).value=String(+other.toFixed(4));
+  // Ground it in money: percentages either way are easy to nod along to.
+  var gp=(from==='gp')?v:other;
+  var cost=100, sale=(gp>=100)?null:(cost/(1-gp/100));
+  if(sale===null||!isFinite(sale)){ out.textContent='';out.className='cv-out'; return }
+  out.textContent='Buy at '+INR_RS(cost)+', sell at '+INR_RS(sale)+' — profit '+
+                  INR_RS(sale-cost)+', which is '+PCT(gp)+' of the sale and '+
+                  PCT((from==='gp')?other:v)+' of the cost.';
+  out.className='cv-out';
+}
+
+/** Pull the GP the calculator is currently showing into the converter. */
+function _convertUseCurrentImpl(){
+  if(!LAST_CP||!LAST_SP)return;
+  var effSP=effectiveSP(LAST_SP), effCP=effectiveCP(LAST_CP);
+  if(!effSP||effSP<=0)return;
+  var gp=((effSP-effCP)/effSP)*100;
+  var f=el('cv-gp');
+  if(f){ f.value=String(+gp.toFixed(4)); renderConvert('gp'); }
+}
+
+/**
+ * Convert an amount between two currencies.
+ *
+ * Every rate in FX is quoted per rupee, so the rupee is the pivot even when
+ * neither side is INR — going through it is exact rather than a second lookup.
+ * @param {number} amt
+ * @param {string} from currency code
+ * @param {string} to currency code
+ * @returns {number|null} null when either rate is unknown
+ */
+function ccyConvert(amt,from,to){
+  if(amt===null||amt===undefined||isNaN(amt))return null;
+  var rf=fxRate(from),rt=fxRate(to);
+  if(rf===null||rt===null||rf<=0)return null;
+  return (amt/rf)*rt;
+}
+
+/**
+ * Format an amount in a named currency — money() follows the display scope,
+ * which is exactly what this dialog must not do.
+ * @param {number} n
+ * @param {string} c currency code
+ */
+function ccyAmt(n,c){
+  if(n===null||n===undefined||isNaN(n))return'—';
+  return ccyInfo(c).s+_getFmt(c).format(parseFloat(n.toFixed(2)));
+}
+
+
+/**
+ * Recompute the other side and the rate line.
+ * @param {'from'|'to'} side which box was typed in
+ */
+function _renderCcyConvImpl(side){
+  var fa=el('cc-from-amt'),ta=el('cc-to-amt'),out=el('cc-out');
+  if(!fa||!ta||!out)return;
+  var src=(side==='to')?ta:fa, dst=(side==='to')?fa:ta;
+  var a=(side==='to')?CC_TO:CC_FROM, b=(side==='to')?CC_FROM:CC_TO;
+
+  var per=ccyConvert(1,CC_FROM,CC_TO);
+  if(per===null){
+    dst.value='';
+    var missing=(fxRate(CC_FROM)===null)?CC_FROM:CC_TO;
+    out.textContent='No rate for '+missing+' yet. Update rates, or set one by hand in '+
+                    'Settings \u2192 Currency.';
+    out.className='cv-out bad';
+    return;
+  }
+  if(String(src.value).trim()===''){
+    dst.value='';
+    out.textContent='1 '+CC_FROM+' = '+ccyAmt(per,CC_TO)+ccyConvSource();
+    out.className='cv-out';
+    return;
+  }
+  var v=parseFloat(src.value);
+  var conv=ccyConvert(v,a,b);
+  if(conv===null){ dst.value=''; return }
+  // Money to the paisa; anything under a unit needs more places or a small
+  // conversion (1 INR into dollars) rounds away to nothing.
+  dst.value=String(+conv.toFixed(Math.abs(conv)>=1?2:6));
+  var fromAmt=(side==='to')?conv:v, toAmt=(side==='to')?v:conv;
+  out.textContent=ccyAmt(fromAmt,CC_FROM)+' = '+ccyAmt(toAmt,CC_TO)+
+                  '  ·  1 '+CC_FROM+' = '+ccyAmt(per,CC_TO)+ccyConvSource();
+  out.className='cv-out';
+}
+
+/** Where the rate being used came from, so a stale one is not read as today's. */
+function ccyConvSource(){
+  var manual=FX.manual&&(FX.manual[CC_FROM]>0||FX.manual[CC_TO]>0);
+  if(manual)return '  ·  using a rate you set';
+  if(CC_FROM==='INR'&&CC_TO==='INR')return '';
+  return FX.fetched?('  ·  rates '+fxAgeText(fxAge())):'  ·  rates not fetched yet';
+}
+
+/** Reverse the two currencies, carrying the converted amount back as the input. */
+function _ccyConvSwapImpl(){
+  var t=CC_FROM; CC_FROM=CC_TO; CC_TO=t;
+  var fa=el('cc-from-amt'),ta=el('cc-to-amt');
+  if(fa&&ta){ var v=ta.value; ta.value=fa.value; fa.value=v; }
+  if(el('cc-from'))el('cc-from').value=CC_FROM;
+  if(el('cc-to'))el('cc-to').value=CC_TO;
+  renderCcyConv('from');
+}
+
+/**
+ * Ask for a single line of text.
+ *
+ * @param {Object} o
+ * @param {string} o.title dialog heading
+ * @param {string} [o.message] explanatory line above the field
+ * @param {string} [o.label] visible label for the input
+ * @param {string} [o.value] initial value, selected on open
+ * @param {string} [o.placeholder]
+ * @param {string} [o.okLabel] confirm button text
+ * @param {Function} [o.validate] receives the current value; return null to
+ *        accept, {error:'…'} to block, or {note:'…'} to warn but allow
+ * @param {boolean} [o.multiline] show a textarea instead of a single line
+ * @param {boolean} [o.readOnly] present a value to copy rather than to edit
+ * @param {Function} o.onOk receives the trimmed value
+ */
+function _askPromptImpl(o){
+  o=o||{};
+  _promptFn=o.onOk||null;
+  _promptValidate=o.validate||null;
+  R('prompt-title',o.title||'Name');
+  R('prompt-msg',o.message||'');
+  var msgEl=el('prompt-msg');if(msgEl)msgEl.style.display=o.message?'':'none';
+  var lbl=el('prompt-label');if(lbl)lbl.textContent=o.label||'Name';
+  _promptMulti=!!o.multiline;
+  var single=el('prompt-input'),area=el('prompt-textarea');
+  if(single)single.style.display=_promptMulti?'none':'';
+  if(area)area.style.display=_promptMulti?'':'none';
+  var inp=_promptField();
+  if(inp){
+    inp.value=o.value||'';
+    if(!_promptMulti){
+      inp.placeholder=o.placeholder||'';
+      inp.setAttribute('maxlength',String(o.maxLength||40));
+      inp.readOnly=!!o.readOnly;
+    }
+  }
+  var cancel=el('overlay-prompt')?el('overlay-prompt').querySelector('.confirm-btn:not(.primary)'):null;
+  if(cancel)cancel.style.display=o.readOnly||o.multiline?'none':'';
+  var ok=el('prompt-ok');if(ok)ok.textContent=o.okLabel||'Save';
+  var ov=el('overlay-prompt');
+  if(ov){
+    _lastFocused=document.activeElement;
+    ov.classList.add('open');
+    document.body.style.overflow='hidden';
+    pushOverlay(ov);
+    // Select the text so typing replaces it, which is what prompt() did.
+    setTimeout(function(){if(inp){inp.focus();if(inp.select)inp.select()}},30);
+  }
+  validatePrompt();
+}
+
+/**
+ * Re-run the validator and reflect it in the hint line and the OK button.
+ * @returns {boolean} whether the current value may be submitted
+ */
+function _validatePromptImpl(){
+  var inp=_promptField(),ok=el('prompt-ok'),hint=el('prompt-hint');
+  if(!inp||!ok)return true;
+  var v=_promptValidate?_promptValidate(inp.value):null;
+  var err=v&&v.error,note=v&&v.note;
+  if(hint){
+    hint.textContent=err||note||'';
+    hint.className='confirm-sub'+(err?' prompt-err':(note?' prompt-note':''));
+  }
+  ok.disabled=!!err;
+  return !err;
+}
+
+/** Submit the dialog, if the value passes validation. */
+function _runPromptImpl(){
+  if(!validatePrompt())return;
+  var inp=_promptField();
+  var val=inp?String(inp.value).trim():'';
+  var fn=_promptFn;
+  closePrompt();
+  if(fn)guard('prompt callback',function(){fn(val)});
+}
+
+/**
+ * Apply a saved preset. Keys are re-validated, since presets live in storage.
+ * @param {Object} p snapshot from capturePreset
+ */
+function _applyPresetImpl(p){
+  if(!p)return;
+  INC_KEYS=(p.cpKeys||[]).filter(isValidIncKey);
+  SP_INC_KEYS=(p.spKeys||[]).filter(isValidIncKey);
+  if(!INC_KEYS.length)INC_KEYS=['cd','eb','qt','an','sc'];
+  if(!SP_INC_KEYS.length)SP_INC_KEYS=['cd','eb','qt','an','sc'];
+  Object.keys(p.labels||{}).forEach(function(k){
+    if(isValidIncKey(k))INC_LABELS[k]=String(p.labels[k]);
+  });
+  INC_MODE={};SP_INC_MODE={};
+  Object.keys(p.cpModes||{}).forEach(function(k){ if(isValidIncKey(k))INC_MODE[k]=p.cpModes[k]==='abs'?'abs':'pct'; });
+  Object.keys(p.spModes||{}).forEach(function(k){ if(isValidIncKey(k))SP_INC_MODE[k]=p.spModes[k]==='abs'?'abs':'pct'; });
+
+  renderCPIncRows();renderSPIncRows();
+  function restore(keys,src,pfx,sync){
+    keys.forEach(function(k){
+      var e=(src||{})[k]; if(!e)return;
+      var cb=document.getElementById(pfx.cb+k), iv=document.getElementById(pfx.iv+k);
+      if(cb)cb.checked=!!e.on;
+      if(iv&&e.v!=='')iv.value=e.v;
+      sync(k);
+    });
+  }
+  restore(INC_KEYS,p.cp,{cb:'it-',iv:'iv-'},syncToggle);
+  restore(SP_INC_KEYS,p.sp,{cb:'sit-',iv:'siv-'},syncSpToggle);
+  if(INC_KEYS.indexOf('cd')!==-1)setCDMode(p.cdm==='after'?'after':'before');
+  if(INC_KEYS.indexOf('sc')!==-1)setSchemeMode(p.scm==='abs'?'abs':'pct');
+  if(SP_INC_KEYS.indexOf('cd')!==-1)setSCDMode(p.scdm==='after'?'after':'before');
+  if(SP_INC_KEYS.indexOf('sc')!==-1)setSpSchemeMode(p.sscm==='abs'?'abs':'pct');
+  saveLabels();calc();
+}
+
+/** Draw the rows inside the preset manager. */
+function _renderPresetManagerImpl(){
+  var c=el('pm-list');
+  if(!c)return;
+  var names=Object.keys(PRESETS).sort();
+  if(!names.length){
+    c.innerHTML='<p class="pm-empty">No presets yet. Set the incentives up the way you want them, '+
+                'then use the button above.</p>';
+    return;
+  }
+  c.innerHTML=names.map(function(n){
+    var e=escHtml(n);
+    return '<div class="pm-row">'+
+      '<span class="pm-name" title="'+e+'">'+e+'</span>'+
+      '<span class="pm-acts">'+
+        '<button class="pm-btn" data-click="pmLoad"   data-p="'+e+'" aria-label="Load preset '+e+'">Load</button>'+
+        '<button class="pm-btn" data-click="pmRename" data-p="'+e+'" aria-label="Rename preset '+e+'">Rename</button>'+
+        '<button class="pm-btn" data-click="pmUpdate" data-p="'+e+'" aria-label="Update preset '+e+' from the current screen">Update</button>'+
+        '<button class="pm-btn danger" data-click="pmDelete" data-p="'+e+'" aria-label="Delete preset '+e+'">Delete</button>'+
+      '</span></div>';
+  }).join('');
+}
+
+/**
+ * Build the plain-text summary used by copy, WhatsApp and email.
+ * @returns {string|null} null when CP or SP is missing
+ */
+function getSummaryText(){
+  if(!LAST_CP||!LAST_SP)return null;
+  var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
+  var spInc=getSPIncentiveInr(LAST_SP),effSP=effectiveSP(LAST_SP);
+  var pr=effSP-eff;
+  var gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
+  var lines=['PRICING SUMMARY — '+now(),'─────────────────────────','MRP (incl GST):   '+INR(MI),'GST Rate:         '+(G*100)+'%','','CP excl GST:      '+INR(LAST_CP.e),'CP incl GST:      '+INR(LAST_CP.i)];
+  if(inc>0){lines.push('CP Incentives:    '+CINR(inc));lines.push('Eff. CP excl GST: '+CINR(eff))}
+  lines.push('','SP excl GST:      '+SINR(LAST_SP.e),'SP incl GST:      '+SINR(LAST_SP.i));
+  if(spInc>0){lines.push('SP Incentives:    '+SINR(spInc));lines.push('Eff. SP excl GST: '+SINR(effSP))}
+  lines.push('','Profit:           '+SINR(pr),'GP %:             '+PCT(gp),'Markup %:         '+PCT(mg),'─────────────────────────');
+  return lines.join('\n');
+}
+
+/**
+ * Copy the summary, falling back to a dialog when the clipboard is unavailable.
+ */
+function _copyToClipboardImpl(){
+  var text=getSummaryText();
+  if(!text){toast('Enter CP and SP first.');return}
+  navigator.clipboard.writeText(text).then(function(){
+    var btn=el('copy-btn');if(!btn)return;
+    var orig=btn.innerHTML;btn.textContent='✓ Copied!';
+    setTimeout(function(){btn.innerHTML=orig},1800);
+  }).catch(function(e){
+    logWarn('clipboard unavailable, falling back to a dialog',e);
+    askPrompt({title:'Copy summary',message:'The clipboard is unavailable here — select this and copy it.',
+               label:'Summary',value:text,multiline:true,okLabel:'Done',onOk:function(){}});
+  });
+}
+
+/**
+ * Open WhatsApp with the summary pre-filled.
+ */
+function _sendWhatsAppImpl(){
+  var text=getSummaryText();
+  if(!text){toast('Enter CP and SP first.');return}
+  window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
+}
+
+/**
+ * Open the mail client with the summary pre-filled.
+ */
+function _sendEmailImpl(){
+  var text=getSummaryText();
+  if(!text){toast('Enter CP and SP first.');return}
+  window.location.href='mailto:?subject='+encodeURIComponent('Pricing Summary — Sterling Spares')+'&body='+encodeURIComponent(text);
+}
+
+/**
+ * Print the page using the print stylesheet.
+ */
+function _exportPDFImpl(){
+  if(!LAST_CP||!LAST_SP){toast('Enter CP and SP first.');return}
+  window.print();
+}
+
+/**
+ * Share the current calculation as a URL, via the native share sheet on mobile
+ * or the clipboard elsewhere.
+ */
+function _shareLinkImpl(){
+  var state=getShareState();
+  var encoded;
+  try{encoded=btoa(unescape(encodeURIComponent(JSON.stringify(state))))}
+  catch(e){
+    // Unicode in a description can break btoa's Latin-1 assumption; retry raw.
+    logWarn('unicode-safe share encoding failed, retrying plain',e);
+    encoded=btoa(JSON.stringify(state));
+  }
+  var url=location.href.split('?')[0].split('#')[0]+'?s='+encoded;
+
+  // Use Web Share API on mobile if available
+  if(navigator.share&&window.innerWidth<=800){
+    navigator.share({title:'Pricing Calculation — Sterling Spares',url:url})
+      .catch(function(e){
+        // Includes the user simply dismissing the sheet, hence warn not error.
+        logWarn('Web Share dismissed or unavailable, copying instead',e);
+        copyUrl(url);
+      });
+    return;
+  }
+  copyUrl(url);
+}

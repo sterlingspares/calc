@@ -106,14 +106,28 @@
         <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="2" y="2" width="10" height="3" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="2" y="7.5" width="10" height="4.5" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
         Presets
       </button>
-      <button class="hbtn" id="hbtn-convert" data-click="openConvert" title="Convert between GP % and markup %">
-        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 5h9l-2.2-2.2M12 9H3l2.2 2.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        GP ⇄ Markup
-      </button>
-      <button class="hbtn" id="hbtn-quote" data-click="a6" title="Multi-line quote builder (M)">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1.5" width="9" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        Quote
-      </button>
+      <div class="tools-wrap" id="hbtn-tools-wrap">
+        <button class="hbtn" id="hbtn-tools" data-click="toolsToggle" aria-expanded="false"
+                aria-controls="tools-menu" title="Quote builder and converters (T)">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M9.4 1.6a2.8 2.8 0 00-3.2 3.7L1.9 9.6a1.1 1.1 0 001.6 1.6l4.3-4.3a2.8 2.8 0 003.7-3.2L9.9 5.3 8.3 3.7l1.1-2.1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          Tools
+          <svg class="hbtn-caret" width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hmenu-dropdown tools-menu" id="tools-menu">
+          <button class="hmenu-item" id="tool-quote" data-click="toolQuote">
+            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Quote builder
+          </button>
+          <button class="hmenu-item" id="tool-convert" data-click="toolConvert">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 5h9l-2.2-2.2M12 9H3l2.2 2.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            GP &#8646; Markup
+          </button>
+          <button class="hmenu-item" id="tool-ccy" data-click="toolCcy">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.2" stroke="currentColor" stroke-width="1.3"/><path d="M8.8 5.2A2 2 0 007 4.4c-1 0-1.8.6-1.8 1.4 0 1.9 3.6.9 3.6 2.8 0 .8-.8 1.4-1.8 1.4a2 2 0 01-1.8-.8M7 3.2v7.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            Currency converter
+          </button>
+        </div>
+      </div>
       <div class="hdivider"></div>
       <button class="hbtn hbtn-icon" id="undo-btn" data-click="a7" title="Undo (⌘Z)" aria-label="Undo" disabled>
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3 6h5.5a3 3 0 010 6H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 3.5L2.5 6 5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -155,6 +169,14 @@
         <button class="hmenu-item" id="hmenu-quote" data-click="a16">
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1.5" width="9" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h5M3.5 8.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
           Quote builder
+        </button>
+        <button class="hmenu-item" id="hmenu-convert" data-click="toolConvert">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 5h9l-2.2-2.2M12 9H3l2.2 2.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          GP &#8646; Markup
+        </button>
+        <button class="hmenu-item" id="hmenu-ccy" data-click="toolCcy">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.2" stroke="currentColor" stroke-width="1.3"/><path d="M8.8 5.2A2 2 0 007 4.4c-1 0-1.8.6-1.8 1.4 0 1.9 3.6.9 3.6 2.8 0 .8-.8 1.4-1.8 1.4a2 2 0 01-1.8-.8M7 3.2v7.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Currency converter
         </button>
         <div class="hmenu-sep"></div>
         <button class="hmenu-item" id="hmenu-undo" data-click="a17">
@@ -350,7 +372,7 @@
       <div class="mode-tabs" id="pmt" style="display:none">
         <button class="mtab on" id="pmv" data-click="a52"><span id="sym-pmv">₹</span> Value</button>
         <button class="mtab"    id="pmg" data-click="a53">GP %</button>
-        <button class="mtab"    id="pmm" data-click="a54">Margin %</button>
+        <button class="mtab"    id="pmm" data-click="a54">Markup %</button>
       </div>
       <div class="field" id="prf" style="display:none">
         <span class="sym" id="pru">₹</span>
@@ -359,7 +381,7 @@
       <div class="rows">
         <div class="row"><span class="row-lbl">Profit (excl GST basis)</span><span class="row-val big" id="pvv">—</span></div>
         <div class="row"><span class="row-lbl">GP % <span style="font-weight:300;font-size:10px">(profit ÷ SP)</span></span><span class="row-val" id="pgp">—</span></div>
-        <div class="row"><span class="row-lbl">Margin % <span style="font-weight:300;font-size:10px">(profit ÷ eff. CP)</span></span><span class="row-val" id="pmrg">—</span></div>
+        <div class="row"><span class="row-lbl">Markup % <span style="font-weight:300;font-size:10px">(profit ÷ eff. CP)</span></span><span class="row-val" id="pmrg">—</span></div>
         <div class="row"><span class="row-lbl">Absolute spread</span><span class="row-val dim" id="pspd">—</span></div>
       </div>
       <div class="rows rows-be" id="pf-be-block" style="display:none">
@@ -444,7 +466,7 @@
         <div class="sum-item"><div class="sum-lbl">SP Incentives <span id="sym-s-spinc">₹</span></div><div class="sum-val dim" id="s-spinc">—</div></div>
         <div class="sum-item"><div class="sum-lbl">Profit <span id="sym-s-pr">₹</span></div><div class="sum-val dim" id="s-pr">—</div></div>
         <div class="sum-item"><div class="sum-lbl">GP %</div><div class="sum-val dim" id="s-gp">—</div></div>
-        <div class="sum-item"><div class="sum-lbl">Margin %</div><div class="sum-val dim" id="s-mg">—</div></div>
+        <div class="sum-item"><div class="sum-lbl">Markup %</div><div class="sum-val dim" id="s-mg">—</div></div>
         <div class="sum-order-sep" id="s-order-sep" style="display:none"></div>
         <div class="sum-item sum-order" id="s-item-qty" style="display:none"><div class="sum-lbl">Quantity</div><div class="sum-val dim" id="s-qty">—</div></div>
         <div class="sum-item sum-order" id="s-item-order" style="display:none"><div class="sum-lbl">Order Value (incl GST)</div><div class="sum-val dim" id="s-order">—</div></div>
@@ -811,9 +833,9 @@
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex:1">
-            <span style="font-size:12px;color:var(--text2);white-space:nowrap">Min Margin %</span>
+            <span style="font-size:12px;color:var(--text2);white-space:nowrap">Min Markup %</span>
             <div class="floor-input-wrap" style="flex:1">
-              <input type="number" inputmode="decimal" id="floor-mg" value="" placeholder="—" min="0" max="100" step="0.1" data-input="a106" aria-label="Minimum Margin percentage floor">
+              <input type="number" inputmode="decimal" id="floor-mg" value="" placeholder="—" min="0" max="100" step="0.1" data-input="a106" aria-label="Minimum Markup percentage floor">
               <span>%</span>
             </div>
           </div>
@@ -976,6 +998,45 @@
 <!-- GP % and markup % are the same profit over different denominators, and
      suppliers quote whichever suits them. Two fields, either one drives the
      other. -->
+<!-- ═══ CURRENCY CONVERTER ═══ -->
+<div class="modal-overlay" id="overlay-ccyconv" data-click="ccyConvOverlay" role="presentation">
+  <div class="modal confirm-modal cc-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-ccyconv">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-title-ccyconv">Currency converter</h2>
+      <button class="modal-close" data-click="ccyConvClose" aria-label="Close currency converter">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="cv-intro">Convert an amount between any two currencies at today&#8217;s rates.
+        A scratch pad — it does not change what the calculator is showing.</p>
+      <div class="cv-pair">
+        <label class="cv-field">
+          <span class="cv-lbl">From</span>
+          <span class="cv-input cc-input">
+            <select class="cv-ccy" id="cc-from" data-change="ccyConvFrom" aria-label="Convert from"></select>
+            <input type="number" id="cc-from-amt" step="0.01" inputmode="decimal" autocomplete="off"
+                   placeholder="100" data-input="ccyConvFromAmt" aria-label="Amount to convert">
+          </span>
+        </label>
+        <button class="cv-swap cv-swap-btn" data-click="ccyConvSwap"
+                title="Swap the two currencies" aria-label="Swap the two currencies">&#8646;</button>
+        <label class="cv-field">
+          <span class="cv-lbl">To</span>
+          <span class="cv-input cc-input">
+            <select class="cv-ccy" id="cc-to" data-change="ccyConvTo" aria-label="Convert to"></select>
+            <input type="number" id="cc-to-amt" step="0.01" inputmode="decimal" autocomplete="off"
+                   placeholder="8,320" data-input="ccyConvToAmt" aria-label="Converted amount">
+          </span>
+        </label>
+      </div>
+      <p class="cv-out" id="cc-out" role="status" aria-live="polite"></p>
+      <div class="confirm-actions">
+        <button class="confirm-btn" id="cc-refresh" data-click="ccyConvRefresh">Update rates</button>
+        <button class="confirm-btn primary" data-click="ccyConvClose">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="overlay-convert" data-click="convertOverlay" role="presentation">
   <div class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-convert">
     <div class="modal-header">
@@ -997,7 +1058,7 @@
           <span class="cv-lbl">Markup %</span>
           <span class="cv-input"><input type="number" id="cv-mk" step="0.01" inputmode="decimal"
             autocomplete="off" placeholder="25" data-input="convertFromMk"></span>
-          <small class="cv-hint">profit &divide; cost price — the app calls this Margin %</small>
+          <small class="cv-hint">profit &divide; cost price — shown as Markup % on the calculator</small>
         </label>
       </div>
       <p class="cv-out" id="cv-out" role="status" aria-live="polite"></p>
@@ -1025,6 +1086,7 @@
         <div class="kb-row"><span class="kb-desc">Copy summary</span><span class="kb-keys"><span class="kbd kbd-mod">⌘</span><span class="kbd">C</span></span></div>
         <div class="kb-row"><span class="kb-desc">Undo</span><span class="kb-keys"><span class="kbd kbd-mod">⌘</span><span class="kbd">Z</span></span></div>
         <div class="kb-row"><span class="kb-desc">Redo</span><span class="kb-keys"><span class="kbd kbd-mod">⌘</span><span class="kbd">⇧</span><span class="kbd">Z</span></span></div>
+        <div class="kb-row"><span class="kb-desc">Open Tools</span><span class="kb-keys"><span class="kbd">T</span></span></div>
         <div class="kb-row"><span class="kb-desc">Open quote builder</span><span class="kb-keys"><span class="kbd">M</span></span></div>
         <div class="kb-row"><span class="kb-desc">Open saved presets</span><span class="kb-keys"><span class="kbd">E</span></span></div>
         <div class="kb-section-title">Mode &amp; GST</div>
@@ -1133,7 +1195,7 @@
   <div class="mini-sep"></div>
   <div class="mini-item"><span class="mini-lbl">GP %</span><span class="mini-val" id="mini-gp">—</span></div>
   <div class="mini-sep"></div>
-  <div class="mini-item"><span class="mini-lbl">Margin %</span><span class="mini-val" id="mini-mg">—</span></div>
+  <div class="mini-item"><span class="mini-lbl">Markup %</span><span class="mini-val" id="mini-mg">—</span></div>
 </div>
 
 <!-- ═══ FLOATING ACTION BUTTON (mobile, Default mode only) ═══ -->

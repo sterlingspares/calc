@@ -416,6 +416,46 @@ async function launchChromium(chromium) {
     ok('still no page errors after using deferred features',
        errs2.length === 0, errs2.slice(0, 2).join(' | '));
 
+    // Deferring something that runs during init would quietly pull the bundle
+    // back onto the critical path. renderSolver was moved out once and does
+    // exactly that — it is called from fillSummary on every calculation,
+    // including the first. Blocking the bundle outright is the only way to see
+    // it: a shim fired during init leaves its output blank.
+    {
+      const p2b = await browser.newPage();
+      const errs2b = [];
+      let extraRequests = 0;
+      p2b.on('pageerror', e => errs2b.push(String(e)));
+      await p2b.route('**/assets/app-extra.js', r => { extraRequests++; r.abort() });
+      await p2b.addInitScript(() => { try { localStorage.setItem('ob-done', '1'); } catch (e) {} });
+      await p2b.goto(origin + '/', { waitUntil: 'domcontentloaded' });
+      await p2b.waitForFunction(() => typeof window.calc === 'function');
+      const cold = await p2b.evaluate(() => {
+        window.setGST(18);
+        document.getElementById('mrp').value = '1000';
+        window.setCM('excl'); document.getElementById('cpd').value = '40';
+        window.setSM('excl'); document.getElementById('spd').value = '25';
+        // A target the solver has to actually answer — the empty state is static
+        // markup, so leaving it blank would pass whether the solver ran or not.
+        document.getElementById('solver-gp').value = '30';
+        window.calc();
+        const t = id => (document.getElementById(id) || {}).textContent || '';
+        return { profit: t('pvv'), gp: t('pgp'), mg: t('pmrg'),
+                 summary: t('s-pr'), solver: t('solver-out') };
+      });
+      // No incentives switched on here, so it is the plain 40/25 spread
+      ok('a first calculation is complete without the deferred bundle',
+         /150/.test(cold.profit) && /20\.00/.test(cold.gp) && /25\.00/.test(cold.mg) &&
+         /150/.test(cold.summary),
+         JSON.stringify(cold));
+      ok('including the solver, which runs on every calculation',
+         /%/.test(cold.solver) && !/Enter a target/.test(cold.solver),
+         JSON.stringify(cold.solver));
+      ok('and nothing threw while the bundle was unreachable',
+         errs2b.length === 0, errs2b.slice(0, 2).join(' | '));
+      await p2b.close();
+    }
+
     // The resize listener lives in core and must tolerate the bundle's absence
     const p3 = await browser.newPage();
     const errs3 = [];
@@ -746,6 +786,19 @@ async function launchChromium(chromium) {
      'heights ' + bar.heights.join(', '));
   ok('and the whole bar is still one row on desktop', bar.oneRow);
 
+  const wide = await page.evaluate(() => {
+    const f = document.getElementById('cpf-disc'), suf = document.getElementById('cpd-suf');
+    const r = document.createRange(); r.selectNodeContents(suf);
+    return { lines: r.getClientRects().length,
+             rowHeight: Math.round(f.getBoundingClientRect().height),
+             input: Math.round(document.getElementById('cpd').getBoundingClientRect().width) };
+  });
+  ok('on a desktop the discount label sits inside the field, on one line',
+     wide.lines === 1 && wide.rowHeight <= 42,
+     wide.lines + ' lines, row ' + wide.rowHeight + 'px');
+  ok('and still leaves the input most of the field',
+     wide.input >= 90, 'input ' + wide.input + 'px');
+
   // "Disc" was the only abbreviation left on the main screen. The longer word
   // has to fit the narrowest phone without pushing the input out of the field.
   await page.setViewportSize({ width: 320, height: 720 });
@@ -769,6 +822,9 @@ async function launchChromium(chromium) {
       inputWidth: Math.round(inp.getBoundingClientRect().width),
       hint: Math.ceil(c.measureText(inp.placeholder).width),
       pad: Math.round(parseFloat(box.paddingLeft) + parseFloat(box.paddingRight)),
+      // Width of the longest thing anyone types in here, in the input's own font
+      six: (() => { c.font = box.fontWeight + ' ' + box.fontSize + ' ' + box.fontFamily;
+                    return Math.ceil(c.measureText('100.00').width) })(),
       overflow: Math.round(f.scrollWidth - f.clientWidth),
       bodyOverflow: document.body.scrollWidth - document.body.clientWidth
     };
@@ -777,13 +833,16 @@ async function launchChromium(chromium) {
   // The discount is a percentage off MRP; the bare "%" left that to be inferred
   ok('and the suffix says what the percentage is of',
      disc.suffix === '% on MRP + 18% GST', disc.suffix);
-  // Two lines fit the 38px row; one would take a third of the field's width
-  ok('which wraps to two lines without growing the row',
-     disc.lines === 2 && disc.rowHeight <= 42,
-     disc.lines + ' lines, row ' + disc.rowHeight + 'px');
-  ok('the hint still fits what is left of the field at 320px',
-     disc.hint + disc.pad <= disc.inputWidth,
-     'hint ' + disc.hint + 'px + ' + disc.pad + 'px padding in ' + disc.inputWidth + 'px');
+  ok('it stays on one line even at 320px', disc.lines === 1, disc.lines + ' lines');
+  // 264px cannot hold an 18-character label, a prefix, a number and a next
+  // button side by side, so below 380px the label takes its own row.
+  ok('taking its own row there rather than shrinking the input',
+     disc.rowHeight > 42 && disc.inputWidth >= 100,
+     'row ' + disc.rowHeight + 'px, input ' + disc.inputWidth + 'px');
+  ok('which leaves room for more than anyone types into it',
+     disc.six <= disc.inputWidth - disc.pad,
+     'six characters need ' + disc.six + 'px + ' + disc.pad + 'px padding in ' +
+     disc.inputWidth + 'px');
   ok('and nothing overflows the field or the page',
      disc.overflow <= 0 && disc.bodyOverflow <= 0,
      'field ' + disc.overflow + 'px, page ' + disc.bodyOverflow + 'px');
@@ -826,6 +885,63 @@ async function launchChromium(chromium) {
        fc.hint + fc.pad <= fc.input,
        'hint ' + fc.hint + 'px + ' + fc.pad + 'px padding in ' + fc.input + 'px');
     await q.close();
+  }
+
+  /* ── 7i. Currency converter, measured ─────────────────────────────── */
+  R.section('\n=== 7i. The converted amount fits its box ===');
+  // ₹20,833.33 out of $250 is an ordinary conversion, and it was being cut off
+  // at the last digit inside a dialog sized for a yes/no confirmation.
+  {
+    const c = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+    await c.addInitScript(() => { try { localStorage.setItem('ob-done', '1') } catch (e) {} });
+    await c.goto(origin + '/', { waitUntil: 'load' });
+    await c.waitForFunction(() => typeof window.calc === 'function');
+    await c.evaluate(() => {
+      window.FX.rates = { INR: 1, USD: 0.012 };
+      window.FX.fetched = window.nowMs();
+      window.openCcyConv();
+    });
+    // The arithmetic is deferred, so the first render queues behind the bundle.
+    await c.waitForFunction(() => typeof window._renderCcyConvImpl === 'function',
+                            null, { timeout: 8000 });
+    ok('the pickers are filled from the core bundle, before that lands',
+       await c.evaluate(() => document.getElementById('cc-from').options.length) > 1);
+    const cc = await c.evaluate(() => {
+      document.getElementById('cc-from-amt').value = '250';
+      window.renderCcyConv('from');
+      const inp = document.getElementById('cc-to-amt');
+      const st = getComputedStyle(inp);
+      const ctx = document.createElement('canvas').getContext('2d');
+      ctx.font = st.fontWeight + ' ' + st.fontSize + ' ' + st.fontFamily;
+      return {
+        value: inp.value,
+        needs: Math.ceil(ctx.measureText(inp.value).width) +
+               Math.round(parseFloat(st.paddingLeft) + parseFloat(st.paddingRight)),
+        box: Math.round(inp.getBoundingClientRect().width),
+        line: document.getElementById('cc-out').textContent
+      };
+    });
+    ok('the conversion is right', cc.value === '20833.33', cc.value);
+    ok('and fits the box it is written into', cc.needs <= cc.box,
+       cc.value + ' needs ' + cc.needs + 'px in ' + cc.box + 'px');
+    ok('the line spells out both sides and the rate',
+       cc.line.indexOf('$250.00') !== -1 && cc.line.indexOf('₹20,833.33') !== -1 &&
+       cc.line.indexOf('1 USD = ₹83.33') !== -1, cc.line);
+
+    // Stacked on a phone, and the swap control is a real touch target
+    await c.setViewportSize({ width: 390, height: 780 });
+    await c.waitForTimeout(200);
+    const mob = await c.evaluate(() => {
+      const f = document.getElementById('cc-from-amt').closest('.cv-field');
+      const t = document.getElementById('cc-to-amt').closest('.cv-field');
+      const s = document.querySelector('.cv-swap-btn').getBoundingClientRect();
+      return { stacked: t.getBoundingClientRect().top > f.getBoundingClientRect().bottom,
+               swap: [Math.round(s.width), Math.round(s.height)] };
+    });
+    ok('the two sides stack on a phone', mob.stacked);
+    ok('and the swap control is a 44px target',
+       mob.swap[0] >= 44 && mob.swap[1] >= 44, mob.swap.join('x'));
+    await c.close();
   }
 
   /* ── 8. Mobile viewport ───────────────────────────────────────────── */
