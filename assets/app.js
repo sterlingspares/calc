@@ -1406,8 +1406,24 @@ function openConvert(){
   o.classList.add('open');
   document.body.style.overflow='hidden';
   pushOverlay(o);
-  var use=el('cv-use');
-  if(use)use.style.display=(LAST_CP&&LAST_SP)?'':'none';
+  /* "Use this calculation" used to disappear when there was nothing to pull in.
+     From the outside that reads as a broken feature rather than an unavailable
+     one — the README describes a button that simply is not there. It stays put
+     and says why, the same way the exchange-rate override does. */
+  var use=el('cv-use'),have=!!(LAST_CP&&LAST_SP);
+  if(use){
+    use.style.display='';
+    use.disabled=!have;
+    use.title=have?'':'Enter MRP, cost and selling price on the calculator first';
+  }
+  var gpEl=el('cv-gp'),mkEl=el('cv-mk'),out=el('cv-out');
+  if(out&&gpEl&&mkEl&&gpEl.value===''&&mkEl.value===''){
+    out.textContent=have
+      ? 'Type a percentage into either box — or pull in the calculation on screen.'
+      : 'Type a percentage into either box. Once MRP, cost and selling price are '+
+        'filled in on the calculator, you can pull that calculation straight in.';
+    out.className='cv-out';
+  }
   setTimeout(function(){ var f=el('cv-gp'); if(f){f.focus();if(f.select)f.select()} },30);
 }
 /** Close it. */

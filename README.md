@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1543%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-97-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1549%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-97-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -145,7 +145,7 @@ sw.js                   service worker
 manifest.json           PWA manifest
 _headers                response headers for the host
 tests/                  test suite (dev-only)
-docs/                   screenshots for this README (npm run screenshots)
+docs/                   README screenshots — all four are generated (npm run screenshots)
 robots.txt · sitemap.xml  indexing
 ```
 
@@ -455,6 +455,8 @@ Three things that are useful beside a calculation but are not part of one live
 under **Tools** in the header — the quote builder and the two converters. On a
 phone they are in the hamburger menu instead. Press `T` to open it.
 
+<img src="docs/screenshot-tools.png" alt="The Tools menu open in the header, listing Quote builder, GP to Markup and Currency converter" width="620">
+
 ### GP % / markup % converter
 
 Two ways of quoting the same profit, over different denominators — which is why
@@ -470,8 +472,9 @@ money. **Tools → GP ⇄ Markup** takes either and returns the other:
 `markup = GP ÷ (100 − GP)` and `GP = markup ÷ (100 + markup)`. It shows the
 result as money as well — *buy at ₹100.00, sell at ₹125.00* — because a
 percentage on its own is easy to nod along to. **Use this calculation** seeds it
-from whatever is on screen, and the two ends with no finite answer (100% GP,
-−100% markup) say so rather than blanking.
+from whatever is on screen; with nothing to pull in it stays put and says what
+is missing, rather than disappearing. The two ends with no finite answer (100%
+GP, −100% markup) say so rather than blanking.
 
 ### Currency converter
 
@@ -479,6 +482,8 @@ from whatever is on screen, and the two ends with no finite answer (100% GP,
 currencies, at the same rates the rest of the app uses. Type into either side
 and the other follows; **⇄** reverses the pair, carrying the converted amount
 back as the new input.
+
+<img src="docs/screenshot-currency.png" alt="The currency converter, showing $250.00 converted to ₹20,833.33 at 1 USD = ₹83.33" width="520">
 
 It is deliberately separate from the **Show** setting in Settings → Pricing.
 That one restates the whole calculation in another currency; this is a scratch
@@ -794,7 +799,7 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 1543 passing, 7 suites | `npm test` |
+| Tests | 1549 passing, 7 suites | `npm test` |
 | Statement coverage | **82.7%** (app.js 86.3%, app-extra.js 72.3%) | `npm run coverage` |
 | Lighthouse Performance | **97** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
@@ -831,7 +836,7 @@ commands after significant changes.
 
 ## Tests
 
-1543 assertions across seven suites. They load the real `index.html`,
+1549 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -842,7 +847,7 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 1087 | GST, incentives, quantity, landed costs, rounding, undo/redo of typed values and controls, quote maths, history |
+| `features` | 1093 | GST, incentives, quantity, landed costs, rounding, undo/redo of typed values and controls, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 78 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
