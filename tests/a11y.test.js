@@ -240,8 +240,8 @@ function cssVar(block, name) {
   ok('announcement is debounced, not immediate', status.textContent === '');
   await new Promise(r => setTimeout(r, 800));
   ok('announces the profit', status.textContent.indexOf('Profit') !== -1, status.textContent);
-  ok('announces GP and margin',
-     status.textContent.indexOf('GP') !== -1 && status.textContent.indexOf('Margin') !== -1);
+  ok('announces GP and markup',
+     status.textContent.indexOf('GP') !== -1 && status.textContent.indexOf('Markup') !== -1);
 
   d.getElementById('floor-gp').value = '90';
   w.calc();
@@ -285,15 +285,31 @@ function cssVar(block, name) {
   const base = await aw.axe.run(ad, Object.assign({ resultTypes: ['violations'] }, TAGS));
   ok('default view has no violations', base.violations.length === 0, describe(base.violations));
 
-  for (const id of ['settings', 'quote', 'whatif', 'shortcuts', 'presets', 'convert']) {
+  // The two converters open through their own functions, not openModal.
+  const OPENERS = { convert: [aw.openConvert, aw.closeConvert],
+                    ccyconv: [aw.openCcyConv, aw.closeCcyConv] };
+  for (const id of ['settings', 'quote', 'whatif', 'shortcuts', 'presets', 'convert', 'ccyconv']) {
     if (id === 'presets') aw.renderPresetManager();
-    // The converter opens through its own function, not openModal.
-    if (id === 'convert') aw.openConvert(); else aw.openModal(id);
+    if (OPENERS[id]) OPENERS[id][0](); else aw.openModal(id);
     const r = await aw.axe.run(ad.getElementById('overlay-' + id),
       Object.assign({ resultTypes: ['violations'] }, TAGS));
     ok(`${id} dialog has no violations`, r.violations.length === 0, describe(r.violations));
-    if (id === 'convert') aw.closeConvert(); else aw.closeModal(id);
+    if (OPENERS[id]) OPENERS[id][1](); else aw.closeModal(id);
   }
+
+  // The Tools menu is a disclosure, not a dialog: axe only sees it open.
+  aw.openTools();
+  const tm = await aw.axe.run(ad.getElementById('hbtn-tools-wrap'),
+    Object.assign({ resultTypes: ['violations'] }, TAGS));
+  ok('the open Tools menu has no violations', tm.violations.length === 0, describe(tm.violations));
+  ok('and its items are reachable by keyboard while it is open',
+     aw.focusablesIn(ad.getElementById('tools-menu')).length === 3,
+     String(aw.focusablesIn(ad.getElementById('tools-menu')).length));
+  aw.closeTools();
+  ok('and out of the tab order once it closes',
+     !ad.getElementById('tools-menu').classList.contains('open') &&
+     aw.getComputedStyle(ad.getElementById('tools-menu')).display === 'none',
+     aw.getComputedStyle(ad.getElementById('tools-menu')).display);
 
   // The text-entry dialog replaced window.prompt(), so unlike a native dialog
   // it is part of the page and has to satisfy the same rules as the rest.

@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1489%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-97-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1543%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-97-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -75,7 +75,7 @@ rebate from the supplier:
 | SP excl GST | ₹750.00 | 25% off — ₹885.00 incl GST, the quoted price |
 | **Profit** | **₹168.00** | ₹750.00 − ₹582.00 |
 | GP % | 22.40% | 168 ÷ 750 |
-| Margin % | 28.87% | 168 ÷ 582 |
+| Markup % | 28.87% | 168 ÷ 582 |
 | Break-even SP (incl GST) | ₹686.76 | incl GST — below this you lose money |
 
 Without the two incentives the same deal shows ₹150.00 profit and 20.00% GP.
@@ -94,12 +94,12 @@ easy to forget.
 | **Effective CP / SP** | The price after incentives and landed costs. Profit is computed from these, not from the invoice figures |
 | **Landed cost** | Per-unit freight, insurance or handling — added to CP inbound, deducted from SP outbound |
 | **GP %** | Profit as a share of **selling** price |
-| **Margin %** | Profit as a share of **cost** |
+| **Markup %** | Profit as a share of **cost** |
 
-> Note the last two, which the trade uses in a specific way. **GP %** is
-> profit ÷ SP; **Margin %** is profit ÷ CP. If you come from a finance
-> background, "Margin %" here is what you would call *markup* — it is always the
-> larger of the two, as in the example above.
+> Note the last two. **GP %** is profit ÷ SP; **Markup %** is profit ÷ CP —
+> always the larger of the two, as in the example above. Parts of the trade say
+> "margin" when they mean markup, which is exactly why it is worth being sure
+> which one a supplier is quoting.
 
 ---
 
@@ -138,7 +138,7 @@ Opening `index.html` from disk works too — the app runs, but the browser block
 index.html              markup only
 assets/styles.css       all styling
 assets/app.js           core behaviour
-assets/app-extra.js     what-if, compare, quote, CSV export — on demand
+assets/app-extra.js     what-if, compare, quote, converters, exports — on demand
 assets/fonts.css        self-hosted @font-face rules
 assets/fonts/           three woff2 files
 sw.js                   service worker
@@ -195,7 +195,7 @@ Choose what the calculator computes and what you supply:
 
 | Mode | You enter | It computes | Key |
 |---|---|---|---|
-| **Profit** (default) | MRP · CP · SP | Profit ₹, GP %, Margin % | `P` |
+| **Profit** (default) | MRP · CP · SP | Profit ₹, GP %, Markup % | `P` |
 | **Selling Price** | MRP · CP · target profit | Selling Price | `L` |
 | **Cost Price** | MRP · SP · target profit | Cost Price | `K` |
 
@@ -205,7 +205,7 @@ Choose what the calculator computes and what you supply:
 |---|---|
 | **₹ Value** | Eff. SP excl GST − Eff. CP excl GST |
 | **GP %** | Profit ÷ Eff. SP excl GST × 100 |
-| **Margin %** | Profit ÷ Eff. CP excl GST × 100 |
+| **Markup %** | Profit ÷ Eff. CP excl GST × 100 |
 
 ### Quantity and order value
 
@@ -398,7 +398,7 @@ hand-edited entry is dropped rather than trusted.
 ### Summary
 
 A sticky bar below the cards. It carries only what the cards do not — effective
-CP and SP, the incentive totals, profit, GP %, Margin %, break-even and the
+CP and SP, the incentive totals, profit, GP %, Markup %, break-even and the
 order block — rather than repeating the prices shown directly above it. Values
 below your floor limits are flagged.
 
@@ -418,7 +418,7 @@ so the quotable price is grossed back up accordingly.
 
 ### Target-margin solver
 
-In the summary, beside Margin %, enter a **Target GP %** and it answers the question
+In the summary, beside Markup %, enter a **Target GP %** and it answers the question
 directly rather than making you converge on it by trial and error. What it says
 depends on which side of the target you are on:
 
@@ -446,14 +446,20 @@ printing a nonsense figure. Landed costs are accounted for throughout.
 
 Three side-by-side SP scenarios (A · B · C) to compare before committing. Each
 takes its own SP input (discount % or manual ₹) and shows SP, Profit ₹, GP % and
-Margin %. The highest-GP scenario is highlighted automatically, and everything
+Markup %. The highest-GP scenario is highlighted automatically, and everything
 updates live.
+
+### Tools
+
+Three things that are useful beside a calculation but are not part of one live
+under **Tools** in the header — the quote builder and the two converters. On a
+phone they are in the hamburger menu instead. Press `T` to open it.
 
 ### GP % / markup % converter
 
 Two ways of quoting the same profit, over different denominators — which is why
 a supplier offering "25%" and a customer expecting "25%" can mean different
-money. **GP ⇄ Markup** in the header takes either and returns the other:
+money. **Tools → GP ⇄ Markup** takes either and returns the other:
 
 | GP % | Markup % |
 |---:|---:|
@@ -467,11 +473,23 @@ percentage on its own is easy to nod along to. **Use this calculation** seeds it
 from whatever is on screen, and the two ends with no finite answer (100% GP,
 −100% markup) say so rather than blanking.
 
-Markup % is what this app calls **Margin %** elsewhere.
+### Currency converter
+
+**Tools → Currency converter** converts an amount between any two of the twenty
+currencies, at the same rates the rest of the app uses. Type into either side
+and the other follows; **⇄** reverses the pair, carrying the converted amount
+back as the new input.
+
+It is deliberately separate from the **Show** setting in Settings → Pricing.
+That one restates the whole calculation in another currency; this is a scratch
+pad, and leaves the calculation alone. Every rate is quoted per rupee, so a
+cross-pair like USD → EUR goes through the rupee — exact, rather than a second
+lookup. When a rate is not known it says so, with a route to fixing it, instead
+of showing a blank box.
 
 ### Quote builder
 
-A multi-line quoting tool — press `M`, or use **Quote** in the header / menu.
+A multi-line quoting tool — press `M`, or use **Tools → Quote builder**.
 
 Each line takes a description, MRP, quantity and net CP/SP discounts, and
 computes SP incl GST, line value, line profit and GP %. Lines below your GP floor
@@ -508,7 +526,7 @@ Calculations auto-save after 900 ms of inactivity once both CP and SP are filled
 (toggleable in Settings). Up to **50 entries** are kept, across page reloads.
 
 Each card shows time (relative, absolute on hover), tag, quantity if above 1,
-MRP, CP excl, SP excl, CP incentives ₹, Profit ₹, GP %, Margin % and GST rate.
+MRP, CP excl, SP excl, CP incentives ₹, Profit ₹, GP %, Markup % and GST rate.
 
 **Search, filter, tag**
 
@@ -520,7 +538,7 @@ MRP, CP excl, SP excl, CP incentives ₹, Profit ₹, GP %, Margin % and GST rat
 The panel header shows `N of M` while a search or filter is active.
 
 **Actions** — Save current · Compare (side-by-side against the current state with
-↑↓ deltas for CP, SP, Profit, GP %, Margin %) · delete one entry (**×**) · Export
+↑↓ deltas for CP, SP, Profit, GP %, Markup %) · delete one entry (**×**) · Export
 CSV · Clear all.
 
 ### Undo / redo
@@ -565,14 +583,14 @@ switched off hides rather than leading nowhere.
 A six-step tour opens on a first visit, written for someone who arrived without
 reading any of this. It starts with the problem rather than the features, offers
 to **fill the example in** so the screen is working rather than empty, warns that
-GP % and Margin % are not the same figure, and says plainly that the tax rate and
+GP % and Markup % are not the same figure, and says plainly that the tax rate and
 the currency are yours to set. Restart it any time from Settings → Help.
 
 | Setting | Description |
 |---|---|
 | **Dark mode** | Full dark colour scheme |
 | **Minimum GP %** | Flags values red below this threshold |
-| **Minimum Margin %** | Flags values red below this threshold |
+| **Minimum Markup %** | Flags values red below this threshold |
 | **Auto-save** | Toggle automatic history logging |
 | **Rounding** | ₹1, ₹5, a custom step, or off |
 | **Features** | Switch off anything you do not use |
@@ -593,8 +611,9 @@ and it disappears from the screen:
 | | |
 |---|---|
 | **Presets** | the header button, menu entry and the manager |
-| **GP / markup converter** | the header button |
-| **Quote builder** | the header button, menu item and bottom-nav tab |
+| **GP / markup converter** | its entry in Tools |
+| **Currency converter** | its entry in Tools |
+| **Quote builder** | its entry in Tools, the menu item and the bottom-nav tab |
 | **What-if scenarios** | the button on the summary |
 | **Landed costs** | both fields in the MRP bar |
 | **Target GP solver** | the row under break-even |
@@ -620,7 +639,7 @@ A mobile-oriented 4-step card interface — `Q` toggles it.
 1. **MRP** — MRP, GST rate, solve-for mode
 2. **CP** — cost price (discount % or manual ₹)
 3. **SP** — selling price (or profit, when solving for SP/CP)
-4. **Result** — profit, GP %, Margin %, effective prices
+4. **Result** — profit, GP %, Markup %, effective prices
 
 Swipe left/right or use `→` / `Enter` and `←` to move between cards. Quick mode
 remembers its own last inputs and restores them when you return.
@@ -633,7 +652,7 @@ remembers its own last inputs and restores them when you return.
 
 The layout adapts below 800 px.
 
-- **Sticky result bar** — Profit, GP % and Margin % stay pinned above the bottom
+- **Sticky result bar** — Profit, GP % and Markup % stay pinned above the bottom
   nav in Default mode, so you can watch them move while editing discounts instead
   of scrolling to the summary and back. Values below your floors turn amber;
   losses turn red.
@@ -661,11 +680,11 @@ The layout adapts below 800 px.
 | `?` | Keyboard shortcuts | `1` | GST 18% |
 | `S` | Settings | `2` | GST 5% |
 | `E` | Saved presets | `P` | Solve for Profit |
-| `M` | Quote builder | `L` | Solve for Selling Price |
-| `R` | Reset all inputs | `K` | Solve for Cost Price |
-| `Q` | Default / Quick mode | `⌘/Ctrl + Z` | Undo |
-| `⌘/Ctrl + S` | Save to history | `⌘/Ctrl + ⇧ + Z` | Redo |
-| `⌘/Ctrl + C` | Copy summary | | |
+| `T` | Tools menu | `L` | Solve for Selling Price |
+| `M` | Quote builder | `K` | Solve for Cost Price |
+| `R` | Reset all inputs | `⌘/Ctrl + Z` | Undo |
+| `Q` | Default / Quick mode | `⌘/Ctrl + ⇧ + Z` | Redo |
+| `⌘/Ctrl + S` | Save to history | `⌘/Ctrl + C` | Copy summary |
 
 Any GST rate other than 18% or 5% goes in the **Other %** box. `P` and `S` were
 taken by Solve-for-Profit and Settings, so presets use `E`.
@@ -775,7 +794,7 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 1489 passing, 7 suites | `npm test` |
+| Tests | 1543 passing, 7 suites | `npm test` |
 | Statement coverage | **82.7%** (app.js 86.3%, app-extra.js 72.3%) | `npm run coverage` |
 | Lighthouse Performance | **97** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
@@ -812,7 +831,7 @@ commands after significant changes.
 
 ## Tests
 
-1489 assertions across seven suites. They load the real `index.html`,
+1543 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -823,13 +842,13 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 1049 | GST, incentives, quantity, landed costs, rounding, undo/redo of typed values and controls, quote maths, history |
+| `features` | 1087 | GST, incentives, quantity, landed costs, rounding, undo/redo of typed values and controls, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 78 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
 | `modes` | 85 | solve modes, price input modes, what-if, comparison, Quick mode, wizard, share-link round trip, theming, auto-save |
-| `a11y` | 104 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
-| `browser` | 90 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, control-bar spacing, mobile viewport, axe with layout |
+| `a11y` | 108 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
+| `browser` | 102 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, control-bar spacing, mobile viewport, axe with layout |
 
 Individual suites: `npm run test:features`, `test:errors`, `test:mobile`,
 `test:fab`, `test:modes`, `test:a11y`, `test:browser`. Full assertion output:
@@ -863,9 +882,17 @@ repo is what the browser runs.
   `script-src 'self'`.
 - **`assets/app.js`** is the core: calculation, incentives, history, settings,
   persistence. Loaded with `defer`, so the DOM is parsed before it initialises.
-- **`assets/app-extra.js`** holds what-if, comparison, the quote builder and
-  onboarding. It is fetched on first use and warmed up during idle time, keeping
-  it off the critical path.
+- **`assets/app-extra.js`** holds what-if, comparison, the quote builder, Quick
+  mode, the wizard, CSV export, both converters, the preset manager, the
+  text-entry dialog and the share/copy/PDF exports. It is fetched on first use
+  and warmed up during idle time, keeping it off the critical path.
+
+  The rule for what may live here: **nothing that runs before a user asks for
+  it**. The target-GP solver was moved out once and had to come back — it is
+  called from `fillSummary` on every calculation, including the first, so its
+  shim pulled the bundle straight onto the critical path. A browser test now
+  blocks the bundle outright and checks a first calculation still comes out
+  complete.
 - Plain ES5-compatible browser JavaScript throughout — no framework, no polyfills.
 - **Fonts are self-hosted**: Syne (headings), DM Sans (UI), JetBrains Mono
   (numbers), latin subset, one variable woff2 per family.

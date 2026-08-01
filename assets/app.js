@@ -1202,7 +1202,7 @@ function closeModal(id){
  * @param {string} id overlay suffix
  */
 function overlayClick(e,id){if(e.target===el('overlay-'+id))closeModal(id)}
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('settings');closeModal('whatif');closeModal('quote');closeModal('presets');closeConfirm();closePrompt();closeConvert();closeFab()}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('settings');closeModal('whatif');closeModal('quote');closeModal('presets');closeConfirm();closePrompt();closeConvert();closeCcyConv();closeTools(true);closeFab()}});
 
 /**
  * Handler for the custom GST box. Rejects anything outside 0–100 and says so,
@@ -1249,12 +1249,17 @@ var FEATURE_DEFS=[
    clear:function(){ PRESETS={}; savePresets(); renderPresetList(); renderPresetManager(); }},
 
   {k:'convert',name:'GP / markup converter',hint:'Translate between the two ways of quoting a margin.',
-   els:['hbtn-convert'],
+   els:['tool-convert','hmenu-convert'],
    values:function(){ return [] },
    clear:function(){ closeConvert(); }},
 
+  {k:'ccyconv',name:'Currency converter',hint:'Convert an amount between any two currencies.',
+   els:['tool-ccy','hmenu-ccy'],
+   values:function(){ return [] },
+   clear:function(){ closeCcyConv(); }},
+
   {k:'quote',name:'Quote builder',hint:'Multi-line quotes with blended GP.',
-   els:['hbtn-quote','hmenu-quote','bnav-quote'],
+   els:['tool-quote','hmenu-quote','bnav-quote'],
    values:function(){ return QUOTE.length?[QUOTE.length+' quote line'+(QUOTE.length===1?'':'s')]:[] },
    clear:function(){ QUOTE.length=0; saveQuote(); if(typeof qtRender==='function')qtRender(); closeModal('quote'); }},
 
@@ -1338,7 +1343,15 @@ function applyFeatureVisibility(){
   });
   var nInc=el('bnav-inc');
   if(nInc)nInc.style.display=(featOn('inccp')||featOn('incsp'))?'':'none';
+  // A menu whose every item is switched off is just a dead button.
+  var tw=el('hbtn-tools-wrap');
+  if(tw){
+    tw.style.display=anyToolOn()?'':'none';
+    if(!anyToolOn())closeTools();
+  }
 }
+/** Whether anything is left in the Tools menu. */
+function anyToolOn(){ return featOn('quote')||featOn('convert')||featOn('ccyconv') }
 
 /**
  * Put the app back to how it ships.
@@ -1349,27 +1362,10 @@ function applyFeatureVisibility(){
  */
 var STORAGE_KEYS=['pc-state','pc-history','pc-labels','pc-presets','pc-qstate',
                   'pc-quote','pc-theme','pc-fx','pc-features','ob-done'];
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function factoryReset(){
-  var held=[];
-  if(HISTORY.length)held.push(HISTORY.length+' history entr'+(HISTORY.length===1?'y':'ies'));
-  var np=Object.keys(PRESETS).length;
-  if(np)held.push(np+' preset'+(np===1?'':'s'));
-  if(QUOTE.length)held.push(QUOTE.length+' quote line'+(QUOTE.length===1?'':'s'));
-  var off=FEATURE_DEFS.filter(function(f){return !featOn(f.k)}).length;
-  if(off)held.push(off+' switched-off feature'+(off===1?'':'s'));
-  askConfirm('Reset the app',
-    held.length?('This will clear '+held.join(', ')+', along with every setting.')
-               :'This will clear every saved setting and start fresh.',
-    'It cannot be undone — undo history goes too.','Reset everything',function(){
-      STORAGE_KEYS.forEach(function(k){
-        try{ localStorage.removeItem(k) }catch(e){ logError('could not clear '+k,e) }
-      });
-      // Reload rather than unpick the state by hand: every module reads its own
-      // storage on boot, so a fresh load is the one path guaranteed to agree
-      // with what a new visitor sees.
-      try{ location.replace(location.pathname) }
-      catch(e){ logError('could not reload after reset',e); location.reload() }
-    });
+  if(typeof _factoryResetImpl==='function')return _factoryResetImpl();
+  withExtras(function(){ _factoryResetImpl() });
 }
 ACT.factoryReset = function(){ factoryReset() };
 
@@ -1377,7 +1373,7 @@ ACT.factoryReset = function(){ factoryReset() };
    The same profit over two different denominators, which is why a supplier
    offering "25%" and a customer expecting "25%" can mean different money.
      GP     = profit / selling price
-     markup = profit / cost price      (what this app calls Margin %)
+     markup = profit / cost price      (shown as Markup % on the calculator)
    so  markup = GP / (100 - GP)   and   GP = markup / (100 + markup).
    ─────────────────────────────────────────────────────────────────────────── */
 /**
@@ -1396,38 +1392,10 @@ function markupToGp(mk){
   if(isNaN(mk)||mk<=-100)return null;     // at -100% markup the sale is zero
   return (mk/(100+mk))*100;
 }
-/**
- * Recompute the other field and the worked line beneath.
- * @param {'gp'|'mk'} from which field the user is typing in
- */
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function renderConvert(from){
-  var gpEl=el('cv-gp'), mkEl=el('cv-mk'), out=el('cv-out');
-  if(!gpEl||!mkEl||!out)return;
-  var raw=(from==='gp'?gpEl:mkEl).value;
-  if(String(raw).trim()===''){
-    (from==='gp'?mkEl:gpEl).value='';
-    out.textContent='';out.className='cv-out';
-    return;
-  }
-  var v=parseFloat(raw);
-  var other=(from==='gp')?gpToMarkup(v):markupToGp(v);
-  if(other===null){
-    (from==='gp'?mkEl:gpEl).value='';
-    out.textContent=(from==='gp')
-      ? 'A GP of 100% or more would mean the goods cost nothing — there is no markup that matches.'
-      : 'A markup of −100% or less would mean selling for nothing — there is no GP that matches.';
-    out.className='cv-out bad';
-    return;
-  }
-  (from==='gp'?mkEl:gpEl).value=String(+other.toFixed(4));
-  // Ground it in money: percentages either way are easy to nod along to.
-  var gp=(from==='gp')?v:other;
-  var cost=100, sale=(gp>=100)?null:(cost/(1-gp/100));
-  if(sale===null||!isFinite(sale)){ out.textContent='';out.className='cv-out'; return }
-  out.textContent='Buy at '+INR_RS(cost)+', sell at '+INR_RS(sale)+' — profit '+
-                  INR_RS(sale-cost)+', which is '+PCT(gp)+' of the sale and '+
-                  PCT((from==='gp')?other:v)+' of the cost.';
-  out.className='cv-out';
+  if(typeof _renderConvertImpl==='function')return _renderConvertImpl(from);
+  withExtras(function(){ _renderConvertImpl(from) });
 }
 /** Open the converter, seeded from the calculation on screen when there is one. */
 function openConvert(){
@@ -1451,14 +1419,10 @@ function closeConvert(){
     if(_lastFocused&&_lastFocused.focus)_lastFocused.focus();
   }
 }
-/** Pull the GP the calculator is currently showing into the converter. */
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function convertUseCurrent(){
-  if(!LAST_CP||!LAST_SP)return;
-  var effSP=effectiveSP(LAST_SP), effCP=effectiveCP(LAST_CP);
-  if(!effSP||effSP<=0)return;
-  var gp=((effSP-effCP)/effSP)*100;
-  var f=el('cv-gp');
-  if(f){ f.value=String(+gp.toFixed(4)); renderConvert('gp'); }
+  if(typeof _convertUseCurrentImpl==='function')return _convertUseCurrentImpl();
+  withExtras(function(){ _convertUseCurrentImpl() });
 }
 ACT.openConvert        = function(){ openConvert() };
 ACT.convertClose       = function(){ closeConvert() };
@@ -1466,6 +1430,118 @@ ACT.convertOverlay     = function(self,event){ if(event.target===el('overlay-con
 ACT.convertFromGp      = function(){ renderConvert('gp') };
 ACT.convertFromMk      = function(){ renderConvert('mk') };
 ACT.convertUseCurrent  = function(){ convertUseCurrent() };
+
+/* ── Tools menu ─────────────────────────────────────────────────────────────
+   The quote builder and the two converters were three separate header buttons
+   competing with Share, Save, Copy, PDF and Presets for the same row. They are
+   one menu now. It is a disclosure, not an ARIA menu: the items are ordinary
+   buttons that Tab reaches while the panel is open, which needs no roving
+   tabindex and behaves the way the hamburger already does.
+   ─────────────────────────────────────────────────────────────────────────── */
+/** Open or close the Tools menu. */
+function toggleTools(){
+  var m=el('tools-menu');
+  if(!m)return;
+  m.classList.contains('open')?closeTools():openTools();
+}
+/** Open it, and point the button's aria-expanded at the truth. */
+function openTools(){
+  var m=el('tools-menu'),b=el('hbtn-tools');
+  if(!m)return;
+  m.classList.add('open');
+  if(b)b.setAttribute('aria-expanded','true');
+}
+/**
+ * Close it.
+ * @param {boolean} [restoreFocus] send focus back to the button — right after
+ *        Escape, wrong after a click that opened a dialog.
+ */
+function closeTools(restoreFocus){
+  var m=el('tools-menu'),b=el('hbtn-tools');
+  if(!m||!m.classList.contains('open'))return;
+  m.classList.remove('open');
+  if(b){
+    b.setAttribute('aria-expanded','false');
+    if(restoreFocus&&b.focus)b.focus();
+  }
+}
+// Clicking anywhere else, or pressing Escape, dismisses it.
+document.addEventListener('click',function(e){
+  var w=el('hbtn-tools-wrap');
+  if(w&&!w.contains(e.target))closeTools();
+});
+ACT.toolsToggle = function(){ toggleTools() };
+ACT.toolQuote   = function(){ closeTools(); closeHMenu(); openModal('quote') };
+ACT.toolConvert = function(){ closeTools(); closeHMenu(); openConvert() };
+ACT.toolCcy     = function(){ closeTools(); closeHMenu(); openCcyConv() };
+
+/* ── Currency converter ─────────────────────────────────────────────────────
+   Separate from the display-currency setting on purpose: that one restates the
+   whole calculation, and people kept wanting to check one number without
+   disturbing it. Both read the same rates.
+   ─────────────────────────────────────────────────────────────────────────── */
+var CC_FROM='USD',CC_TO='INR';
+
+
+
+/** Fill both pickers with every currency the app knows. */
+function fillCcyConvSelects(){
+  ['cc-from','cc-to'].forEach(function(id){
+    var sel=el(id);
+    if(!sel||sel.options.length)return;
+    var html='';
+    CURRENCIES.forEach(function(x){ html+='<option value="'+x.c+'">'+x.c+'</option>' });
+    sel.innerHTML=html;
+  });
+  // Assigning .value before the options exist is a silent no-op, so this has to
+  // come after the fill.
+  if(el('cc-from'))el('cc-from').value=CC_FROM;
+  if(el('cc-to'))el('cc-to').value=CC_TO;
+}
+/** Deferred: the implementation lives in assets/app-extra.js. */
+function renderCcyConv(side){
+  if(typeof _renderCcyConvImpl==='function')return _renderCcyConvImpl(side);
+  withExtras(function(){ _renderCcyConvImpl(side) });
+}
+
+/** Deferred: the implementation lives in assets/app-extra.js. */
+function ccyConvSwap(){
+  if(typeof _ccyConvSwapImpl==='function')return _ccyConvSwapImpl();
+  withExtras(function(){ _ccyConvSwapImpl() });
+}
+/** Open the currency converter. */
+function openCcyConv(){
+  if(!featOn('ccyconv'))return;
+  var o=el('overlay-ccyconv');
+  if(!o)return;
+  _lastFocused=document.activeElement;
+  fillCcyConvSelects();
+  o.classList.add('open');
+  document.body.style.overflow='hidden';
+  pushOverlay(o);
+  renderCcyConv('from');
+  // Rates are only fetched when a foreign currency is first needed, and picking
+  // one here counts.
+  if(fxRate(CC_FROM)===null||fxRate(CC_TO)===null)fetchRates(true);
+  setTimeout(function(){ var f=el('cc-from-amt'); if(f){f.focus();if(f.select)f.select()} },30);
+}
+/** Close it. */
+function closeCcyConv(){
+  var o=el('overlay-ccyconv');
+  if(o&&o.classList.contains('open')){
+    o.classList.remove('open');
+    popOverlay(o);
+    if(_lastFocused&&_lastFocused.focus)_lastFocused.focus();
+  }
+}
+ACT.ccyConvOverlay = function(self,event){ if(event.target===el('overlay-ccyconv'))closeCcyConv() };
+ACT.ccyConvClose   = function(){ closeCcyConv() };
+ACT.ccyConvFromAmt = function(){ renderCcyConv('from') };
+ACT.ccyConvToAmt   = function(){ renderCcyConv('to') };
+ACT.ccyConvFrom    = function(self){ CC_FROM=self.value; renderCcyConv('from') };
+ACT.ccyConvTo      = function(self){ CC_TO=self.value; renderCcyConv('from') };
+ACT.ccyConvSwap    = function(){ ccyConvSwap() };
+ACT.ccyConvRefresh = function(){ fetchRates(false).then(function(){ renderCcyConv('from') }) };
 
 /* ── Settings tabs ──────────────────────────────────────────────────────────
    Eight stacked sections became a long scroll that was hard to find anything
@@ -1780,81 +1856,20 @@ function askConfirm(title,msg,sub,btnLabel,fn){
 var _promptFn=null,_promptValidate=null,_promptMulti=false;
 /** The field currently in use — single line or textarea. */
 function _promptField(){return _promptMulti?el('prompt-textarea'):el('prompt-input')}
-/**
- * Ask for a single line of text.
- *
- * @param {Object} o
- * @param {string} o.title dialog heading
- * @param {string} [o.message] explanatory line above the field
- * @param {string} [o.label] visible label for the input
- * @param {string} [o.value] initial value, selected on open
- * @param {string} [o.placeholder]
- * @param {string} [o.okLabel] confirm button text
- * @param {Function} [o.validate] receives the current value; return null to
- *        accept, {error:'…'} to block, or {note:'…'} to warn but allow
- * @param {boolean} [o.multiline] show a textarea instead of a single line
- * @param {boolean} [o.readOnly] present a value to copy rather than to edit
- * @param {Function} o.onOk receives the trimmed value
- */
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function askPrompt(o){
-  o=o||{};
-  _promptFn=o.onOk||null;
-  _promptValidate=o.validate||null;
-  R('prompt-title',o.title||'Name');
-  R('prompt-msg',o.message||'');
-  var msgEl=el('prompt-msg');if(msgEl)msgEl.style.display=o.message?'':'none';
-  var lbl=el('prompt-label');if(lbl)lbl.textContent=o.label||'Name';
-  _promptMulti=!!o.multiline;
-  var single=el('prompt-input'),area=el('prompt-textarea');
-  if(single)single.style.display=_promptMulti?'none':'';
-  if(area)area.style.display=_promptMulti?'':'none';
-  var inp=_promptField();
-  if(inp){
-    inp.value=o.value||'';
-    if(!_promptMulti){
-      inp.placeholder=o.placeholder||'';
-      inp.setAttribute('maxlength',String(o.maxLength||40));
-      inp.readOnly=!!o.readOnly;
-    }
-  }
-  var cancel=el('overlay-prompt')?el('overlay-prompt').querySelector('.confirm-btn:not(.primary)'):null;
-  if(cancel)cancel.style.display=o.readOnly||o.multiline?'none':'';
-  var ok=el('prompt-ok');if(ok)ok.textContent=o.okLabel||'Save';
-  var ov=el('overlay-prompt');
-  if(ov){
-    _lastFocused=document.activeElement;
-    ov.classList.add('open');
-    document.body.style.overflow='hidden';
-    pushOverlay(ov);
-    // Select the text so typing replaces it, which is what prompt() did.
-    setTimeout(function(){if(inp){inp.focus();if(inp.select)inp.select()}},30);
-  }
-  validatePrompt();
+  if(typeof _askPromptImpl==='function')return _askPromptImpl(o);
+  withExtras(function(){ _askPromptImpl(o) });
 }
-/**
- * Re-run the validator and reflect it in the hint line and the OK button.
- * @returns {boolean} whether the current value may be submitted
- */
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function validatePrompt(){
-  var inp=_promptField(),ok=el('prompt-ok'),hint=el('prompt-hint');
-  if(!inp||!ok)return true;
-  var v=_promptValidate?_promptValidate(inp.value):null;
-  var err=v&&v.error,note=v&&v.note;
-  if(hint){
-    hint.textContent=err||note||'';
-    hint.className='confirm-sub'+(err?' prompt-err':(note?' prompt-note':''));
-  }
-  ok.disabled=!!err;
-  return !err;
+  if(typeof _validatePromptImpl==='function')return _validatePromptImpl();
+  withExtras(function(){ _validatePromptImpl() });
 }
-/** Submit the dialog, if the value passes validation. */
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function runPrompt(){
-  if(!validatePrompt())return;
-  var inp=_promptField();
-  var val=inp?String(inp.value).trim():'';
-  var fn=_promptFn;
-  closePrompt();
-  if(fn)guard('prompt callback',function(){fn(val)});
+  if(typeof _runPromptImpl==='function')return _runPromptImpl();
+  withExtras(function(){ _runPromptImpl() });
 }
 /** Dismiss without submitting. */
 function closePrompt(){
@@ -2064,7 +2079,7 @@ var UNDO_FIELD_NAMES={
   mrp:'MRP', cpd:'cost discount', cpv:'cost price',
   spd:'sale discount', spv:'selling price', pri:'target profit',
   qty:'quantity', landed:'inbound landed cost', 'sp-landed':'outbound landed cost',
-  'floor-gp':'GP floor', 'floor-mg':'margin floor', 'gst-custom':'GST rate',
+  'floor-gp':'GP floor', 'floor-mg':'markup floor', 'gst-custom':'GST rate',
   'rnd-custom':'rounding step', 'fx-manual':'exchange rate',
   'ccy-select':'display currency', 'fx-scope':'currency scope'
 };
@@ -2174,7 +2189,7 @@ function gpCls(gp,floor){
   return gp>=0?'pos':'neg';
 }
 /**
- * CSS class for a Margin% figure. Mirrors gpCls against the margin floor.
+ * CSS class for a Markup% figure. Mirrors gpCls against the markup floor.
  * @param {number|null} mg
  * @param {{gp:number|null,mg:number|null}} floor
  * @returns {string}
@@ -3090,40 +3105,10 @@ function capturePreset(){
   };
 }
 
-/**
- * Apply a saved preset. Keys are re-validated, since presets live in storage.
- * @param {Object} p snapshot from capturePreset
- */
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function applyPreset(p){
-  if(!p)return;
-  INC_KEYS=(p.cpKeys||[]).filter(isValidIncKey);
-  SP_INC_KEYS=(p.spKeys||[]).filter(isValidIncKey);
-  if(!INC_KEYS.length)INC_KEYS=['cd','eb','qt','an','sc'];
-  if(!SP_INC_KEYS.length)SP_INC_KEYS=['cd','eb','qt','an','sc'];
-  Object.keys(p.labels||{}).forEach(function(k){
-    if(isValidIncKey(k))INC_LABELS[k]=String(p.labels[k]);
-  });
-  INC_MODE={};SP_INC_MODE={};
-  Object.keys(p.cpModes||{}).forEach(function(k){ if(isValidIncKey(k))INC_MODE[k]=p.cpModes[k]==='abs'?'abs':'pct'; });
-  Object.keys(p.spModes||{}).forEach(function(k){ if(isValidIncKey(k))SP_INC_MODE[k]=p.spModes[k]==='abs'?'abs':'pct'; });
-
-  renderCPIncRows();renderSPIncRows();
-  function restore(keys,src,pfx,sync){
-    keys.forEach(function(k){
-      var e=(src||{})[k]; if(!e)return;
-      var cb=document.getElementById(pfx.cb+k), iv=document.getElementById(pfx.iv+k);
-      if(cb)cb.checked=!!e.on;
-      if(iv&&e.v!=='')iv.value=e.v;
-      sync(k);
-    });
-  }
-  restore(INC_KEYS,p.cp,{cb:'it-',iv:'iv-'},syncToggle);
-  restore(SP_INC_KEYS,p.sp,{cb:'sit-',iv:'siv-'},syncSpToggle);
-  if(INC_KEYS.indexOf('cd')!==-1)setCDMode(p.cdm==='after'?'after':'before');
-  if(INC_KEYS.indexOf('sc')!==-1)setSchemeMode(p.scm==='abs'?'abs':'pct');
-  if(SP_INC_KEYS.indexOf('cd')!==-1)setSCDMode(p.scdm==='after'?'after':'before');
-  if(SP_INC_KEYS.indexOf('sc')!==-1)setSpSchemeMode(p.sscm==='abs'?'abs':'pct');
-  saveLabels();calc();
+  if(typeof _applyPresetImpl==='function')return _applyPresetImpl(p);
+  withExtras(function(){ _applyPresetImpl(p) });
 }
 
 /** Repaint the preset dropdown from PRESETS. */
@@ -3241,27 +3226,10 @@ function deletePreset(name){
     });
 }
 
-/** Draw the rows inside the preset manager. */
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function renderPresetManager(){
-  var c=el('pm-list');
-  if(!c)return;
-  var names=Object.keys(PRESETS).sort();
-  if(!names.length){
-    c.innerHTML='<p class="pm-empty">No presets yet. Set the incentives up the way you want them, '+
-                'then use the button above.</p>';
-    return;
-  }
-  c.innerHTML=names.map(function(n){
-    var e=escHtml(n);
-    return '<div class="pm-row">'+
-      '<span class="pm-name" title="'+e+'">'+e+'</span>'+
-      '<span class="pm-acts">'+
-        '<button class="pm-btn" data-click="pmLoad"   data-p="'+e+'" aria-label="Load preset '+e+'">Load</button>'+
-        '<button class="pm-btn" data-click="pmRename" data-p="'+e+'" aria-label="Rename preset '+e+'">Rename</button>'+
-        '<button class="pm-btn" data-click="pmUpdate" data-p="'+e+'" aria-label="Update preset '+e+' from the current screen">Update</button>'+
-        '<button class="pm-btn danger" data-click="pmDelete" data-p="'+e+'" aria-label="Delete preset '+e+'">Delete</button>'+
-      '</span></div>';
-  }).join('');
+  if(typeof _renderPresetManagerImpl==='function')return _renderPresetManagerImpl();
+  withExtras(function(){ _renderPresetManagerImpl() });
 }
 
 /** Open the preset manager. */
@@ -3639,7 +3607,7 @@ function fillSP(sp){
   }
 }
 /**
- * Write profit, GP% and Margin% into the profit card with floor colouring.
+ * Write profit, GP% and Markup% into the profit card with floor colouring.
  * @param {number|null} effCPE effective CP excl GST
  * @param {number|null} spe effective SP excl GST
  */
@@ -3685,6 +3653,14 @@ function rowSet(id,val,cls){var e=el(id);if(!e)return;e.textContent=val;e.classN
  * @param {{e:number,i:number}|null} sp
  */
 function fillSummary(cp,sp){
+  /* Published here rather than only at the end of calc(). renderSolver runs
+     from this function and reads these two, so assigning them afterwards meant
+     the first calculation of a session solved against the previous (null)
+     prices — the solver answered "Enter MRP, CP and SP first" with every box
+     already filled, and only came right on the next keystroke. Every
+     fillSummary call site passes exactly what calc() assigns at the end, so
+     this is the same value, earlier. */
+  LAST_CP=cp||null;LAST_SP=sp||null;
   // MRP, CP excl, SP excl and the two discount percentages used to be repeated
   // here; they sit in the cards directly above, so the summary now carries only
   // what the cards do not.
@@ -3767,11 +3743,11 @@ function updateA11yStatus(pr,gp,mg){
       msg='';
     }else{
       var floor=getFloor();
-      msg='Profit '+SINR(pr)+', GP '+PCT(gp)+', Margin '+PCT(mg);
+      msg='Profit '+SINR(pr)+', GP '+PCT(gp)+', Markup '+PCT(mg);
       var q=getQty();
       if(q>1)msg+='. Total for '+q+' units '+SINR(pr*q);
       if(belowFloor(gp,floor.gp))msg+='. Warning: GP is below your floor';
-      if(belowFloor(mg,floor.mg))msg+='. Warning: Margin is below your floor';
+      if(belowFloor(mg,floor.mg))msg+='. Warning: Markup is below your floor';
     }
     if(msg!==_a11yLast){_a11yLast=msg;node.textContent=msg}
   },700);
@@ -3980,7 +3956,7 @@ function renderHistory(){
           +'<span class="hist-kv"><span class="hist-k">SP excl</span><span class="hist-v">'+SINR(h.spE)+'</span></span>'
           +'<span class="hist-kv"><span class="hist-k">Profit</span><span class="hist-v '+prCls+'">'+SINR(h.pr)+'</span></span>'
           +'<span class="hist-kv"><span class="hist-k">GP %</span><span class="hist-v '+gpCls+'">'+PCT(h.gp)+'</span></span>'
-          +'<span class="hist-kv"><span class="hist-k">Margin %</span><span class="hist-v '+mgCls+'">'+PCT(h.mg)+'</span></span>'
+          +'<span class="hist-kv"><span class="hist-k">Markup %</span><span class="hist-v '+mgCls+'">'+PCT(h.mg)+'</span></span>'
         +'</div>'
         +(h.incInr>0?'<div class="hist-inc"><span class="hist-inc-k">Inc</span><span>'+CINR(h.incInr)+'</span></div>':'')
       +'</div>'
@@ -4010,61 +3986,26 @@ var COMPARE_IDX=null;
  * Draw the current-vs-saved comparison table with per-row deltas.
  */
 
-/**
- * Build the plain-text summary used by copy, WhatsApp and email.
- * @returns {string|null} null when CP or SP is missing
- */
-function getSummaryText(){
-  if(!LAST_CP||!LAST_SP)return null;
-  var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
-  var spInc=getSPIncentiveInr(LAST_SP),effSP=effectiveSP(LAST_SP);
-  var pr=effSP-eff;
-  var gp=(effSP>0)?(pr/effSP)*100:null,mg=(eff>0)?(pr/eff)*100:null;
-  var lines=['PRICING SUMMARY — '+now(),'─────────────────────────','MRP (incl GST):   '+INR(MI),'GST Rate:         '+(G*100)+'%','','CP excl GST:      '+INR(LAST_CP.e),'CP incl GST:      '+INR(LAST_CP.i)];
-  if(inc>0){lines.push('CP Incentives:    '+CINR(inc));lines.push('Eff. CP excl GST: '+CINR(eff))}
-  lines.push('','SP excl GST:      '+SINR(LAST_SP.e),'SP incl GST:      '+SINR(LAST_SP.i));
-  if(spInc>0){lines.push('SP Incentives:    '+SINR(spInc));lines.push('Eff. SP excl GST: '+SINR(effSP))}
-  lines.push('','Profit:           '+SINR(pr),'GP %:             '+PCT(gp),'Margin %:         '+PCT(mg),'─────────────────────────');
-  return lines.join('\n');
-}
-/**
- * Copy the summary, falling back to a dialog when the clipboard is unavailable.
- */
+
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function copyToClipboard(){
-  var text=getSummaryText();
-  if(!text){toast('Enter CP and SP first.');return}
-  navigator.clipboard.writeText(text).then(function(){
-    var btn=el('copy-btn');if(!btn)return;
-    var orig=btn.innerHTML;btn.textContent='✓ Copied!';
-    setTimeout(function(){btn.innerHTML=orig},1800);
-  }).catch(function(e){
-    logWarn('clipboard unavailable, falling back to a dialog',e);
-    askPrompt({title:'Copy summary',message:'The clipboard is unavailable here — select this and copy it.',
-               label:'Summary',value:text,multiline:true,okLabel:'Done',onOk:function(){}});
-  });
+  if(typeof _copyToClipboardImpl==='function')return _copyToClipboardImpl();
+  withExtras(function(){ _copyToClipboardImpl() });
 }
-/**
- * Open WhatsApp with the summary pre-filled.
- */
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function sendWhatsApp(){
-  var text=getSummaryText();
-  if(!text){toast('Enter CP and SP first.');return}
-  window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
+  if(typeof _sendWhatsAppImpl==='function')return _sendWhatsAppImpl();
+  withExtras(function(){ _sendWhatsAppImpl() });
 }
-/**
- * Open the mail client with the summary pre-filled.
- */
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function sendEmail(){
-  var text=getSummaryText();
-  if(!text){toast('Enter CP and SP first.');return}
-  window.location.href='mailto:?subject='+encodeURIComponent('Pricing Summary — Sterling Spares')+'&body='+encodeURIComponent(text);
+  if(typeof _sendEmailImpl==='function')return _sendEmailImpl();
+  withExtras(function(){ _sendEmailImpl() });
 }
-/**
- * Print the page using the print stylesheet.
- */
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function exportPDF(){
-  if(!LAST_CP||!LAST_SP){toast('Enter CP and SP first.');return}
-  window.print();
+  if(typeof _exportPDFImpl==='function')return _exportPDFImpl();
+  withExtras(function(){ _exportPDFImpl() });
 }
 
 /* ── Main calc ── */
@@ -5082,32 +5023,10 @@ function applyShareState(raw){
   }catch(e){ logError('could not apply shared/saved state — some fields may be unset',e) }
 }
 
-/**
- * Share the current calculation as a URL, via the native share sheet on mobile
- * or the clipboard elsewhere.
- */
+/** Deferred: the implementation lives in assets/app-extra.js. */
 function shareLink(){
-  var state=getShareState();
-  var encoded;
-  try{encoded=btoa(unescape(encodeURIComponent(JSON.stringify(state))))}
-  catch(e){
-    // Unicode in a description can break btoa's Latin-1 assumption; retry raw.
-    logWarn('unicode-safe share encoding failed, retrying plain',e);
-    encoded=btoa(JSON.stringify(state));
-  }
-  var url=location.href.split('?')[0].split('#')[0]+'?s='+encoded;
-
-  // Use Web Share API on mobile if available
-  if(navigator.share&&window.innerWidth<=800){
-    navigator.share({title:'Pricing Calculation — Sterling Spares',url:url})
-      .catch(function(e){
-        // Includes the user simply dismissing the sheet, hence warn not error.
-        logWarn('Web Share dismissed or unavailable, copying instead',e);
-        copyUrl(url);
-      });
-    return;
-  }
-  copyUrl(url);
+  if(typeof _shareLinkImpl==='function')return _shareLinkImpl();
+  withExtras(function(){ _shareLinkImpl() });
 }
 
 /**
@@ -5232,6 +5151,9 @@ document.addEventListener('keydown',function(e){
     case 'q': case 'Q': setMode(APP_MODE==='default'?'quick':'default'); break;
     case 'm': case 'M': if(featOn('quote'))openModal('quote'); break;
     case 'e': case 'E': if(featOn('presets'))openPresetManager(); break;
+    case 't': case 'T': if(anyToolOn()){openTools(); var ft=el('tool-quote');
+                          var f=el('tools-menu')?focusablesIn(el('tools-menu')):[];
+                          if(f.length)f[0].focus(); else if(ft)ft.focus()} break;
     case '1': setGST(18); break;
     case '2': setGST(5); break;
     case 'p': case 'P': setT('profit'); break;
@@ -5261,9 +5183,9 @@ var OB_STEPS=[
    body:'Your supplier also gives you money that never appears on the invoice — a cash discount for paying early, a quarterly or annual rebate, a scheme. Switch those on under <b>Incentives on CP</b> and your real cost drops. Anything you pass on to your own customer goes under <b>Incentives on SP</b>.',
    tip:'On the example, a 2% cash discount and 1% early-bird turn 150 of profit into 168.'},
 
-  {icon:'⚖️',iconBg:'var(--green-bg)',title:'GP % and Margin % are not the same',
-   body:'<b>GP %</b> is profit as a share of what you sell for. <b>Margin %</b> is profit as a share of what it cost you. The same deal reads 20.00% GP and 25.00% margin — so it is worth being sure which one your supplier means.',
-   tip:'Margin % is what a finance textbook calls markup. It is always the larger number.'},
+  {icon:'⚖️',iconBg:'var(--green-bg)',title:'GP % and Markup % are not the same',
+   body:'<b>GP %</b> is profit as a share of what you sell for. <b>Markup %</b> is profit as a share of what it cost you. The same deal reads 20.00% GP and 25.00% markup — so it is worth being sure which one your supplier means.',
+   tip:'Markup is always the larger of the two. Some trades say "margin" when they mean this one, so it is worth asking.'},
 
   {icon:'🌍',iconBg:'var(--surface2)',title:'Your currency, your tax rate',
    body:'GST is one tap at 18% or 5%, but any rate from 0 to 100% works — VAT at 20% behaves identically. Under <b>Show</b> you can put the cost side, the sale side, or both into another currency, which is how an importer or exporter prices a deal.',
