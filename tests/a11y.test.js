@@ -285,13 +285,14 @@ function cssVar(block, name) {
   const base = await aw.axe.run(ad, Object.assign({ resultTypes: ['violations'] }, TAGS));
   ok('default view has no violations', base.violations.length === 0, describe(base.violations));
 
-  for (const id of ['settings', 'quote', 'whatif', 'shortcuts', 'presets']) {
+  for (const id of ['settings', 'quote', 'whatif', 'shortcuts', 'presets', 'convert']) {
     if (id === 'presets') aw.renderPresetManager();
-    aw.openModal(id);
+    // The converter opens through its own function, not openModal.
+    if (id === 'convert') aw.openConvert(); else aw.openModal(id);
     const r = await aw.axe.run(ad.getElementById('overlay-' + id),
       Object.assign({ resultTypes: ['violations'] }, TAGS));
     ok(`${id} dialog has no violations`, r.violations.length === 0, describe(r.violations));
-    aw.closeModal(id);
+    if (id === 'convert') aw.closeConvert(); else aw.closeModal(id);
   }
 
   // The text-entry dialog replaced window.prompt(), so unlike a native dialog

@@ -2735,6 +2735,74 @@ ok('the sitemap lists the app', (() => {
   return sm.indexOf('<loc>') !== -1 && sm.indexOf('calc.sterlingspares.com') !== -1;
 })());
 
+R.section('\n=== 29c. GP / markup converter ===');
+
+// Same profit, different denominator — which is why a supplier offering "25%"
+// and a customer expecting "25%" can mean different money.
+//   markup = GP / (100 - GP)      GP = markup / (100 + markup)
+[[20, 25], [25, 100 / 3], [50, 100], [0, 0], [-25, -20], [75, 300], [90, 900]]
+  .forEach(([gp, mk]) => {
+    ok('GP ' + gp + '% is ' + (+mk.toFixed(2)) + '% markup',
+       Math.abs(w.gpToMarkup(gp) - mk) < 1e-9, 'got ' + w.gpToMarkup(gp));
+    ok('and GP ' + gp + '% converts back', Math.abs(w.markupToGp(mk) - gp) < 1e-9,
+       'got ' + w.markupToGp(mk));
+  });
+
+// The two ends where there is no finite answer.
+ok('100% GP has no markup', w.gpToMarkup(100) === null);
+ok('nor does anything above it', w.gpToMarkup(150) === null);
+ok('-100% markup has no GP', w.markupToGp(-100) === null);
+ok('nor does anything below it', w.markupToGp(-150) === null);
+ok('a blank input is not a zero', w.gpToMarkup(NaN) === null && w.markupToGp(NaN) === null);
+
+const cvOpen = () => d.getElementById('overlay-convert').classList.contains('open');
+w.openConvert();
+ok('the converter opens', cvOpen());
+ok('and takes the focus trap', w._openOverlay.id === 'overlay-convert', w._openOverlay.id);
+
+const cvGp = d.getElementById('cv-gp'), cvMk = d.getElementById('cv-mk');
+cvGp.value = '20'; w.renderConvert('gp');
+ok('typing a GP fills the markup', cvMk.value === '25', cvMk.value);
+ok('and shows it in money, not just percentages',
+   /100\.00[\s\S]*125\.00/.test(d.getElementById('cv-out').textContent),
+   d.getElementById('cv-out').textContent);
+cvMk.value = '100'; w.renderConvert('mk');
+ok('typing a markup fills the GP', cvGp.value === '50', cvGp.value);
+cvGp.value = ''; w.renderConvert('gp');
+ok('clearing one clears the other',
+   cvMk.value === '' && d.getElementById('cv-out').textContent === '', cvMk.value);
+cvGp.value = '100'; w.renderConvert('gp');
+ok('an impossible GP explains itself rather than blanking',
+   d.getElementById('cv-out').textContent.indexOf('cost nothing') !== -1,
+   d.getElementById('cv-out').textContent);
+ok('and is flagged, not styled as a normal result',
+   d.getElementById('cv-out').className.indexOf('bad') !== -1);
+cvGp.value = ''; w.renderConvert('gp');
+w.closeConvert();
+
+// Seeding from the calculation on screen.
+freshCalc(1000, 40, 25);
+w.openConvert();
+ok('it offers the current calculation', d.getElementById('cv-use').style.display !== 'none');
+w.convertUseCurrent();
+ok('which seeds the GP the app is showing', cvGp.value === '20', cvGp.value);
+ok("and the markup matches the app's Margin %",
+   cvMk.value === '25' && d.getElementById('s-mg').textContent.trim() === '25.00%',
+   cvMk.value + ' vs ' + d.getElementById('s-mg').textContent);
+w.closeConvert();
+ok('closing hands the focus trap back', w._openOverlay === null);
+w.resetAll();
+w.openConvert();
+ok('with nothing calculated the offer is hidden',
+   d.getElementById('cv-use').style.display === 'none');
+w.closeConvert();
+
+ok('the header button sits beside Quote',
+   d.getElementById('hbtn-convert').nextElementSibling.id === 'hbtn-quote');
+ok('and it can be switched off like the others',
+   w.featureDef('convert') !== null &&
+   w.featureDef('convert').els.indexOf('hbtn-convert') !== -1);
+
 R.section('\n=== 30a. The default view stays uncluttered ===');
 // The main screen had grown to a control bar of 13, five derived rows per price
 // card, and a 17-cell summary in which five cells repeated numbers shown in the
@@ -2983,8 +3051,10 @@ R.section('\n=== 31. Settings is grouped into tabs ===');
 
   // ── Presets is reachable from the header ────────────────────────────────
   ok('there is a Presets button in the header', d.getElementById('hbtn-presets') !== null);
-  ok('beside Quote', d.getElementById('hbtn-presets').nextElementSibling.id === 'hbtn-quote',
-     d.getElementById('hbtn-presets').nextElementSibling.id);
+  ok('in the header group with Quote',
+     d.getElementById('hbtn-convert').nextElementSibling.id === 'hbtn-quote' &&
+     d.getElementById('hbtn-presets').nextElementSibling.id === 'hbtn-convert',
+     [...d.querySelectorAll('.header .hbtn')].map(b => b.id).join(' '));
   ok('and it opens the manager', (() => {
     w.PRESETS = {};
     w.ACT.presetManage();
@@ -3034,10 +3104,10 @@ R.section('\n=== 31. Settings is grouped into tabs ===');
   freshCalc(1000, 40, 25);
   w.setDisplayCcy('INR', 'both');
   w.openModal('settings');
-  ok('a switch per feature', d.querySelectorAll('#feat-grid .feat-chip').length === 7,
+  ok('a switch per feature', d.querySelectorAll('#feat-grid .feat-chip').length === 8,
      'got ' + d.querySelectorAll('#feat-grid .feat-chip').length);
-  ok('all seven are named',
-     ['presets', 'quote', 'whatif', 'landed', 'solver', 'inccp', 'incsp']
+  ok('all eight are named',
+     ['presets', 'convert', 'quote', 'whatif', 'landed', 'solver', 'inccp', 'incsp']
        .every(k => w.FEATURE_DEFS.some(f => f.k === k)),
      w.FEATURE_DEFS.map(f => f.k).join(','));
   // Currency is configured in Settings → Pricing, so a switch for it here was a
@@ -3066,9 +3136,13 @@ R.section('\n=== 31. Settings is grouped into tabs ===');
   w.setDisplayCcy('USD', 'sale');
   w.calc();
 
-  ok('every feature reports what it is holding',
-     w.FEATURE_DEFS.every(f => f.values().length > 0),
-     w.FEATURE_DEFS.filter(f => !f.values().length).map(f => f.k).join(','));
+  // The converter is stateless — it reads two numbers and writes none — so it
+  // is the one feature with nothing to report or clear.
+  ok('every feature holding data reports it',
+     w.FEATURE_DEFS.filter(f => f.k !== 'convert').every(f => f.values().length > 0),
+     w.FEATURE_DEFS.filter(f => f.k !== 'convert' && !f.values().length).map(f => f.k).join(','));
+  ok('and the stateless one reports nothing',
+     w.featureDef('convert').values().length === 0);
 
   // ── Turning one off names its values and asks first ────────────────────
   w.toggleFeature('presets');
@@ -3136,6 +3210,9 @@ R.section('\n=== 31. Settings is grouped into tabs ===');
      d.getElementById('bnav-inc').style.display === 'none',
      d.getElementById('bnav-inc').style.display);
 
+  // Convert first: whatif must stay the most recent action, because the undo
+  // assertion further down expects it back.
+  w.toggleFeature('convert');            // stateless: goes off without asking
   w.toggleFeature('whatif'); w.runConfirm();
   ok('every feature is now off', w.FEATURE_DEFS.every(f => !w.featOn(f.k)),
      w.FEATURE_DEFS.filter(f => w.featOn(f.k)).map(f => f.k).join(','));

@@ -1139,7 +1139,7 @@ function closeModal(id){
  * @param {string} id overlay suffix
  */
 function overlayClick(e,id){if(e.target===el('overlay-'+id))closeModal(id)}
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('settings');closeModal('whatif');closeModal('quote');closeModal('presets');closeConfirm();closePrompt();closeFab()}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('settings');closeModal('whatif');closeModal('quote');closeModal('presets');closeConfirm();closePrompt();closeConvert();closeFab()}});
 
 /**
  * Handler for the custom GST box. Rejects anything outside 0–100 and says so,
@@ -1174,7 +1174,7 @@ function onCustomGST(inp){
    adding a feature is one entry rather than edits in four places, and the
    tests can walk the registry rather than naming elements by hand.
    ─────────────────────────────────────────────────────────────────────────── */
-var FEATURES={presets:true,quote:true,whatif:true,landed:true,solver:true,inccp:true,incsp:true};
+var FEATURES={presets:true,convert:true,quote:true,whatif:true,landed:true,solver:true,inccp:true,incsp:true};
 
 /** True when the named feature is switched on. Unknown keys read as on. */
 function featOn(k){ return FEATURES[k]!==false }
@@ -1184,6 +1184,11 @@ var FEATURE_DEFS=[
    els:['hbtn-presets','hmenu-presets','sec-set-presets'],
    values:function(){ var n=Object.keys(PRESETS).length; return n?[n+' saved preset'+(n===1?'':'s')]:[] },
    clear:function(){ PRESETS={}; savePresets(); renderPresetList(); renderPresetManager(); }},
+
+  {k:'convert',name:'GP / markup converter',hint:'Translate between the two ways of quoting a margin.',
+   els:['hbtn-convert'],
+   values:function(){ return [] },
+   clear:function(){ closeConvert(); }},
 
   {k:'quote',name:'Quote builder',hint:'Multi-line quotes with blended GP.',
    els:['hbtn-quote','hmenu-quote','bnav-quote'],
@@ -1304,6 +1309,100 @@ function factoryReset(){
     });
 }
 ACT.factoryReset = function(){ factoryReset() };
+
+/* ── GP % / markup % converter ──────────────────────────────────────────────
+   The same profit over two different denominators, which is why a supplier
+   offering "25%" and a customer expecting "25%" can mean different money.
+     GP     = profit / selling price
+     markup = profit / cost price      (what this app calls Margin %)
+   so  markup = GP / (100 - GP)   and   GP = markup / (100 + markup).
+   ─────────────────────────────────────────────────────────────────────────── */
+/**
+ * @param {number} gp gross profit percentage
+ * @returns {number|null} markup %, or null where it has no finite answer
+ */
+function gpToMarkup(gp){
+  if(isNaN(gp)||gp>=100)return null;      // at 100% GP the cost is zero
+  return (gp/(100-gp))*100;
+}
+/**
+ * @param {number} mk markup percentage
+ * @returns {number|null} GP %, or null where it has no finite answer
+ */
+function markupToGp(mk){
+  if(isNaN(mk)||mk<=-100)return null;     // at -100% markup the sale is zero
+  return (mk/(100+mk))*100;
+}
+/**
+ * Recompute the other field and the worked line beneath.
+ * @param {'gp'|'mk'} from which field the user is typing in
+ */
+function renderConvert(from){
+  var gpEl=el('cv-gp'), mkEl=el('cv-mk'), out=el('cv-out');
+  if(!gpEl||!mkEl||!out)return;
+  var raw=(from==='gp'?gpEl:mkEl).value;
+  if(String(raw).trim()===''){
+    (from==='gp'?mkEl:gpEl).value='';
+    out.textContent='';out.className='cv-out';
+    return;
+  }
+  var v=parseFloat(raw);
+  var other=(from==='gp')?gpToMarkup(v):markupToGp(v);
+  if(other===null){
+    (from==='gp'?mkEl:gpEl).value='';
+    out.textContent=(from==='gp')
+      ? 'A GP of 100% or more would mean the goods cost nothing — there is no markup that matches.'
+      : 'A markup of −100% or less would mean selling for nothing — there is no GP that matches.';
+    out.className='cv-out bad';
+    return;
+  }
+  (from==='gp'?mkEl:gpEl).value=String(+other.toFixed(4));
+  // Ground it in money: percentages either way are easy to nod along to.
+  var gp=(from==='gp')?v:other;
+  var cost=100, sale=(gp>=100)?null:(cost/(1-gp/100));
+  if(sale===null||!isFinite(sale)){ out.textContent='';out.className='cv-out'; return }
+  out.textContent='Buy at '+INR_RS(cost)+', sell at '+INR_RS(sale)+' — profit '+
+                  INR_RS(sale-cost)+', which is '+PCT(gp)+' of the sale and '+
+                  PCT((from==='gp')?other:v)+' of the cost.';
+  out.className='cv-out';
+}
+/** Open the converter, seeded from the calculation on screen when there is one. */
+function openConvert(){
+  if(!featOn('convert'))return;
+  var o=el('overlay-convert');
+  if(!o)return;
+  _lastFocused=document.activeElement;
+  o.classList.add('open');
+  document.body.style.overflow='hidden';
+  pushOverlay(o);
+  var use=el('cv-use');
+  if(use)use.style.display=(LAST_CP&&LAST_SP)?'':'none';
+  setTimeout(function(){ var f=el('cv-gp'); if(f){f.focus();if(f.select)f.select()} },30);
+}
+/** Close it. */
+function closeConvert(){
+  var o=el('overlay-convert');
+  if(o&&o.classList.contains('open')){
+    o.classList.remove('open');
+    popOverlay(o);
+    if(_lastFocused&&_lastFocused.focus)_lastFocused.focus();
+  }
+}
+/** Pull the GP the calculator is currently showing into the converter. */
+function convertUseCurrent(){
+  if(!LAST_CP||!LAST_SP)return;
+  var effSP=effectiveSP(LAST_SP), effCP=effectiveCP(LAST_CP);
+  if(!effSP||effSP<=0)return;
+  var gp=((effSP-effCP)/effSP)*100;
+  var f=el('cv-gp');
+  if(f){ f.value=String(+gp.toFixed(4)); renderConvert('gp'); }
+}
+ACT.openConvert        = function(){ openConvert() };
+ACT.convertClose       = function(){ closeConvert() };
+ACT.convertOverlay     = function(self,event){ if(event.target===el('overlay-convert'))closeConvert() };
+ACT.convertFromGp      = function(){ renderConvert('gp') };
+ACT.convertFromMk      = function(){ renderConvert('mk') };
+ACT.convertUseCurrent  = function(){ convertUseCurrent() };
 
 /* ── Settings tabs ──────────────────────────────────────────────────────────
    Eight stacked sections became a long scroll that was hard to find anything

@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1406%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-97-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1442%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-97-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -449,6 +449,26 @@ takes its own SP input (discount % or manual ₹) and shows SP, Profit ₹, GP %
 Margin %. The highest-GP scenario is highlighted automatically, and everything
 updates live.
 
+### GP % / markup % converter
+
+Two ways of quoting the same profit, over different denominators — which is why
+a supplier offering "25%" and a customer expecting "25%" can mean different
+money. **GP ⇄ Markup** in the header takes either and returns the other:
+
+| GP % | Markup % |
+|---:|---:|
+| 20.00 | 25.00 |
+| 25.00 | 33.33 |
+| 50.00 | 100.00 |
+
+`markup = GP ÷ (100 − GP)` and `GP = markup ÷ (100 + markup)`. It shows the
+result as money as well — *buy at ₹100.00, sell at ₹125.00* — because a
+percentage on its own is easy to nod along to. **Use this calculation** seeds it
+from whatever is on screen, and the two ends with no finite answer (100% GP,
+−100% markup) say so rather than blanking.
+
+Markup % is what this app calls **Margin %** elsewhere.
+
 ### Quote builder
 
 A multi-line quoting tool — press `M`, or use **Quote** in the header / menu.
@@ -562,6 +582,7 @@ and it disappears from the screen:
 | | |
 |---|---|
 | **Presets** | the header button, menu entry and the manager |
+| **GP / markup converter** | the header button |
 | **Quote builder** | the header button, menu item and bottom-nav tab |
 | **What-if scenarios** | the button on the summary |
 | **Landed costs** | both fields in the MRP bar |
@@ -743,7 +764,7 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 1406 passing, 7 suites | `npm test` |
+| Tests | 1442 passing, 7 suites | `npm test` |
 | Statement coverage | **82.7%** (app.js 86.3%, app-extra.js 72.3%) | `npm run coverage` |
 | Lighthouse Performance | **97** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
@@ -780,7 +801,7 @@ commands after significant changes.
 
 ## Tests
 
-1406 assertions across seven suites. They load the real `index.html`,
+1442 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -791,12 +812,12 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 979 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 1014 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 78 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
 | `modes` | 85 | solve modes, price input modes, what-if, comparison, Quick mode, wizard, share-link round trip, theming, auto-save |
-| `a11y` | 103 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
+| `a11y` | 104 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
 | `browser` | 78 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport, axe with layout |
 
 Individual suites: `npm run test:features`, `test:errors`, `test:mobile`,
