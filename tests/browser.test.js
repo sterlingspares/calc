@@ -713,6 +713,101 @@ async function launchChromium(chromium) {
     await p5.close();
   }
 
+  /* ── 7h. Control-bar spacing (measured) ───────────────────────────── */
+  R.section('\n=== 7h. The control bar breathes ===');
+  // The chips were 3px apart, which read as one blurred block rather than
+  // three separate choices. Measured, because a gap can be collapsed by
+  // wrapping, a later rule, or a mismatched box on the neighbour.
+  const bar = await page.evaluate(() => {
+    const boxes = sel => [...document.querySelectorAll(sel)]
+      .map(e => e.getBoundingClientRect());
+    const gaps = rects => rects.slice(1)
+      .map((r, i) => Math.round((r.left - rects[i].right) * 10) / 10);
+    const gst = boxes('#g18, #g5, #gst-custom-wrap');
+    const calcChips = boxes('#tprofit, #tsp, #tcp');
+    const groups = boxes('.control-bar .ctrl-group');
+    return {
+      gstGaps: gaps(gst), calcGaps: gaps(calcChips),
+      groupGap: Math.round(groups[1].left - groups[0].right),
+      heights: gst.map(r => Math.round(r.height * 10) / 10),
+      oneRow: new Set(gst.concat(calcChips).map(r => Math.round(r.top))).size === 1
+    };
+  });
+  ok('GST chips are clearly separated',
+     bar.gstGaps.every(g => g >= 6), 'gaps ' + bar.gstGaps.join(', '));
+  ok('so are the Calculate chips',
+     bar.calcGaps.every(g => g >= 6), 'gaps ' + bar.calcGaps.join(', '));
+  ok('the two groups are further apart than the chips within them',
+     bar.groupGap > Math.max(...bar.gstGaps, ...bar.calcGaps),
+     'group gap ' + bar.groupGap);
+  // The custom-rate box is a different element type sitting in the same row.
+  ok('the custom-rate box matches the chips it sits beside',
+     Math.max(...bar.heights) - Math.min(...bar.heights) <= 1,
+     'heights ' + bar.heights.join(', '));
+  ok('and the whole bar is still one row on desktop', bar.oneRow);
+
+  // "Disc" was the only abbreviation left on the main screen. The longer word
+  // has to fit the narrowest phone without pushing the input out of the field.
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.waitForTimeout(150);
+  const disc = await page.evaluate(() => {
+    const f = document.getElementById('cpf-disc');
+    const box = f.getBoundingClientRect(), inp = document.getElementById('cpd').getBoundingClientRect();
+    return {
+      label: f.querySelector('.sym').textContent,
+      inputWidth: Math.round(inp.width),
+      overflow: Math.round(f.scrollWidth - f.clientWidth),
+      bodyOverflow: document.body.scrollWidth - document.body.clientWidth,
+      boxWidth: Math.round(box.width)
+    };
+  });
+  ok('the field says Discount, not Disc', disc.label === 'Discount', disc.label);
+  ok('the input still has room to type in at 320px', disc.inputWidth >= 40,
+     'input ' + disc.inputWidth + 'px of ' + disc.boxWidth + 'px');
+  ok('and nothing overflows the field or the page',
+     disc.overflow <= 0 && disc.bodyOverflow <= 0,
+     'field ' + disc.overflow + 'px, page ' + disc.bodyOverflow + 'px');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForTimeout(150);
+
+  // Quick mode prints its prefix at 20px heading weight, sized for a ₹ or a %.
+  // The longer word took the input from ~180px down to 76px — enough for two
+  // digits, but the hint was sliced to "e.g".
+  {
+    const q = await browser.newPage({ viewport: { width: 390, height: 900 } });
+    await q.goto(origin + '/', { waitUntil: 'load' });
+    await q.waitForFunction(() => typeof window.calc === 'function');
+    await q.evaluate(() => document.getElementById('mode-quick').click());
+    // Quick mode lives in the deferred bundle; without this the next evaluate
+    // races the fetch and throws on whichever run loses.
+    await q.waitForFunction(() => typeof window.fcNext === 'function');
+    await q.evaluate(() => {
+      document.getElementById('fc-mrp').value = '1000';
+      window.fcNext();
+    });
+    await q.waitForTimeout(400);
+    const fc = await q.evaluate(() => {
+      const inp = document.getElementById('fc-cpd');
+      const sym = inp.previousElementSibling;
+      // Width the placeholder needs, measured in the font actually rendering it
+      const ph = getComputedStyle(inp, '::placeholder');
+      const box = getComputedStyle(inp);          // padding lives here, not on ::placeholder
+      const c = document.createElement('canvas').getContext('2d');
+      c.font = ph.fontWeight + ' ' + ph.fontSize + ' ' + ph.fontFamily;
+      return {
+        prefix: sym.textContent,
+        input: Math.round(inp.getBoundingClientRect().width),
+        hint: Math.ceil(c.measureText(inp.placeholder).width),
+        pad: Math.round(parseFloat(box.paddingLeft) + parseFloat(box.paddingRight))
+      };
+    });
+    ok('Quick mode says Discount too', fc.prefix === 'Discount', fc.prefix);
+    ok('and the example still fits inside the field',
+       fc.hint + fc.pad <= fc.input,
+       'hint ' + fc.hint + 'px + ' + fc.pad + 'px padding in ' + fc.input + 'px');
+    await q.close();
+  }
+
   /* ── 8. Mobile viewport ───────────────────────────────────────────── */
   R.section('\n=== 8. Mobile viewport ===');
   await page.setViewportSize({ width: 390, height: 780 });

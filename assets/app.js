@@ -266,18 +266,72 @@ ACT.obAction = function(){ var s=OB_STEPS[OB_STEP]; if(s&&s.action==='example')o
  * @param {boolean} [capture] use capture — required for focus/blur, which do not bubble
  */
 function delegate(evt, capture){
+  var records = evt === 'click' || evt === 'change';
   document.addEventListener(evt, function(e){
     var node = e.target && e.target.closest ? e.target.closest('[data-' + evt + ']') : null;
     if(!node) return;
     var fn = ACT[node.getAttribute('data-' + evt)];
     if(!fn){ logWarn('no handler registered for data-' + evt + '="' + node.getAttribute('data-' + evt) + '"'); return; }
+    // Snapshot around the handler so any state it changes becomes undoable
+    // without the handler having to know about undo. See autoUndo. Guarded
+    // separately from the handler: undo bookkeeping must never stop a click
+    // from working.
+    var before = null;
+    if(records) guard('undo snapshot', function(){ before = undoBefore(e.target) });
+    // Read after the snapshot, not before: undoBefore may have committed a
+    // pending typed edit, and that bump must not be mistaken for this handler
+    // recording its own entry.
+    var seq = _undoSeq;
     guard('handler ' + node.getAttribute('data-' + evt), function(){ fn(node, e); });
+    if(before) guard('undo record', function(){
+      autoUndo(before, seq, (e.target && e.target.id) ? e.target : node);
+    });
   }, !!capture);
+}
+/**
+ * The 'before' snapshot for a click or change. If the target is the field
+ * currently being typed into, its focus-time snapshot is the true before —
+ * taking a fresh one would swallow the keystrokes. Any *other* pending edit is
+ * an earlier action, so it is committed first to keep the stack in order.
+ * @param {Element} target
+ * @returns {Object}
+ */
+function undoBefore(target){
+  if(_fieldSnap){
+    if(_fieldSnap.node===target){ var s=_fieldSnap; _fieldSnap=null; return s.state }
+    commitFieldUndo();
+  }
+  /* A checkbox has already flipped by the time `change` fires, and clicking one
+     does not reliably focus it, so there may be no snapshot from focusin either.
+     Put it back for the length of a single capture. Radios are left alone: this
+     would not restore whichever sibling was checked before. */
+  if(target && target.tagName === 'INPUT' && target.type === 'checkbox'){
+    target.checked = !target.checked;
+    var st = captureState();
+    target.checked = !target.checked;
+    return st;
+  }
+  return captureState();
 }
 ['click','change','input','keydown'].forEach(function(evt){ delegate(evt); });
 // focus/blur do not bubble, so they are delegated in the capture phase.
 delegate('focus', true);
 delegate('blur', true);
+
+/* Typed values are recorded from focus to blur rather than per action, so this
+   is bound directly rather than through ACT — every field is covered, including
+   the incentive rows that are built as HTML at runtime. focusin/focusout bubble;
+   focus/blur do not. */
+document.addEventListener('focusin', function(e){
+  var t = e.target;
+  // Selects and checkboxes are in here too: their `change` event fires after the
+  // value has already moved, so the snapshot has to predate the focus.
+  if(t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA'))
+    guard('undo snapshot', function(){ startFieldUndo(t) });
+});
+document.addEventListener('focusout', function(){
+  guard('undo record', function(){ commitFieldUndo() });
+});
 
 
 /* ── Parameterised delegated actions ────────────────────────────────────────
@@ -304,8 +358,6 @@ ACT.histTagEdit = function(self){ startTagEdit(+self.getAttribute('data-p')); };
 ACT.histTagSave = function(self){ commitTag(+self.getAttribute('data-p'), self.value); };
 ACT.qtDelLine   = function(self){ qtDelLine(+self.getAttribute('data-p')); };
 ACT.qtSet       = function(self){ qtSet(+self.getAttribute('data-p'), self.getAttribute('data-q'), self.value); };
-ACT.undoQuote   = function(){ pushUndo('edit quote line'); };
-ACT.undoRename  = function(){ pushUndo('rename incentive'); };
 ACT.histMore    = function(){ histShowMore(); };
 ACT.obGoto      = function(self){ OB_STEP=+self.getAttribute('data-p'); obRender(); };
 ACT.fcNext      = function(){ fcNext(); };
@@ -402,6 +454,17 @@ function parseMRP(){
  * mid-entry (so typing "100." doesn't get rewritten to "100").
  * @param {HTMLInputElement} inp
  */
+/**
+ * Re-apply thousands grouping to the MRP box after a programmatic write.
+ * A restored value went in as a plain number, so without this an undo left
+ * "1000" in a box that reads "1,000" the moment it is typed into.
+ */
+function fmtMrpField(){
+  var inp=el('mrp');
+  if(!inp)return;
+  var n=parseFloat(String(inp.value).replace(/,/g,''));
+  if(!isNaN(n)&&String(inp.value).trim()!=='')inp.value=fmtINDIAN(n);
+}
 function onMrpInput(inp){
   var raw=inp.value.replace(/[^0-9.]/g,'');
   // Allow only one decimal point
@@ -1842,6 +1905,10 @@ function runConfirm(){
    Snapshots the whole mutable app state. Cheap enough at this size, and it means
    any new action gets undo for free by calling pushUndo() before it mutates. */
 var UNDO=[],REDO=[],MAX_UNDO=40,_undoBusy=false;
+/* Bumped whenever either stack moves. The automatic recorder (autoUndo) uses it
+   to tell "this action recorded its own undo entry" from "this action changed
+   state silently", and so avoids recording undo itself as an undoable action. */
+var _undoSeq=0;
 /**
  * Deep-copy every piece of mutable app state into a plain object.
  * This is what makes undo generic: a new feature becomes undoable simply by
@@ -1876,6 +1943,9 @@ function captureState(){
 function restoreState(s){
   if(!s)return;
   _undoBusy=true;
+  // Whatever edit was in flight is about to be overwritten; its snapshot would
+  // describe a state that no longer exists.
+  _fieldSnap=null;
   try{
     INC_KEYS=s.incKeys.slice();
     SP_INC_KEYS=s.spIncKeys.slice();
@@ -1901,6 +1971,10 @@ function restoreState(s){
     logError('undo/redo could not fully restore the previous state',e);
   }
   _undoBusy=false;
+  // The field the user is in now holds a restored value; re-arm from that so a
+  // further edit is measured against what is on screen.
+  var a=document.activeElement;
+  if(a&&(a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'))startFieldUndo(a);
 }
 /**
  * Record the current state so the next action can be undone. Clears the redo
@@ -1909,9 +1983,23 @@ function restoreState(s){
  */
 function pushUndo(label){
   if(_undoBusy)return;
-  UNDO.push({label:label,state:captureState()});
+  // A half-typed value is an older change than this one; record it first so the
+  // stack stays in the order the user made them.
+  commitFieldUndo();
+  pushUndoState(label,captureState());
+}
+/**
+ * Push a snapshot that was taken earlier. pushUndo captures the state as it is
+ * now; a typed edit has to record the state from before the first keystroke,
+ * which only this form allows.
+ * @param {string} label
+ * @param {Object} state snapshot from captureState
+ */
+function pushUndoState(label,state){
+  UNDO.push({label:label,state:state});
   if(UNDO.length>MAX_UNDO)UNDO.shift();
   REDO=[];
+  _undoSeq++;
   updateUndoBtns();
 }
 /**
@@ -1928,9 +2016,13 @@ function updateUndoBtns(){
  * Step back one action, moving the current state onto the redo stack.
  */
 function undo(){
+  // Ctrl+Z can be pressed without leaving the field, so the edit in progress has
+  // not been recorded yet. Record it first, then it is what undo steps back to.
+  commitFieldUndo();
   if(UNDO.length===0){toast('Nothing to undo');return}
   var entry=UNDO.pop();
   REDO.push({label:entry.label,state:captureState()});
+  _undoSeq++;
   restoreState(entry.state);
   updateUndoBtns();
   hideToast();
@@ -1941,13 +2033,122 @@ function undo(){
  * Re-apply the most recently undone action.
  */
 function redo(){
+  commitFieldUndo();
   if(REDO.length===0){toast('Nothing to redo');return}
   var entry=REDO.pop();
   UNDO.push({label:entry.label,state:captureState()});
+  _undoSeq++;
   restoreState(entry.state);
   updateUndoBtns();
   haptic('light');
   toast('Redid: '+entry.label);
+}
+
+/* ── Automatic undo ──
+   Buttons used to be undoable only if their handler remembered to call
+   pushUndo, and typing was never undoable at all. Both are now recorded here
+   instead, from the one place every interaction already passes through:
+   delegate() snapshots the state, runs the handler, and compares.
+
+   Comparing serialised snapshots rather than watching individual fields is what
+   makes this safe to apply to *every* control. Anything the app persists is in
+   the snapshot, so it is covered automatically; anything that is not — opening a
+   dialog, the history search box, switching a settings tab — produces an
+   identical snapshot and records nothing. */
+
+/** A field's pre-edit snapshot, held between focus and blur. */
+var _fieldSnap=null;
+
+/** Human name for the undo toast. Curated where the aria-label is a sentence. */
+var UNDO_FIELD_NAMES={
+  mrp:'MRP', cpd:'cost discount', cpv:'cost price',
+  spd:'sale discount', spv:'selling price', pri:'target profit',
+  qty:'quantity', landed:'inbound landed cost', 'sp-landed':'outbound landed cost',
+  'floor-gp':'GP floor', 'floor-mg':'margin floor', 'gst-custom':'GST rate',
+  'rnd-custom':'rounding step', 'fx-manual':'exchange rate',
+  'ccy-select':'display currency', 'fx-scope':'currency scope'
+};
+/**
+ * Name an element for the 'Undid: …' toast: the curated name, else the
+ * accessible name, else the visible text, trimmed to what a toast can hold.
+ * @param {Element} node
+ * @returns {string}
+ */
+function undoLabelFor(node){
+  if(!node)return'change';
+  if(UNDO_FIELD_NAMES[node.id])return UNDO_FIELD_NAMES[node.id];
+  // Incentive rows are built at runtime, so their names live in INC_LABELS.
+  var m=/^s?(?:iv|it|lbl-(?:cp|sp))-(.+)$/.exec(node.id||'');
+  if(m&&INC_LABELS[m[1]])return INC_LABELS[m[1]];
+  // aria-label first: it is what a symbol-only control (+, −, ×) actually means.
+  var t=node.getAttribute('aria-label')||node.getAttribute('title')||undoNodeText(node);
+  t=t.replace(/\s+/g,' ').trim();
+  if(t.length>32)t=t.slice(0,32).replace(/\s\S*$/,'')+'…';
+  return t||'change';
+}
+/**
+ * Visible text of a control, with line breaks read as spaces — the two-line
+ * chips would otherwise come out as "NettDiscount %".
+ * @param {Element} node
+ * @returns {string}
+ */
+function undoNodeText(node){
+  if(node.tagName==='INPUT'||!node.cloneNode)return'';
+  // A select's textContent is every option run together.
+  if(node.tagName==='SELECT'){
+    var o=node.options&&node.options[node.selectedIndex];
+    return o?(o.text||''):'';
+  }
+  var c=node.cloneNode(true),brs=c.querySelectorAll?c.querySelectorAll('br'):[];
+  for(var i=0;i<brs.length;i++)brs[i].parentNode.replaceChild(document.createTextNode(' '),brs[i]);
+  return c.textContent||'';
+}
+/**
+ * Remember the state before a field is edited.
+ *
+ * The snapshot has to predate the first keystroke, and by the time an `input`
+ * event fires the value has already moved — so it is taken on focus. Focusing
+ * and leaving records nothing, because commitFieldUndo compares before pushing.
+ * @param {Element} node the focused field
+ */
+function startFieldUndo(node){
+  if(_undoBusy||!node)return;
+  if(_fieldSnap&&_fieldSnap.node===node)return;
+  commitFieldUndo();
+  _fieldSnap={node:node,label:undoLabelFor(node),state:captureState()};
+}
+/**
+ * Turn a finished edit into an undo entry, if it actually changed anything.
+ * Safe to call at any time; a no-op when no edit is in flight.
+ */
+function commitFieldUndo(){
+  var s=_fieldSnap;
+  _fieldSnap=null;
+  if(!s||_undoBusy)return;
+  if(sameState(s.state,captureState()))return;
+  pushUndoState(s.label,s.state);
+}
+/**
+ * Compare two snapshots. captureState is built from plain values in a fixed key
+ * order, so serialising is a sound equality test and much cheaper than walking.
+ * @returns {boolean}
+ */
+function sameState(a,b){
+  try{ return JSON.stringify(a)===JSON.stringify(b) }
+  catch(e){ return false }
+}
+/**
+ * Record an undo entry for a handler that changed state without asking for one.
+ * Skipped when the handler moved the stacks itself — that covers both handlers
+ * that call pushUndo and undo/redo, which must not record themselves.
+ * @param {Object} before snapshot taken before the handler ran
+ * @param {number} seq _undoSeq before the handler ran
+ * @param {Element} node the control that was activated
+ */
+function autoUndo(before,seq,node){
+  if(_undoBusy||_undoSeq!==seq)return;
+  if(sameState(before,captureState()))return;
+  pushUndoState(undoLabelFor(node),before);
 }
 
 /* ── Floor helpers ── */
@@ -2141,7 +2342,7 @@ function _incRowHTML(k,panel,editMode){
 
   var delBtn=editMode?'<button class="inc-del-btn" data-click="incDelete" data-p="'+panel+'" data-q="'+k+'" title="Delete" aria-label="Delete">&#x2212;</button>':'';
   var labelHtml=editMode
-    ?'<input class="inc-label-edit" id="'+lblId+'" aria-label="Rename '+lblPlain+'" value="'+lbl+'" data-focus="undoRename" data-input="incRename" data-p="'+k+'" maxlength="30" autocomplete="off" spellcheck="false">'
+    ?'<input class="inc-label-edit" id="'+lblId+'" aria-label="Rename '+lblPlain+'" value="'+lbl+'" data-input="incRename" data-p="'+k+'" maxlength="30" autocomplete="off" spellcheck="false">'
     :'<span class="inc-name" id="'+lblId+'">'+lbl+'</span>';
 
   var unitId=(k==='sc')?' id="'+(isCP?'sc':'ssc')+'-unit"':(custom?' id="unit-'+panel+'-'+k+'"':'');
@@ -4683,6 +4884,10 @@ function pickEnum(v, allowed, fallback){
 /** A numeric string safe to drop into an input's value. */
 function numStr(v, max){
   if(v === undefined || v === null) return undefined;
+  /* An empty box is a real state, not a missing field. Collapsing the two meant
+     a restore could put a value *into* a box but never take one back out, so
+     undoing the first entry into a blank field left the number sitting there. */
+  if(String(v).trim() === '') return '';
   var n = parseFloat(String(v).replace(/,/g, ''));
   if(isNaN(n) || !isFinite(n)) return undefined;
   if(max !== undefined && Math.abs(n) > max) return undefined;
@@ -4712,11 +4917,11 @@ function validateShareState(raw){
 
   if(raw.lc !== undefined){
     var lc = numStr(raw.lc, 1e9);
-    if(lc !== undefined && parseFloat(lc) >= 0) s.lc = lc;
+    if(lc === '' || (lc !== undefined && parseFloat(lc) >= 0)) s.lc = lc;
   }
   if(raw.slc !== undefined){
     var slc = numStr(raw.slc, 1e9);
-    if(slc !== undefined && parseFloat(slc) >= 0) s.slc = slc;
+    if(slc === '' || (slc !== undefined && parseFloat(slc) >= 0)) s.slc = slc;
   }
 
   var qty = parseInt(raw.qty, 10);
@@ -4819,7 +5024,7 @@ function applyShareState(raw){
     if(s.lc!==undefined&&el('landed'))el('landed').value=s.lc;
     if(s.slc!==undefined&&el('sp-landed'))el('sp-landed').value=s.slc;
     if(s.g)setGST(parseFloat(s.g));
-    if(s.m)el('mrp').value=s.m;
+    if(s.m!==undefined){el('mrp').value=s.m;fmtMrpField()}
     if(s.cm)setCM(s.cm);
     if(s.cpms)setCPManual(s.cpms);
     if(s.cpd!==undefined)el('cpd').value=s.cpd;

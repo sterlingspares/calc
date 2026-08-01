@@ -263,7 +263,7 @@
         <button class="mtab"    id="cmm"  data-click="a36">Enter <span id="sym-cmm">₹</span><br>directly</button>
       </div>
       <div class="field" id="cpf-disc">
-        <span class="sym">Disc</span>
+        <span class="sym">Discount</span>
         <input type="number" inputmode="decimal" id="cpd" placeholder="e.g. 30" min="0" max="100" step="0.01" data-input="a37" autocomplete="off" aria-label="Cost price discount percentage">
         <span class="field-suf" id="cpd-suf">% + 18% GST</span>
         <button class="field-next" data-click="a38" title="Next" aria-label="Go to the next field after cost price discount" tabindex="-1">
@@ -309,7 +309,7 @@
         <button class="mtab"    id="smm" data-click="a46">Enter <span id="sym-smm">₹</span><br>directly</button>
       </div>
       <div class="field" id="spf-disc">
-        <span class="sym">Disc</span>
+        <span class="sym">Discount</span>
         <input type="number" inputmode="decimal" id="spd" placeholder="e.g. 20" min="0" max="100" step="0.01" data-input="a37" autocomplete="off" aria-label="Selling price discount percentage">
         <span class="field-suf" id="spd-suf">% + 18% GST</span>
         <button class="field-next" data-click="a47" title="Next" aria-label="Go to the next field after selling price discount" tabindex="-1">
@@ -363,8 +363,8 @@
         <div class="row"><span class="row-lbl">Absolute spread</span><span class="row-val dim" id="pspd">—</span></div>
       </div>
       <div class="rows rows-be" id="pf-be-block" style="display:none">
-        <div class="row" id="pf-item-be" style="display:none"><span class="row-lbl" title="SP incl GST at which profit reaches zero">Break-even SP</span><span class="row-val" id="s-be">—</span></div>
-        <div class="row" id="pf-item-bef" style="display:none"><span class="row-lbl" title="SP incl GST at which GP% reaches your floor">SP at GP floor</span><span class="row-val" id="s-bef">—</span></div>
+        <div class="row" id="pf-item-be" style="display:none"><span class="row-lbl" title="SP incl GST at which profit reaches zero">Break-even SP (incl GST)</span><span class="row-val" id="s-be">—</span></div>
+        <div class="row" id="pf-item-bef" style="display:none"><span class="row-lbl" title="SP incl GST at which GP% reaches your floor">SP at GP floor (incl GST)</span><span class="row-val" id="s-bef">—</span></div>
       </div>
       <p class="footnote">Profit = Eff. SP excl GST − Eff. CP excl GST (after all incentives).</p>
     </div>
@@ -543,7 +543,7 @@
     </div>
     <div id="wz-disc-wrap">
       <div class="wz-field">
-        <span class="wz-sym">Disc</span>
+        <span class="wz-sym">Discount</span>
         <input class="wz-input" type="number" inputmode="decimal" id="wz-disc" placeholder="e.g. 34" min="0" max="100" step="0.01" data-input="a80" autocomplete="off" aria-label="Wizard: discount percentage">
         <span class="wz-suf" id="wz-disc-suf">% + 18% GST</span>
       </div>

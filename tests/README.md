@@ -1,6 +1,6 @@
 # Tests
 
-1442 assertions across seven suites. They load the real `index.html`,
+1479 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and `assets/app.js` into
 [jsdom](https://github.com/jsdom/jsdom) and drive the actual application
 functions — no application code is mocked.
@@ -25,6 +25,7 @@ npm test        # run everything
 | `npm run test:browser` | real Chromium (skips if none is installed) |
 | `npm run coverage` | statement coverage of both bundles |
 | `npm run lighthouse` | Lighthouse audit (needs `npm i -D lighthouse`) |
+| `npm run screenshots` | regenerate the two screenshots the README embeds |
 
 Failing suites print their full output; passing ones print a single line.
 The runner exits non-zero if anything fails, so CI catches it.
@@ -33,11 +34,11 @@ The runner exits non-zero if anything fails, so CI catches it.
 
 | File | Assertions | Covers |
 |---|---|---|
-| `features.test.js` | 1014 | GST (presets, custom, decimal), incentive edit mode, add/delete/rename, %/₹ modes, quantity and order totals, rounding, undo/redo, quote maths, history search/filter/tags, share-state round trips |
+| `features.test.js` | 1041 | GST (presets, custom, decimal), incentive edit mode, add/delete/rename, %/₹ modes, quantity and order totals, rounding, undo/redo of typed values and every control, quote maths, history search/filter/tags, share-state round trips |
 | `errors.test.js` | 33 | every failure path logs; a clean run logs nothing; storage-quota and corrupt-payload recovery; global handlers |
 | `mobile.test.js` | 78 | modal layering vs the bottom nav, touch-target sizes, viewport zoom policy, type scale, sticky result bar states, quote table vs card layouts |
 | `fab.test.js` | 50 | FAB visibility rules, open/close and dismissal, ARIA state, deferred dispatch, error containment, z-index ordering |
-| `browser.test.js` | 78 | serves the repo over HTTP and drives real Chromium: asset loading, CSS cascade and media queries, `defer` timing, clicks, dialog focus, mobile viewport and z-index layering |
+| `browser.test.js` | 88 | serves the repo over HTTP and drives real Chromium: asset loading, CSS cascade and media queries, `defer` timing, clicks, dialog focus, control-bar spacing, mobile viewport and z-index layering |
 | `modes.test.js` | 85 | price maths, the three solve modes, input and profit modes, what-if scenarios, comparison, Quick mode, wizard, share-link URL round trip, summary text, theming, auto-save, floor limits |
 | `a11y.test.js` | 104 | contrast ratios computed from the palette, document structure, accessible names, keyboard operability, dialog focus trap and restore, live regions, reduced motion, plus axe-core over every visible state |
 
@@ -149,3 +150,17 @@ Discount modes are easy to get wrong when writing assertions. In
 the price *excl* GST — so MRP 1000 at 40% gives CP excl 600, not `1000 / 1.18 ×
 0.6`. Several assertions were initially written against the wrong formula. If a
 test disagrees with the app, check the formula before changing the code.
+
+## Screenshots
+
+```bash
+npm run screenshots
+```
+
+The two images the README embeds are generated, not captured by hand. They had
+drifted twice — once when labels were renamed, once when a header button was
+added — and nothing tied them to the app. `screenshots.js` drives the real page
+through the same worked example the README's own table walks through, so the
+picture and the prose describe the same numbers. It skips the first-run tour,
+reads under `reducedMotion: 'reduce'` so the count-up figures are final, and
+collapses the History panel that the 900ms auto-save would otherwise expand.

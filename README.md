@@ -1,6 +1,6 @@
 # Pricing Calculator
 
-[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1442%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-97-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+[![Tests](https://github.com/sterlingspares/calc/actions/workflows/tests.yml/badge.svg)](https://github.com/sterlingspares/calc/actions/workflows/tests.yml) ![Tests](https://img.shields.io/badge/tests-1479%20passing-brightgreen?style=flat-square) ![Coverage](https://img.shields.io/badge/coverage-80%25-green?style=flat-square) ![Lighthouse Performance](https://img.shields.io/badge/Lighthouse%20Perf-97-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Accessibility](https://img.shields.io/badge/Lighthouse%20A11y-100-brightgreen?style=flat-square&logo=lighthouse) ![Lighthouse Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=flat-square&logo=lighthouse) ![a11y](https://img.shields.io/badge/WCAG%202.1-AA-brightgreen?style=flat-square) ![PWA](https://img.shields.io/badge/PWA-offline--ready-brightgreen?style=flat-square&logo=pwa) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
@@ -76,7 +76,7 @@ rebate from the supplier:
 | **Profit** | **₹168.00** | ₹750.00 − ₹582.00 |
 | GP % | 22.40% | 168 ÷ 750 |
 | Margin % | 28.87% | 168 ÷ 582 |
-| Break-even SP | ₹686.76 | incl GST — below this you lose money |
+| Break-even SP (incl GST) | ₹686.76 | incl GST — below this you lose money |
 
 Without the two incentives the same deal shows ₹150.00 profit and 20.00% GP.
 That 3% off-invoice is a fifth of the profit, and it is exactly the part that is
@@ -145,7 +145,7 @@ sw.js                   service worker
 manifest.json           PWA manifest
 _headers                response headers for the host
 tests/                  test suite (dev-only)
-docs/                   screenshots for this README
+docs/                   screenshots for this README (npm run screenshots)
 robots.txt · sitemap.xml  indexing
 ```
 
@@ -410,8 +410,8 @@ Shown in the **Profit card**, beside the profit they are measured against:
 
 | Row | Meaning |
 |---|---|
-| **Break-even SP** | Price at which profit reaches zero |
-| **SP at GP floor** | Price at which GP % hits your Settings floor |
+| **Break-even SP (incl GST)** | Price at which profit reaches zero |
+| **SP at GP floor (incl GST)** | Price at which GP % hits your Settings floor |
 
 Both are stated *before* SP incentives — those reduce what you actually receive,
 so the quotable price is grossed back up accordingly.
@@ -525,12 +525,23 @@ CSV · Clear all.
 
 ### Undo / redo
 
-Every state-changing action is undoable: adding, deleting, renaming or retyping
-an incentive, changing rounding, resetting, editing the quote, and all history
-operations.
+Every state-changing action is undoable — **including typed values**. Correcting
+an MRP, a discount, a quantity, a landed cost or an incentive rate is a step you
+can walk back, as are the chips, toggles and dropdowns.
+
+One field edit is one step, not one per keystroke: the state is captured when
+you enter the field and recorded when you leave it, so `⌘/Ctrl + Z` takes back
+the whole number rather than the last digit. Entering a field and leaving it
+untouched records nothing.
+
+Anything that does not change what the app saves — opening a dialog, switching a
+Settings tab, searching history — stays out of the stack, so undo never burns a
+step on a no-op.
 
 - **Undo / Redo** buttons in the header (Undo also in the mobile menu)
-- `⌘/Ctrl + Z` and `⌘/Ctrl + ⇧ + Z` — these work even while typing in a field
+- `⌘/Ctrl + Z` and `⌘/Ctrl + ⇧ + Z` — these work even while typing in a field,
+  and take the edit in progress with them
+- The toast names what it reverted: *Undid: cost discount*
 - Destructive actions show a toast with an inline **Undo**
 - Up to **40 steps** retained
 
@@ -764,7 +775,7 @@ Every number here is reproducible from the repo — none is hand-written.
 
 | Metric | Value | Reproduce with |
 |---|---|---|
-| Tests | 1442 passing, 7 suites | `npm test` |
+| Tests | 1479 passing, 7 suites | `npm test` |
 | Statement coverage | **82.7%** (app.js 86.3%, app-extra.js 72.3%) | `npm run coverage` |
 | Lighthouse Performance | **97** | `npm i -D lighthouse && npm run lighthouse` |
 | Lighthouse Accessibility | **100** | ” |
@@ -801,7 +812,7 @@ commands after significant changes.
 
 ## Tests
 
-1442 assertions across seven suites. They load the real `index.html`,
+1479 assertions across seven suites. They load the real `index.html`,
 `assets/styles.css` and both script bundles, and drive the actual application
 functions — no application code is mocked. **Node 22 or newer.**
 
@@ -812,13 +823,13 @@ npm test
 
 | Suite | Assertions | Covers |
 |---|---|---|
-| `features` | 1014 | GST, incentives, quantity, landed costs, rounding, undo/redo, quote maths, history |
+| `features` | 1041 | GST, incentives, quantity, landed costs, rounding, undo/redo of typed values and controls, quote maths, history |
 | `errors` | 33 | every failure path logs; a clean run stays silent; storage and payload recovery |
 | `mobile` | 78 | modal layering, touch targets, sticky result bar, responsive quote layouts |
 | `fab` | 50 | floating action button behaviour and z-index ordering |
 | `modes` | 85 | solve modes, price input modes, what-if, comparison, Quick mode, wizard, share-link round trip, theming, auto-save |
 | `a11y` | 104 | contrast ratios, structure, names, keyboard operability, focus trap, live regions, reduced motion, axe-core |
-| `browser` | 78 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, mobile viewport, axe with layout |
+| `browser` | 88 | real Chromium over HTTP: asset loading, CSS cascade, `defer` timing, clicks, dialogs, control-bar spacing, mobile viewport, axe with layout |
 
 Individual suites: `npm run test:features`, `test:errors`, `test:mobile`,
 `test:fab`, `test:modes`, `test:a11y`, `test:browser`. Full assertion output:

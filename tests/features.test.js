@@ -2803,6 +2803,138 @@ ok('and it can be switched off like the others',
    w.featureDef('convert') !== null &&
    w.featureDef('convert').els.indexOf('hbtn-convert') !== -1);
 
+R.section('\n=== 29d. Undo covers typed values, and every other control ===');
+// Undo used to cover only the handful of actions whose code remembered to call
+// pushUndo. Typing — the thing people do most — was not one of them.
+
+// A real edit: focus, keystrokes, then leave. The snapshot is taken on focus,
+// so writing .value directly (as the rest of this suite does) records nothing.
+const typeInto = (id, val) => {
+  const i = d.getElementById(id);
+  i.focus();
+  i.value = val;
+  i.dispatchEvent(new w.Event('input', { bubbles: true }));
+  i.blur();
+};
+const undoDepth = () => w.UNDO.length;
+const lastUndo = () => w.UNDO[w.UNDO.length - 1].label;
+
+freshCalc(1000, 40, 25);
+d.getElementById('mrp').value = '';
+w.UNDO.length = 0; w.REDO.length = 0;
+
+typeInto('mrp', '1000');
+ok('typing a value is one undo entry', undoDepth() === 1, 'got ' + undoDepth());
+ok('and it is named after the field', lastUndo() === 'MRP', 'got ' + lastUndo());
+
+const beforeIdle = undoDepth();
+d.getElementById('mrp').focus(); d.getElementById('mrp').blur();
+ok('focusing and leaving records nothing', undoDepth() === beforeIdle);
+
+w.undo();
+// The field started empty. numStr used to fold '' into "field absent", so a
+// restore could put a number into a box but never take one back out.
+ok('undo empties a box that started empty', d.getElementById('mrp').value === '',
+   'got "' + d.getElementById('mrp').value + '"');
+w.redo();
+// Restored through the same grouping the box shows while you type in it
+ok('redo puts the typed value back', d.getElementById('mrp').value === '1,000',
+   'got "' + d.getElementById('mrp').value + '"');
+
+typeInto('cpd', '35');
+typeInto('spd', '22');
+ok('each field is its own step', undoDepth() === 3, 'got ' + undoDepth());
+w.undo();
+ok('undo steps back one field at a time', d.getElementById('spd').value === '25' &&
+   d.getElementById('cpd').value === '35',
+   d.getElementById('cpd').value + ' / ' + d.getElementById('spd').value);
+w.undo();
+ok('and then the one before it', d.getElementById('cpd').value === '40');
+ok('undo is not itself undoable', undoDepth() === 1, 'got ' + undoDepth());
+
+// Ctrl+Z never leaves the field first, so the edit in progress has not been
+// committed by a blur when undo runs.
+w.UNDO.length = 0; w.REDO.length = 0;
+const mrpEl = d.getElementById('mrp');
+mrpEl.focus();
+mrpEl.value = '2500';
+mrpEl.dispatchEvent(new w.Event('input', { bubbles: true }));
+w.undo();
+ok('undo from inside the field still reverts it', mrpEl.value === '1,000',
+   'got "' + mrpEl.value + '"');
+mrpEl.blur();
+
+// Clicks: recorded generically by comparing state around the handler, so a
+// control does not have to know undo exists.
+freshCalc(1000, 40, 25);
+w.UNDO.length = 0; w.REDO.length = 0;
+
+d.getElementById('g5').click();
+ok('a GST chip is undoable', undoDepth() === 1 && lastUndo() === '5%', lastUndo());
+w.undo();
+ok('and undo puts the rate back', Math.abs(w.G - 0.18) < 1e-9, 'got ' + w.G);
+
+w.UNDO.length = 0;
+d.getElementById('cmi').click();
+ok('a two-line chip reads as words', lastUndo() === 'Nett Discount %', lastUndo());
+
+w.UNDO.length = 0;
+d.querySelector('.qty-box button:last-child').click();
+ok('a symbol-only button uses its accessible name',
+   lastUndo() === 'Increase quantity', lastUndo());
+
+w.UNDO.length = 0;
+d.getElementById('it-cd').click();
+ok('an incentive toggle is undoable', undoDepth() === 1, 'got ' + undoDepth());
+ok('under the incentive\'s own name', lastUndo() === w.INC_LABELS.cd, lastUndo());
+const cdOn = d.getElementById('it-cd').checked;
+w.undo();
+ok('and undo flips it back', d.getElementById('it-cd').checked === !cdOn);
+
+// Handlers that already push their own entry must not get a second one.
+w.UNDO.length = 0;
+d.getElementById('cp-inc-add-btn').click();
+ok('an action with its own undo entry records once', undoDepth() === 1,
+   'got ' + undoDepth());
+ok('keeping its own wording', lastUndo() === 'add incentive', lastUndo());
+w.undo();
+
+// Clicking a chip while a field edit is still open: two separate steps, in the
+// order they happened. The pending edit is committed first, and the bump that
+// causes must not be read as "this handler recorded its own entry".
+freshCalc(1000, 40, 25);
+w.UNDO.length = 0; w.REDO.length = 0;
+const mrpLive = d.getElementById('mrp');
+mrpLive.focus();
+mrpLive.value = '4000';
+mrpLive.dispatchEvent(new w.Event('input', { bubbles: true }));
+d.getElementById('g5').click();                 // no blur in between
+ok('an unfinished edit and the click after it are both recorded',
+   undoDepth() === 2, 'got ' + undoDepth());
+ok('in the order they happened',
+   w.UNDO[0].label === 'MRP' && w.UNDO[1].label === '5%',
+   w.UNDO.map(e => e.label).join(' | '));
+w.undo();
+ok('undo takes back the click first', Math.abs(w.G - 0.18) < 1e-9, 'got ' + w.G);
+w.undo();
+ok('and the typing after it', d.getElementById('mrp').value === '1,000',
+   'got "' + d.getElementById('mrp').value + '"');
+mrpLive.blur();
+
+// Nothing that leaves the saved state alone should reach the stack.
+freshCalc(1000, 40, 25);
+w.UNDO.length = 0;
+d.querySelector('[data-click="a10"]').click();          // open Settings
+ok('opening a dialog is not an undoable action', undoDepth() === 0, 'got ' + undoDepth());
+const tabs = d.querySelectorAll('.settings-tab');
+tabs[1].click();
+ok('nor is switching settings tabs', undoDepth() === 0, 'got ' + undoDepth());
+d.querySelector('#overlay-settings .modal-close').click();
+ok('nor is closing it again', undoDepth() === 0, 'got ' + undoDepth());
+typeInto('hist-search', 'brake');
+ok('nor is typing in the history search box', undoDepth() === 0, 'got ' + undoDepth());
+w.setHistQuery('');
+
 R.section('\n=== 30a. The default view stays uncluttered ===');
 // The main screen had grown to a control bar of 13, five derived rows per price
 // card, and a 17-cell summary in which five cells repeated numbers shown in the
