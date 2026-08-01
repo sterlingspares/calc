@@ -272,7 +272,10 @@ function fcBuildCards(){
 function fcMkField(symTxt,inputId,placeholder,extraStyle,sufId){
   var isRupee=(symTxt!=='%');
   var wrap=document.createElement('div');wrap.className='fc-input-wrap';if(extraStyle)wrap.style.cssText=extraStyle;
-  var sym=document.createElement('span');sym.className='fc-input-sym';sym.textContent=symTxt;
+  var sym=document.createElement('span');
+  // A word rather than a currency glyph needs the smaller treatment, or it
+  // eats half the field on a phone.
+  sym.className='fc-input-sym'+(symTxt.length>2?' word':'');sym.textContent=symTxt;
   var inp=document.createElement('input');inp.className='fc-input';inp.inputMode='decimal';inp.autocomplete='off';
   inp.id=inputId;inp.placeholder=placeholder;
   if(isRupee){
@@ -326,7 +329,7 @@ function fcBuildCPCard(){
   // disc input
   var discWrap=document.createElement('div');discWrap.id='fc-cp-disc-wrap';
   discWrap.style.display=FC_CM==='manual'?'none':'';
-  discWrap.appendChild(fcMkField('Disc','fc-cpd','e.g. 34',null,'fc-cpd-suf'));
+  discWrap.appendChild(fcMkField('Discount','fc-cpd','e.g. 34',null,'fc-cpd-suf'));
   card.appendChild(discWrap);
 
   // manual input
@@ -383,7 +386,7 @@ function fcBuildSPCard(){
 
   var discWrap=document.createElement('div');discWrap.id='fc-sp-disc-wrap';
   discWrap.style.display=FC_SM==='manual'?'none':'';
-  discWrap.appendChild(fcMkField('Disc','fc-spd','e.g. 20',null,'fc-spd-suf'));
+  discWrap.appendChild(fcMkField('Discount','fc-spd','e.g. 20',null,'fc-spd-suf'));
   card.appendChild(discWrap);
 
   var manWrap=document.createElement('div');manWrap.id='fc-sp-manual-wrap';manWrap.style.cssText='display:'+(FC_SM==='manual'?'flex':'none')+';flex-direction:column;gap:8px';
@@ -942,7 +945,6 @@ function qtField(i,field,val,opts){
     +(opts.step?' step="'+opts.step+'"':'')
     +(opts.style?' style="'+opts.style+'"':'')
     +(opts.label?' aria-label="'+opts.label+'"':'')
-    +' data-focus="undoQuote"'
     +' data-input="qtSet" data-p="'+i+'" data-q="'+field+'" autocomplete="off">';
 }
 
@@ -1496,7 +1498,7 @@ function _renderWhatIfImpl(cp){
     } else {
       // disc % input — oninput stores + updateWiResults() only
       var fld=document.createElement('div');fld.className='field';
-      var sym=document.createElement('span');sym.className='sym';sym.textContent='Disc %';
+      var sym=document.createElement('span');sym.className='sym';sym.textContent='Discount %';
       var inp=document.createElement('input');inp.type='number';inp.inputMode='decimal';inp.placeholder='e.g. 20';
       inp.min='0';inp.max='100';inp.step='0.01';inp.value=sc.spDisc;inp.autocomplete='off';
       inp.oninput=(function(idx){return function(){
