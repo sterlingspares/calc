@@ -1358,3 +1358,334 @@ function _toggleFeatureImpl(k){
     'The setting and its values are removed. This can be undone.',
     'Turn off and clear',turnOff);
 }
+
+/* ── What-if, compare, onboarding and CSV export (deferred) ─────────────────
+   None is reachable on first paint: two are dialogs, one runs on a first
+   visit, one is a download behind a button. They had drifted into the core
+   bundle even though the README described them as deferred.
+   ─────────────────────────────────────────────────────────────────────────── */
+var WI_CHEVRON_SVG='<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function resolveWiSP(sc){
+  if(sc.spMode==='manual'){
+    var v=parseFloat(String(sc.spVal).replace(/,/g,''));
+    return priceFromManual(v,sc.spManualSub);
+  }
+  var d=parseFloat(sc.spDisc);
+  return(!isNaN(d)&&sc.spDisc!=='')?priceFromDisc(d,sc.spMode):null;
+}
+
+function _updateWiResultsImpl(){
+  if(!LAST_CP)return;
+  var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP),floor=getFloor();
+
+  // Recalculate best GP
+  var bestGP=-Infinity,bestIdx=-1;
+  WI_SCENES.forEach(function(sc,i){
+    var sp=resolveWiSP(sc);if(!sp)return;
+    var gp=(sp.e>0)?((sp.e-eff)/sp.e)*100:null;
+    if(gp!==null&&gp>bestGP){bestGP=gp;bestIdx=i}
+  });
+
+  WI_SCENES.forEach(function(sc,i){
+    // update card highlight
+    var card=el('wi-card-'+i);
+    if(card)card.className='wi-card'+(i===bestIdx?' wi-best':'');
+
+    var sp=resolveWiSP(sc);
+    var KEYS=['spe','spi','pr','gp','mg'];
+
+    if(sp){
+      var pr=sp.e-eff,gp=(sp.e>0)?(pr/sp.e)*100:null,mg=(eff>0)?(pr/eff)*100:null;
+      var vals=[
+        {v:SINR(sp.e),c:''},
+        {v:SINR(sp.i),c:''},
+        {v:SINR(pr),c:pr>=0?'pos':'neg'},
+        {v:PCT(gp),c:gpCls(gp,floor)},
+        {v:PCT(mg),c:mgCls(mg,floor)}
+      ];
+      vals.forEach(function(row,k){
+        var cell=el('wi-'+i+'-'+KEYS[k]);
+        if(cell){cell.textContent=row.v;cell.className='wi-val '+row.c}
+      });
+    } else {
+      KEYS.forEach(function(k){
+        var cell=el('wi-'+i+'-'+k);
+        if(cell){cell.textContent='—';cell.className='wi-val dim'}
+      });
+    }
+  });
+}
+
+function _renderWhatIfImpl(cp){
+  var info=el('wi-cp-info'),grid=el('wi-grid');
+  if(!cp){info.innerHTML='Enter CP and incentives on the main screen first.';grid.innerHTML='';return}
+  var inc=getIncentiveInr(cp),eff=effectiveCP(cp),floor=getFloor();
+  var incTxt=inc>0?' · Incentives: '+CINR(inc)+' · Eff CP: '+CINR(eff):'';
+  info.innerHTML='<span>MRP: <strong>'+INR(MI)+'</strong></span><span>CP excl GST: <strong>'+CINR(cp.e)+'</strong></span>'+incTxt;
+
+  var bestGP=-Infinity,bestIdx=-1;
+  WI_SCENES.forEach(function(sc,i){
+    var sp=resolveWiSP(sc);if(!sp)return;
+    var gp=(sp.e>0)?((sp.e-eff)/sp.e)*100:null;
+    if(gp!==null&&gp>bestGP){bestGP=gp;bestIdx=i}
+  });
+
+  grid.innerHTML='';
+  WI_SCENES.forEach(function(sc,i){
+    var isManual=sc.spMode==='manual';
+    var card=document.createElement('div');
+    card.className='wi-card'+(i===bestIdx?' wi-best':'');
+    card.id='wi-card-'+i;
+
+    // header
+    var hd=document.createElement('div');hd.className='wi-card-head';
+    var ttl=document.createElement('span');ttl.className='wi-card-title';
+    ttl.textContent='Scenario '+['A','B','C'][i];
+    hd.appendChild(ttl);card.appendChild(hd);
+
+    // 3-way mode tabs — mode change does full rebuild (no input is focused)
+    var tabs=document.createElement('div');tabs.className='sub-tabs';
+    [{key:'excl',label:'Discount + GST %'},{key:'incl',label:'Nett Discount %'},{key:'manual',label:'Enter ₹ directly'}]
+    .forEach(function(m){
+      var btn=document.createElement('button');
+      btn.className='stab'+(sc.spMode===m.key?' on':'');
+      btn.textContent=m.label;
+      btn.onclick=(function(mode,idx){return function(){WI_SCENES[idx].spMode=mode;renderWhatIf(LAST_CP)}})(m.key,i);
+      tabs.appendChild(btn);
+    });
+    card.appendChild(tabs);
+
+    if(isManual){
+      var subWrap=document.createElement('div');subWrap.style.cssText='display:flex;flex-direction:column;gap:6px';
+      // sub-tabs for incl/excl GST — also full rebuild (no input focused)
+      var subTabs=document.createElement('div');subTabs.className='sub-tabs';
+      [{key:'incl',label:'SP incl GST'},{key:'excl',label:'SP excl GST'}].forEach(function(s){
+        var b=document.createElement('button');b.className='stab'+(sc.spManualSub===s.key?' on':'');
+        b.textContent=s.label;
+        b.onclick=(function(sub,idx){return function(){WI_SCENES[idx].spManualSub=sub;renderWhatIf(LAST_CP)}})(s.key,i);
+        subTabs.appendChild(b);
+      });
+      subWrap.appendChild(subTabs);
+
+      // ₹ input — oninput stores value + calls updateWiResults() ONLY (never rebuilds)
+      var fldM=document.createElement('div');fldM.className='field';
+      var symM=document.createElement('span');symM.className='sym';symM.textContent='₹';
+      var inpM=document.createElement('input');inpM.type='text';inpM.inputMode='decimal';
+      inpM.placeholder=sc.spManualSub==='incl'?'SP incl GST':'SP excl GST';
+      inpM.autocomplete='off';
+      if(sc.spVal!==''){var nv=parseFloat(sc.spVal);inpM.value=isNaN(nv)?sc.spVal:fmtINDIAN(nv)}
+      inpM.oninput=(function(idx){return function(){
+        var raw=this.value.replace(/[^0-9.]/g,'');
+        var pts=raw.split('.');if(pts.length>2)raw=pts[0]+'.'+pts.slice(1).join('');
+        WI_SCENES[idx].spVal=raw;
+        var num=parseFloat(raw);
+        if(!isNaN(num)&&raw!==''&&raw!=='.'){
+          var fmt=fmtINDIAN(num);
+          if(raw.indexOf('.')!==-1){var dec=raw.split('.')[1];fmt=fmtINDIAN(parseFloat(raw.split('.')[0])||0).split('.')[0]+'.'+(dec||'')}
+          this.value=fmt;
+        } else if(raw===''||raw==='.'){this.value=raw}
+        _updateWiResultsImpl(); // ← results only, keyboard stays open
+      }})(i);
+      var btnM=document.createElement('button');btnM.className='field-next';btnM.tabIndex=-1;btnM.title='Done';
+      btnM.innerHTML=WI_CHEVRON_SVG;btnM.onclick=function(){inpM.blur()};
+      fldM.appendChild(symM);fldM.appendChild(inpM);fldM.appendChild(btnM);
+      subWrap.appendChild(fldM);
+      card.appendChild(subWrap);
+
+    } else {
+      // disc % input — oninput stores + updateWiResults() only
+      var fld=document.createElement('div');fld.className='field';
+      var sym=document.createElement('span');sym.className='sym';sym.textContent='Disc %';
+      var inp=document.createElement('input');inp.type='number';inp.inputMode='decimal';inp.placeholder='e.g. 20';
+      inp.min='0';inp.max='100';inp.step='0.01';inp.value=sc.spDisc;inp.autocomplete='off';
+      inp.oninput=(function(idx){return function(){
+        WI_SCENES[idx].spDisc=this.value;
+        _updateWiResultsImpl(); // ← results only, keyboard stays open
+      }})(i);
+      var btnD=document.createElement('button');btnD.className='field-next';btnD.tabIndex=-1;btnD.title='Done';
+      btnD.innerHTML=WI_CHEVRON_SVG;btnD.onclick=function(){inp.blur()};
+      fld.appendChild(sym);fld.appendChild(inp);fld.appendChild(btnD);card.appendChild(fld);
+    }
+
+    // result rows with stable IDs
+    var rows=document.createElement('div');rows.className='wi-rows';
+    var LBLS=['SP excl GST','SP incl GST','Profit ₹','GP %','Margin %'];
+    var KEYS=['spe','spi','pr','gp','mg'];
+    var sp=resolveWiSP(sc);
+    LBLS.forEach(function(lbl,k){
+      var r=document.createElement('div');r.className='wi-row';
+      var l=document.createElement('span');l.className='wi-lbl';l.textContent=lbl;
+      var v=document.createElement('span');
+      v.id='wi-'+i+'-'+KEYS[k];
+      v.className='wi-val dim';v.textContent='—';
+      r.appendChild(l);r.appendChild(v);rows.appendChild(r);
+    });
+    card.appendChild(rows);grid.appendChild(card);
+  });
+
+  // Populate results after the DOM is built. This used to need an
+  // elClearCache() first: the grid is rebuilt with the same wi-*-* ids, so
+  // every node the old el() cache held was detached and updateWiResults wrote
+  // into nodes that were no longer displayed — the cards showed '—' on every
+  // re-render after the first. el() no longer caches, so the ids resolve to
+  // whatever is currently in the document.
+  _updateWiResultsImpl();
+}
+
+function _exportHistoryCSVImpl(){
+  if(HISTORY.length===0){
+    logWarn('exportHistoryCSV called with an empty history');
+    toast('No history entries to export.');
+    return;
+  }
+  var headers=['Time','Tag','MRP (incl GST)','CP excl GST','CP incl GST','SP excl GST','SP incl GST','Eff CP excl GST','CP Incentives INR','Eff SP excl GST','SP Incentives INR','Profit INR','GP %','Margin %','GST Rate %','Qty','Total Profit INR'];
+  var rows=[headers.join(',')];
+  HISTORY.forEach(function(h){
+    rows.push([
+      '"'+h.time+'"',
+      '"'+String(h.tag||'').replace(/"/g,'""')+'"',
+      h.mrp.toFixed(2),
+      h.cpE.toFixed(2),
+      h.cpI.toFixed(2),
+      h.spE.toFixed(2),
+      h.spI.toFixed(2),
+      h.effCPE.toFixed(2),
+      h.incInr>0?h.incInr.toFixed(2):'',
+      (h.effSPE||h.spE).toFixed(2),
+      (h.spIncInr||0)>0?(h.spIncInr||0).toFixed(2):'',
+      h.pr.toFixed(2),
+      h.gp!==null?h.gp.toFixed(2):'',
+      h.mg!==null?h.mg.toFixed(2):'',
+      h.gst,
+      h.qty||1,
+      (h.totalPr!=null?h.totalPr:h.pr*(h.qty||1)).toFixed(2)
+    ].join(','));
+  });
+  var csv=rows.join('\r\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='pricing-history-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url)},200);
+}
+
+function _openCompareImpl(idx){
+  COMPARE_IDX=idx;
+  renderCompare();
+  openModal('compare');
+}
+
+function _renderCompareImpl(){
+  var floor=getFloor();
+  var hist=HISTORY[COMPARE_IDX];
+  if(!hist){el('cmp-grid').innerHTML='<div style="padding:20px;color:var(--text3)">No entry selected.</div>';return}
+
+  // Build current snapshot
+  var cur=null;
+  if(LAST_CP&&LAST_SP){
+    var inc=getIncentiveInr(LAST_CP),eff=effectiveCP(LAST_CP);
+    var spInc=getSPIncentiveInr(LAST_SP),effSP=effectiveSP(LAST_SP);
+    var pr=effSP-eff;
+    cur={
+      mrp:MI,cpE:LAST_CP.e,cpI:LAST_CP.i,spE:LAST_SP.e,spI:LAST_SP.i,
+      effCPE:eff,effSPE:effSP,incInr:inc,spIncInr:spInc,pr:pr,
+      gp:(effSP>0)?(pr/effSP)*100:null,
+      mg:(eff>0)?(pr/eff)*100:null,
+      gst:G*100
+    };
+  }
+
+  // meta
+  var meta=el('cmp-meta');
+  var histTimeDisp=hist.ts?relTime(hist.ts):hist.time;
+  var histTimeFull=hist.ts?fmtTime(hist.ts):hist.time;
+  meta.innerHTML='<span>Comparing <strong>current calculation</strong> vs history entry from <strong><span title="'+histTimeFull+'" style="cursor:help;border-bottom:1px dashed var(--text3)">'+histTimeDisp+'</span></strong></span>';
+  if(!cur) meta.innerHTML+='<span style="color:var(--red);font-size:11px"> — Enter CP &amp; SP on main screen to populate Current column</span>';
+
+  // delta helper
+  function delta(curV,histV,isPercent,higherIsBetter){
+    if(curV===null||histV===null||curV===undefined||histV===undefined)return'';
+    var d=curV-histV;
+    if(Math.abs(d)<0.005)return '<span class="dv nt">—</span>';
+    var sign=d>0?'+':'';
+    var cls=(higherIsBetter?(d>0):(d<0))?'up':'dn';
+    var txt=isPercent?(sign+d.toFixed(2)+'pp'):(sign+d.toFixed(2));
+    return '<span class="dv '+cls+'">'+txt+'</span>';
+  }
+  function deltaINR(curV,histV,higher,side){
+    if(curV===null||histV===null)return'';
+    var d=curV-histV;if(Math.abs(d)<0.005)return'<span class="dv nt">—</span>';
+    // Math.abs() strips the sign, so a fall has to be signed explicitly —
+    // otherwise -₹50 and +₹50 render identically and only the colour differs.
+    var sign=d>0?'+':'−';
+    var cls=(higher?(d>0):(d<0))?'up':'dn';
+    // The delta wears the same symbol as the two cells it sits between.
+    return '<span class="dv '+cls+'">'+sign+symFor(side||'base')+Math.abs(d).toFixed(2)+'</span>';
+  }
+
+  // cell builders
+  function hd(txt,cls){return '<div class="cmp-hd'+(cls?' '+cls:'')+'">'+(txt||'')+'</div>'}
+  function lbl(txt){return '<div class="cmp-cell lbl">'+txt+'</div>'}
+
+  function valCell(v,fmt,cls){
+    var disp=v===null||v===undefined?'—':(fmt==='inr'?INR(v):PCT(v));
+    return '<div class="cmp-cell'+(cls?' '+cls:'')+'">'+(disp||'—')+'</div>';
+  }
+  function inrCell(v,posNeg,side){
+    if(v===null||v===undefined)return'<div class="cmp-cell dim">—</div>';
+    var cls=posNeg?(v>=0?'cmp-pos':'cmp-neg'):'';
+    return'<div class="cmp-cell '+(cls||'')+'">'+money(v,side||'base')+'</div>';
+  }
+  function pctCell(v,floor,isGP){
+    if(v===null||v===undefined)return'<div class="cmp-cell dim">—</div>';
+    var f=isGP?floor.gp:floor.mg;
+    var cls=belowFloor(v,f)?'cmp-warn':(v>=0?'cmp-pos':'cmp-neg');
+    return'<div class="cmp-cell '+cls+'">'+PCT(v)+'</div>';
+  }
+  function deltaCell(html){return'<div class="cmp-cell cmp-delta">'+(html||'<span class="dv nt">—</span>')+'</div>'}
+
+  var rows=[
+    {label:'MRP (incl GST)',   cur:cur?cur.mrp:null,   hist:hist.mrp,   fmt:'inr', higher:null, side:'base'},
+    {label:'CP excl GST',      cur:cur?cur.cpE:null,   hist:hist.cpE,   fmt:'inr', higher:false, side:'cost'},
+    {label:'CP incl GST',      cur:cur?cur.cpI:null,   hist:hist.cpI,   fmt:'inr', higher:false, side:'cost'},
+    {label:'SP excl GST',      cur:cur?cur.spE:null,    hist:hist.spE,   fmt:'inr', higher:true, side:'sale'},
+    {label:'SP incl GST',      cur:cur?cur.spI:null,    hist:hist.spI,   fmt:'inr', higher:true, side:'sale'},
+    {label:'Eff. SP excl GST', cur:cur?cur.effSPE:null, hist:hist.effSPE||hist.spE, fmt:'inr', higher:true, side:'sale'},
+    {label:'SP Incentives',    cur:cur?cur.spIncInr:null,hist:hist.spIncInr||0,fmt:'inr', higher:true, side:'sale'},
+    {label:'Eff. CP excl GST', cur:cur?cur.effCPE:null,hist:hist.effCPE,fmt:'inr', higher:false, side:'cost'},
+    {label:'Incentives',       cur:cur?cur.incInr:null,hist:hist.incInr,fmt:'inr', higher:true, side:'cost'},
+    {label:'Profit',           cur:cur?cur.pr:null,    hist:hist.pr,    fmt:'inr', higher:true, posNeg:true, side:'sale'},
+    {label:'GP %',             cur:cur?cur.gp:null,    hist:hist.gp,    fmt:'pct', higher:true, isGP:true},
+    {label:'Margin %',         cur:cur?cur.mg:null,    hist:hist.mg,    fmt:'pct', higher:true, isMG:true},
+    {label:'GST Rate',         cur:cur?cur.gst:null,   hist:hist.gst,   fmt:'gst', higher:null}
+  ];
+
+  var html=hd('')+hd('Current','cur')+hd('Selected','sel')+hd('Change');
+
+  rows.forEach(function(r){
+    html+=lbl(r.label);
+    if(r.fmt==='pct'){
+      html+=pctCell(r.cur,floor,r.isGP);
+      html+=pctCell(r.hist,floor,r.isGP);
+      html+=deltaCell(delta(r.cur,r.hist,true,r.higher));
+    } else if(r.fmt==='gst'){
+      html+='<div class="cmp-cell">'+(r.cur!==null?r.cur+'%':'—')+'</div>';
+      html+='<div class="cmp-cell">'+r.hist+'%</div>';
+      html+=deltaCell(delta(r.cur,r.hist,false,null));
+    } else {
+      var c=r.posNeg?inrCell(r.cur,true,r.side):(r.cur===null?'<div class="cmp-cell dim">—</div>':inrCell(r.cur,false,r.side));
+      var s=r.posNeg?inrCell(r.hist,true,r.side):inrCell(r.hist,false,r.side);
+      html+=c+s;
+      html+=deltaCell(deltaINR(r.cur,r.hist,r.higher,r.side));
+    }
+  });
+
+  el('cmp-grid').innerHTML=html;
+}
+
+
+
+

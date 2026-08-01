@@ -1125,6 +1125,24 @@ ok('app-extra.js exists', extraJs.length > 10000, extraJs.length + ' bytes');
 ok('deferring moved a meaningful share out of the core',
    extraJs.length > 40 * 1024 && extraJs.length / (coreJs.length + extraJs.length) > 0.2,
    (100 * extraJs.length / (coreJs.length + extraJs.length)).toFixed(0) + '% deferred');
+// These drifted back into the core bundle while the README still described them
+// as deferred. Named individually rather than counted, so a future move out of
+// app-extra.js fails here rather than quietly costing 14KB on the critical path.
+[['renderWhatIf', '_renderWhatIfImpl'], ['renderCompare', '_renderCompareImpl'],
+ ['exportHistoryCSV', '_exportHistoryCSVImpl']].forEach(([name, impl]) => {
+  ok(name + ' is deferred, not in the core bundle',
+     new RegExp('^function ' + impl + '\\(', 'm').test(extraJs) &&
+     !new RegExp('^function ' + impl + '\\(', 'm').test(coreJs),
+     'core=' + new RegExp('^function ' + impl, 'm').test(coreJs) +
+     ' extra=' + new RegExp('^function ' + impl, 'm').test(extraJs));
+  ok('and reachable through a shim in the core', new RegExp('^function ' + name + '\\(', 'm').test(coreJs));
+});
+ok('the critical path stays under 100KB gzipped', (() => {
+  const zlib = require('zlib');
+  const kb = zlib.gzipSync(readMarkup() + readAsset('assets/styles.css') + coreJs).length / 1024;
+  return kb < 100;
+})(), (require('zlib').gzipSync(readMarkup() + readAsset('assets/styles.css') + coreJs).length / 1024).toFixed(1) + ' KB');
+
 ok('quick mode moved out', /^function fcBuildCards\(/m.test(extraJs) && !/^function fcBuildCards\(/m.test(coreJs));
 ok('wizard moved out', /^function wzCalc\(/m.test(extraJs) && !/^function wzCalc\(/m.test(coreJs));
 ok('quote rendering moved out', /^function qtRender\(/m.test(extraJs) && !/^function qtRender\(/m.test(coreJs));
