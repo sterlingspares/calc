@@ -4,10 +4,16 @@
 
 **Live app:** [calc.sterlingspares.com](https://calc.sterlingspares.com)
 
-An offline-first web app for MRP-based pricing and profit calculations in
-automotive parts distribution. You enter a Maximum Retail Price, describe how
-cost and selling price are discounted off it, layer on the incentives your
-supplier and your customer actually give you, and it tells you what you make.
+An offline-first web app for list-price trading margins. You enter the printed
+price, describe how cost and selling price are discounted off it, layer on the
+rebates your supplier and your customer actually give you, and it tells you what
+you make.
+
+Built for automotive parts distribution, but the arithmetic is the same in any
+trade that buys at a discount off a list price and sells at a smaller one — FMCG,
+electronics, pharma, hardware, stationery. If you have ever worked out a quote
+by subtracting one percentage from another and then remembered the quarterly
+rebate, this is that sum.
 
 No build step, no framework, no runtime dependencies.
 
@@ -17,22 +23,43 @@ No build step, no framework, no runtime dependencies.
 
 ## What problem it solves
 
-In Indian distribution, the **MRP** printed on the pack is a legal ceiling — no
-one in the chain may sell above it. So price is not built up from cost; it is
-discounted *down* from the MRP. A distributor buys at, say, 40% off MRP and
-sells at 25% off. The gap is the business.
+Distribution prices downwards. There is a printed price on the pack — MRP in
+India, where it is a legal ceiling nobody in the chain may exceed; RRP or list
+price elsewhere — and everyone buys at a discount off it. A distributor buys at,
+say, 40% off and sells at 25% off. The gap is the business.
+
+That shape is not specific to any one trade. Whether the box holds a brake pad,
+a shampoo sachet or a laptop, the sum is the same.
 
 What makes that hard to hold in your head is that the invoice discount is not
 the real one. On top of it sit **incentives** — cash discount for paying
 promptly, early-bird for ordering in a window, quarterly and annual volume
 rebates, seasonal schemes. None appear on the invoice line, all change what the
 stock actually cost you. Some of them you receive; others you pass on to your
-own customer. Meanwhile every figure has to be tracked both **excl GST** (what
-profit is computed from, since the tax is passed through) and **incl GST** (what
-you actually quote and negotiate).
+own customer. Meanwhile every figure has to be tracked both **excl tax** (what
+profit is computed from, since the tax is passed through) and **incl tax** (what
+you actually quote and negotiate). The app calls that tax GST, and the rate is
+yours to set — 18% and 5% are one tap because they are India's common slabs, but
+any rate from 0 to 100% works, so VAT at 20% or GST at 10% behaves identically.
 
 This app does that arithmetic, live, so a quote can be checked before it is
 given rather than regretted after.
+
+### Who it fits
+
+| | |
+|---|---|
+| **Any list-price trade** | Auto parts, FMCG, electronics, pharma, hardware — anywhere you buy and sell at discounts off a printed price, with rebates that never touch the invoice |
+| **Import and export** | The cost side and the sale side can be shown in different currencies, so buying in one and selling in another is a supported case rather than a workaround. Landed costs are per-unit, inbound and outbound |
+| **Outside India** | The maths is currency-agnostic: it is all ratios and one tax rate. Twenty currencies are available for display, and non-rupee amounts group in thousands rather than lakhs |
+
+One caveat worth stating plainly. Rupees are the **base unit** everything is
+stored and calculated in, and the printed-price field is labelled `₹` because
+MRP is an Indian construct. If you trade in another currency you can work
+entirely in it by treating that field as your own list price — every ratio,
+percentage and margin comes out right, because none of them care what the unit
+is — but the symbol on that one field will still say `₹` until the base currency
+is made configurable. Everything downstream of it already converts.
 
 ### A worked example
 
@@ -60,10 +87,10 @@ easy to forget.
 
 | Term | Means |
 |---|---|
-| **MRP** | Maximum Retail Price — the ceiling printed on the pack. Every price is a discount off it |
+| **MRP** | Maximum Retail Price — the price printed on the pack, and a legal ceiling in India. Read it as RRP or list price elsewhere; every price is a discount off it |
 | **CP** | Cost Price — what you pay your supplier |
 | **SP** | Selling Price — what you charge your customer |
-| **GST** | Goods and Services Tax. Auto parts are usually 18%, some 5% |
+| **GST** | The pass-through sales tax. 18% and 5% are one tap (India's common slabs); any rate 0–100% works, so VAT behaves the same |
 | **Incentive** | An off-invoice discount — cash discount, rebate, scheme — that changes real cost without changing the invoice line |
 | **Effective CP / SP** | The price after incentives and landed costs. Profit is computed from these, not from the invoice figures |
 | **Landed cost** | Per-unit freight, insurance or handling — added to CP inbound, deducted from SP outbound |
