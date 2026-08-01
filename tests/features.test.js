@@ -3141,15 +3141,17 @@ ok('the rate in the suffix follows the GST setting',
    sufOf('cpd-suf') === '% on MRP + 5% GST', sufOf('cpd-suf'));
 w.setGST(18);
 
-// Nett Discount takes the price straight off MRP incl GST, so there is no
-// separate GST to add — but it is still a percentage on MRP.
+// Nett Discount takes the price straight off MRP incl GST and lands on the
+// incl-GST price, so there is no GST clause to add — it names the basis instead
+// of leaving it to be inferred from the absence of one.
 w.setCM('incl');
-ok('Nett Discount drops the GST part but keeps the base',
-   sufOf('cpd-suf') === '% on MRP', sufOf('cpd-suf'));
+ok('Nett Discount names the basis instead of adding GST',
+   sufOf('cpd-suf') === '% on MRP (incl GST)', sufOf('cpd-suf'));
 ok('and the other card is unaffected',
    sufOf('spd-suf') === '% on MRP + 18% GST', sufOf('spd-suf'));
 w.setSM('incl');
-ok('until it is switched too', sufOf('spd-suf') === '% on MRP');
+ok('until it is switched too', sufOf('spd-suf') === '% on MRP (incl GST)',
+   sufOf('spd-suf'));
 w.setCM('excl'); w.setSM('excl');
 
 ok('the wizard field says the same',

@@ -2910,7 +2910,11 @@ function discSuffix(mode,gst){
      then wraps as "% on MRP" / "+ 18% GST" rather than leaving the "+" dangling
      at the end of the first line. */
   var base='%\u00A0on\u00A0MRP';
-  return (mode==='excl') ? base+' +\u00A0'+gst+'%\u00A0GST' : base;
+  // Nett Discount takes the price straight off MRP incl GST and lands on the
+  // incl-GST price, so there is no GST clause to add — say which basis it is
+  // rather than leaving the reader to work it out from the absence of one.
+  return (mode==='excl') ? base+' +\u00A0'+gst+'%\u00A0GST'
+                         : base+' (incl\u00A0GST)';
 }
 /* ── Dynamic GST label updater ── */
 function updateGSTLabels(){
