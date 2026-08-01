@@ -1,5 +1,5 @@
 /* Sterling Spares Pricing Calculator — Service Worker */
-const CACHE = 'pc-v5';
+const CACHE = 'pc-v6';
 // Bumped when the precache list changes, so old entries are evicted on activate.
 const PRECACHE = [
   '/',

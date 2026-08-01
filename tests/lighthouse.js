@@ -110,8 +110,13 @@ function serve() {
       console.log('\n  Accessibility failures:');
       failed.forEach(x => console.log('    · ' + x.id + ' — ' + x.title));
     }
-    console.log('\n  SEO is capped by the deliberate <meta name="robots" content="noindex">');
-    console.log('  on this internal tool; is-crawlable is the only failing audit.\n');
+    const seoFails = cats.seo.auditRefs.map(r => res.lhr.audits[r.id])
+      .filter(x => x && x.score !== null && x.score < 1);
+    if (seoFails.length) {
+      console.log('\n  SEO failures:');
+      seoFails.forEach(x => console.log('    · ' + x.id + ' — ' + x.title));
+    }
+    console.log('');
   }
 
   await browser.close();
