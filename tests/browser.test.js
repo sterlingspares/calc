@@ -752,18 +752,38 @@ async function launchChromium(chromium) {
   await page.waitForTimeout(150);
   const disc = await page.evaluate(() => {
     const f = document.getElementById('cpf-disc');
-    const box = f.getBoundingClientRect(), inp = document.getElementById('cpd').getBoundingClientRect();
+    const inp = document.getElementById('cpd');
+    const suf = document.getElementById('cpd-suf');
+    // Width the hint needs, in the font actually rendering it
+    const ph = getComputedStyle(inp, '::placeholder'), box = getComputedStyle(inp);
+    const c = document.createElement('canvas').getContext('2d');
+    c.font = ph.fontWeight + ' ' + ph.fontSize + ' ' + ph.fontFamily;
     return {
       label: f.querySelector('.sym').textContent,
-      inputWidth: Math.round(inp.width),
+      suffix: suf.textContent.replace(/\u00a0/g, ' '),
+      // One client rect per rendered line — the element's own height is fixed,
+      // so dividing it by the line-height counts nothing.
+      lines: (() => { const r = document.createRange(); r.selectNodeContents(suf);
+                      return r.getClientRects().length })(),
+      rowHeight: Math.round(f.getBoundingClientRect().height),
+      inputWidth: Math.round(inp.getBoundingClientRect().width),
+      hint: Math.ceil(c.measureText(inp.placeholder).width),
+      pad: Math.round(parseFloat(box.paddingLeft) + parseFloat(box.paddingRight)),
       overflow: Math.round(f.scrollWidth - f.clientWidth),
-      bodyOverflow: document.body.scrollWidth - document.body.clientWidth,
-      boxWidth: Math.round(box.width)
+      bodyOverflow: document.body.scrollWidth - document.body.clientWidth
     };
   });
   ok('the field says Discount, not Disc', disc.label === 'Discount', disc.label);
-  ok('the input still has room to type in at 320px', disc.inputWidth >= 40,
-     'input ' + disc.inputWidth + 'px of ' + disc.boxWidth + 'px');
+  // The discount is a percentage off MRP; the bare "%" left that to be inferred
+  ok('and the suffix says what the percentage is of',
+     disc.suffix === '% on MRP + 18% GST', disc.suffix);
+  // Two lines fit the 38px row; one would take a third of the field's width
+  ok('which wraps to two lines without growing the row',
+     disc.lines === 2 && disc.rowHeight <= 42,
+     disc.lines + ' lines, row ' + disc.rowHeight + 'px');
+  ok('the hint still fits what is left of the field at 320px',
+     disc.hint + disc.pad <= disc.inputWidth,
+     'hint ' + disc.hint + 'px + ' + disc.pad + 'px padding in ' + disc.inputWidth + 'px');
   ok('and nothing overflows the field or the page',
      disc.overflow <= 0 && disc.bodyOverflow <= 0,
      'field ' + disc.overflow + 'px, page ' + disc.bodyOverflow + 'px');

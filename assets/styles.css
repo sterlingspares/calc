@@ -160,7 +160,13 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .field input{border:none;outline:none;background:transparent;padding:0 10px;height:38px;font-size:15px;font-family:var(--font-mono);font-weight:500;color:var(--text);width:100%;min-width:0}
 .field-next{display:none;flex-shrink:0;width:30px;height:30px;border-radius:50%;border:none;background:var(--accent);color:var(--accent-fg);cursor:pointer;margin-right:4px;align-items:center;justify-content:center;transition:opacity .15s;opacity:0.7}
 .field-next:hover{opacity:1}
-.field .field-suf{padding:0 10px;font-size:12px;font-weight:500;color:var(--text3);border-left:1px solid var(--border);height:38px;display:flex;align-items:center;white-space:nowrap;background:var(--surface2);flex-shrink:0}
+/* "% on MRP + 18% GST" on one line would take a third of the field. Wrapped to
+   two it still clears the 38px row, and it balances the two-line mode tabs
+   directly above. */
+.field .field-suf{padding:0 10px;font-size:12px;font-weight:500;color:var(--text3);border-left:1px solid var(--border);height:38px;display:flex;align-items:center;text-align:right;line-height:1.2;max-width:86px;background:var(--surface2);flex-shrink:0}
+/* The hint is not the data — at the input's own size it would not fit what is
+   left of a narrow field. */
+.field input::placeholder{font-family:var(--font-body);font-size:12.5px}
 @media(max-width:800px){.field-next{display:flex}}
 .rows{display:flex;flex-direction:column}
 .row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border);gap:8px}
@@ -555,7 +561,7 @@ html[data-theme="dark"] .fc-dot.cur{background:var(--text)}
 /* Set in fcMkField when the prefix is a word ("Discount") rather than a ₹ or
    % glyph — at 20px heading weight it would crowd out the number. */
 .fc-input-sym.word{font-family:var(--font-body);font-size:13px;font-weight:500;padding:0 12px}
-.fc-input-suf{padding:0 12px;font-size:13px;font-weight:500;color:var(--text3);border-left:1px solid var(--border);height:56px;display:flex;align-items:center;white-space:nowrap;flex-shrink:0;font-family:var(--font-body)}
+.fc-input-suf{padding:0 12px;font-size:13px;font-weight:500;color:var(--text3);border-left:1px solid var(--border);height:56px;display:flex;align-items:center;text-align:right;line-height:1.2;max-width:88px;flex-shrink:0;font-family:var(--font-body)}
 
 .fc-mode-tabs{display:flex;gap:6px;flex-wrap:wrap}
 .fc-tab{padding:6px 12px;border-radius:20px;border:1px solid var(--border-ctrl);background:transparent;font-size:11.5px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font-body);transition:all .15s}
@@ -597,7 +603,7 @@ html[data-theme="dark"] .fc-dot.cur{background:var(--text)}
 .wz-field{display:flex;align-items:center;background:var(--surface2);border:1.5px solid var(--border-ctrl);border-radius:8px;overflow:hidden;flex:1;transition:border .15s}
 .wz-field:focus-within{border-color:var(--accent)}
 .wz-sym{padding:0 10px;font-size:13px;font-weight:600;color:var(--text3);border-right:1px solid var(--border);height:36px;display:flex;align-items:center;white-space:nowrap;background:var(--surface)}
-.wz-suf{padding:0 10px;font-size:12px;font-weight:500;color:var(--text3);border-left:1px solid var(--border);height:36px;display:flex;align-items:center;white-space:nowrap;flex-shrink:0;background:var(--surface)}
+.wz-suf{padding:0 10px;font-size:12px;font-weight:500;color:var(--text3);border-left:1px solid var(--border);height:36px;display:flex;align-items:center;text-align:right;line-height:1.2;max-width:86px;flex-shrink:0;background:var(--surface)}
 .wz-input{border:none;outline:none;background:transparent;padding:0 10px;height:36px;font-size:15px;font-family:var(--font-mono);font-weight:500;color:var(--text);width:100%;min-width:0;user-select:text;-webkit-user-select:text}
 .wz-inc-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
 .wz-inc-row:last-child{border-bottom:none}

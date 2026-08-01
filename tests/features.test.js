@@ -2935,6 +2935,43 @@ typeInto('hist-search', 'brake');
 ok('nor is typing in the history search box', undoDepth() === 0, 'got ' + undoDepth());
 w.setHistQuery('');
 
+R.section('\n=== 29e. The discount fields say what the percentage is of ===');
+// A bare "%" left it to be inferred that the discount comes off MRP, which is
+// the one thing about the field a newcomer gets wrong.
+const sufOf = id => d.getElementById(id).textContent.replace(/ /g, ' ');
+
+freshCalc(1000, 40, 25);
+ok('cost discount is a percentage on MRP, plus GST',
+   sufOf('cpd-suf') === '% on MRP + 18% GST', sufOf('cpd-suf'));
+ok('and so is the sale discount',
+   sufOf('spd-suf') === '% on MRP + 18% GST', sufOf('spd-suf'));
+
+w.setGST(5);
+ok('the rate in the suffix follows the GST setting',
+   sufOf('cpd-suf') === '% on MRP + 5% GST', sufOf('cpd-suf'));
+w.setGST(18);
+
+// Nett Discount takes the price straight off MRP incl GST, so there is no
+// separate GST to add — but it is still a percentage on MRP.
+w.setCM('incl');
+ok('Nett Discount drops the GST part but keeps the base',
+   sufOf('cpd-suf') === '% on MRP', sufOf('cpd-suf'));
+ok('and the other card is unaffected',
+   sufOf('spd-suf') === '% on MRP + 18% GST', sufOf('spd-suf'));
+w.setSM('incl');
+ok('until it is switched too', sufOf('spd-suf') === '% on MRP');
+w.setCM('excl'); w.setSM('excl');
+
+ok('the wizard field says the same',
+   sufOf('wz-disc-suf').indexOf('% on MRP') === 0, sufOf('wz-disc-suf'));
+
+// The single normal space before the "+" is the only place it may break, so a
+// narrow field wraps to "% on MRP" / "+ 18% GST" rather than stranding the "+".
+const rawSuf = d.getElementById('cpd-suf').textContent;
+ok('only the break point is a normal space',
+   rawSuf.split(' ').length === 2 && rawSuf.split(' ')[1].charAt(0) === '+',
+   JSON.stringify(rawSuf));
+
 R.section('\n=== 30a. The default view stays uncluttered ===');
 // The main screen had grown to a control bar of 13, five derived rows per price
 // card, and a 17-cell summary in which five cells repeated numbers shown in the
